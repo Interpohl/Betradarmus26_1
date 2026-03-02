@@ -16,57 +16,98 @@ Build a modern, high-quality, trustworthy SaaS website for BETRADARMUS - an AI-p
 - Separate legal pages (Impressum, Datenschutz, Kontakt)
 - Professional, analytical tone - NO gambling marketing
 
-## What's Been Implemented (December 2025)
+## What's Been Implemented
 
-### Frontend
+### Phase 1 - MVP (December 2025)
 - ✅ Landing page with all sections (Hero, Problem, Solution, Technology, Audience, Pricing, Early Access, Disclaimer)
-- ✅ Animated Live Dashboard with real-time opportunity updates (3-second intervals)
+- ✅ Animated Live Dashboard with simulated data
 - ✅ Live Ticker marquee with match data
-- ✅ Pricing cards (FREE, PRO €19/month, ELITE €39/month) with animated Elite border
-- ✅ Early Access email signup form
-- ✅ Responsive navigation with mobile menu
+- ✅ Pricing cards (FREE, PRO €19/month, ELITE €39/month)
+- ✅ Early Access email signup form with MongoDB storage
 - ✅ Legal pages: /impressum, /datenschutz, /kontakt
 - ✅ Contact form with validation
-- ✅ Footer with navigation and social links
-- ✅ Dark theme with Neon-Green accents throughout
-- ✅ Typography: Barlow Condensed (headings), Manrope (body), JetBrains Mono (data)
+- ✅ Dark theme with Neon-Green accents
 
-### Backend
-- ✅ FastAPI server with /api prefix
-- ✅ POST /api/early-access - Email signup with duplicate check
-- ✅ GET /api/early-access/count - Signup count
-- ✅ POST /api/contact - Contact form submission
-- ✅ MongoDB integration for data persistence
+### Phase 2 - Core Features (December 2025)
+- ✅ **JWT User Authentication** (register, login, profile management)
+- ✅ **Stripe Subscription Payments** (checkout sessions, webhooks, transaction tracking)
+- ✅ **SofaScore API Integration** (live football data via RapidAPI)
+- ✅ **Premium Feature Gating** (Free: 5 opportunities, Pro: full access, Elite: AI insights)
+- ✅ **Real Live Dashboard** (authenticated users see real SofaScore data)
+- ✅ **Auth Modal** (login/register popup)
+- ✅ **Payment Success Page** with status polling
 
-### Design
-- ✅ "Bloomberg meets Football Analytics" aesthetic
-- ✅ Grid overlay backgrounds
-- ✅ Glassmorphism effects
-- ✅ Micro-animations (fade-in, pulse, hover states)
-- ✅ Mobile-first responsive design
+### Backend APIs
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| /api/auth/register | POST | No | User registration |
+| /api/auth/login | POST | No | User login, returns JWT |
+| /api/auth/me | GET | Yes | Get current user profile |
+| /api/payments/checkout | POST | Yes | Create Stripe checkout session |
+| /api/payments/status/{id} | GET | Yes | Check payment status |
+| /api/webhook/stripe | POST | No | Stripe webhook handler |
+| /api/analysis/opportunities | GET | Optional | Live market opportunities |
+| /api/live/matches | GET | Optional | Live football matches |
+| /api/live/leagues | GET | No | Available leagues |
+| /api/early-access | POST | No | Early access signup |
+| /api/contact | POST | No | Contact form |
+| /api/plans | GET | No | Subscription plans |
+
+### Subscription Tiers
+| Plan | Price | Features |
+|------|-------|----------|
+| FREE | €0 | 5 opportunities, 3 leagues, basic analysis |
+| PRO | €19/mo | Full access, Risk Score, Confidence, all Top-5 leagues |
+| ELITE | €39/mo | Priority updates, historical analysis, Explainable AI, API |
+
+### Technical Stack
+- **Frontend**: React 19, TailwindCSS, Shadcn/UI, Recharts
+- **Backend**: FastAPI, Motor (MongoDB async), JWT, bcrypt
+- **Database**: MongoDB
+- **APIs**: SofaScore via RapidAPI, Stripe
+- **Fonts**: Barlow Condensed, Manrope, JetBrains Mono
 
 ## Prioritized Backlog
 
 ### P0 (Critical - Not Yet Implemented)
-- None - MVP complete
+- None - all critical features complete
 
 ### P1 (High Priority - Future Features)
-- User authentication system
-- Actual live data integration
-- Dashboard with real market data
-- Payment integration (Stripe) for subscriptions
-- Email confirmation for Early Access signups
+- Email confirmation for registration (Resend API needed)
+- Password reset functionality
+- Subscription management (cancel, upgrade/downgrade)
+- Recurring billing with Stripe subscriptions
 
 ### P2 (Medium Priority)
-- Admin dashboard for managing signups
+- Admin dashboard for managing users/signups
 - Multi-language support (English)
-- Newsletter integration
-- Analytics/tracking implementation
-- Performance optimization
+- Notification system for high-EV opportunities
+- Historical data analysis view
+- Mobile app (React Native)
+
+### P3 (Low Priority)
+- Social login (Google OAuth)
+- Referral program
+- Affiliate tracking
+- Advanced analytics dashboard
+
+## Environment Variables
+```
+# Backend (.env)
+MONGO_URL=mongodb://localhost:27017
+DB_NAME=test_database
+CORS_ORIGINS=*
+STRIPE_API_KEY=sk_test_...
+SOFASCORE_API_KEY=...
+JWT_SECRET_KEY=...
+
+# Frontend (.env)
+REACT_APP_BACKEND_URL=https://...
+```
 
 ## Next Tasks
-1. Implement Stripe payment integration for PRO/ELITE subscriptions
-2. Build user authentication (JWT or OAuth)
-3. Connect to real live football data APIs
-4. Add email verification for Early Access
-5. Create admin panel for managing subscribers
+1. Add Resend email confirmation for user registration
+2. Implement password reset flow
+3. Add subscription management (Stripe customer portal)
+4. Build admin panel for user management
+5. Add push notifications for live opportunities
