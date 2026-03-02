@@ -1,5 +1,10 @@
-import React from 'react';
-import { Check, Zap, Crown, Star } from 'lucide-react';
+import React, { useState } from 'react';
+import { Check, Zap, Crown, Star, Loader2 } from 'lucide-react';
+import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
 
 const plans = {
   free: {
@@ -55,9 +60,58 @@ const plans = {
   }
 };
 
-export const PricingCard = ({ plan, onSelect }) => {
+export const PricingCard = ({ plan, onSelect, onAuthRequired }) => {
   const planData = plans[plan];
   const Icon = planData.icon;
+  const { isAuthenticated, user } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const isCurrentPlan = user?.subscription === plan;
+
+  const handleClick = async () => {
+    // For free plan, just select it
+    if (plan === 'free') {
+      if (onSelect) onSelect(plan);
+      return;
+    }
+
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      if (onAuthRequired) {
+        onAuthRequired(plan);
+      }
+      return;
+    }
+
+    // If user already has this plan, do nothing
+    if (isCurrentPlan) {
+      return;
+    }
+
+    // Create Stripe checkout session
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await axios.post(`${API}/payments/checkout`, {
+        plan: plan,
+        origin_url: window.location.origin
+      });
+
+      if (response.data.success && response.data.checkout_url) {
+        // Redirect to Stripe Checkout
+        window.location.href = response.data.checkout_url;
+      } else {
+        setError(response.data.message || 'Fehler beim Erstellen der Checkout-Session');
+      }
+    } catch (err) {
+      console.error('Checkout error:', err);
+      setError('Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div 
@@ -74,6 +128,13 @@ export const PricingCard = ({ plan, onSelect }) => {
       {planData.highlight && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#39FF14] text-black text-xs font-bold uppercase tracking-wider rounded-sm">
           Beliebt
+        </div>
+      )}
+
+      {/* Current Plan Badge */}
+      {isCurrentPlan && (
+        <div className="absolute -top-3 right-4 px-3 py-1 bg-[#00C2FF] text-black text-xs font-bold uppercase tracking-wider rounded-sm">
+          Aktuell
         </div>
       )}
 
@@ -116,19 +177,35 @@ export const PricingCard = ({ plan, onSelect }) => {
         ))}
       </ul>
 
+      {/* Error Message */}
+      {error && (
+        <p className="text-xs text-[#FF3B30] mb-4">{error}</p>
+      )}
+
       {/* CTA */}
       <button
-        onClick={() => onSelect && onSelect(plan)}
-        className={`w-full h-12 font-bold uppercase tracking-wide text-sm rounded-sm transition-all ${
-          planData.highlight 
-            ? 'bg-[#39FF14] text-black hover:bg-[#2ebb11] hover:shadow-[0_0_20px_rgba(57,255,20,0.4)]'
-            : planData.elite
-              ? 'bg-[#00C2FF] text-black hover:bg-[#00a8dd] hover:shadow-[0_0_20px_rgba(0,194,255,0.4)]'
-              : 'bg-white/5 text-white border border-white/10 hover:bg-white/10 hover:border-white/20'
+        onClick={handleClick}
+        disabled={loading || isCurrentPlan}
+        className={`w-full h-12 font-bold uppercase tracking-wide text-sm rounded-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
+          isCurrentPlan
+            ? 'bg-white/10 text-white border border-white/20'
+            : planData.highlight 
+              ? 'bg-[#39FF14] text-black hover:bg-[#2ebb11] hover:shadow-[0_0_20px_rgba(57,255,20,0.4)]'
+              : planData.elite
+                ? 'bg-[#00C2FF] text-black hover:bg-[#00a8dd] hover:shadow-[0_0_20px_rgba(0,194,255,0.4)]'
+                : 'bg-white/5 text-white border border-white/10 hover:bg-white/10 hover:border-white/20'
         }`}
         data-testid={`pricing-cta-${plan}`}
       >
-        {planData.cta}
+        {loading ? (
+          <Loader2 size={18} className="animate-spin" />
+        ) : isCurrentPlan ? (
+          'Aktueller Plan'
+        ) : !isAuthenticated && plan !== 'free' ? (
+          'Anmelden & Upgraden'
+        ) : (
+          planData.cta
+        )}
       </button>
     </div>
   );

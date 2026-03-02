@@ -4,9 +4,12 @@ import {
   Server, Cpu, Globe, TrendingUp, ChevronRight, Users, Target, LineChart
 } from 'lucide-react';
 import { LiveDashboard } from '../components/LiveDashboard';
+import { LiveDashboardReal } from '../components/LiveDashboardReal';
 import { LiveTicker } from '../components/LiveTicker';
 import { EarlyAccessForm } from '../components/EarlyAccessForm';
 import { PricingCard } from '../components/PricingCard';
+import { AuthModal } from '../components/AuthModal';
+import { useAuth } from '../context/AuthContext';
 
 const features = [
   {
@@ -87,6 +90,9 @@ const personas = [
 
 export const Landing = () => {
   const [selectedPlan, setSelectedPlan] = useState(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pendingPlan, setPendingPlan] = useState(null);
+  const { isAuthenticated } = useAuth();
 
   const handlePlanSelect = (plan) => {
     setSelectedPlan(plan);
@@ -94,6 +100,26 @@ export const Landing = () => {
     if (earlyAccessSection) {
       earlyAccessSection.scrollIntoView({ behavior: 'smooth' });
     }
+  };
+
+  const handleAuthRequired = (plan) => {
+    setPendingPlan(plan);
+    setShowAuthModal(true);
+  };
+
+  const handleAuthClose = () => {
+    setShowAuthModal(false);
+    // If user just authenticated and had a pending plan, scroll to pricing
+    if (pendingPlan && isAuthenticated) {
+      setTimeout(() => {
+        document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+      }, 500);
+    }
+    setPendingPlan(null);
+  };
+
+  const scrollToPricing = () => {
+    document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   return (
@@ -142,7 +168,11 @@ export const Landing = () => {
 
             {/* Right Column - Dashboard */}
             <div className="lg:col-span-7 animate-fade-in-up animation-delay-400">
-              <LiveDashboard />
+              {isAuthenticated ? (
+                <LiveDashboardReal onUpgradeClick={scrollToPricing} />
+              ) : (
+                <LiveDashboard />
+              )}
             </div>
           </div>
         </div>
@@ -338,9 +368,9 @@ export const Landing = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto">
-            <PricingCard plan="free" onSelect={handlePlanSelect} />
-            <PricingCard plan="pro" onSelect={handlePlanSelect} />
-            <PricingCard plan="elite" onSelect={handlePlanSelect} />
+            <PricingCard plan="free" onSelect={handlePlanSelect} onAuthRequired={handleAuthRequired} />
+            <PricingCard plan="pro" onSelect={handlePlanSelect} onAuthRequired={handleAuthRequired} />
+            <PricingCard plan="elite" onSelect={handlePlanSelect} onAuthRequired={handleAuthRequired} />
           </div>
         </div>
       </section>
@@ -386,6 +416,13 @@ export const Landing = () => {
           </div>
         </div>
       </section>
+
+      {/* Auth Modal */}
+      <AuthModal 
+        isOpen={showAuthModal} 
+        onClose={handleAuthClose} 
+        initialMode="register"
+      />
     </div>
   );
 };

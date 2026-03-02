@@ -15,6 +15,9 @@ class BetradarmusAPITester:
         self.tests_run = 0
         self.tests_passed = 0
         self.failed_tests = []
+        self.token = None
+        self.test_user_email = "test@betradarmus.de"
+        self.test_user_password = "test12345"
 
     def log(self, message):
         print(f"[{datetime.now().strftime('%H:%M:%S')}] {message}")
@@ -154,32 +157,192 @@ class BetradarmusAPITester:
         
         return success
 
-    def test_status_endpoint(self):
-        """Test status check endpoints"""
-        # Create status check
-        status_data = {"client_name": "test_client"}
+    # ========== NEW AUTHENTICATION & PAYMENT FEATURES ==========
+
+    def test_user_registration(self):
+        """Test user registration endpoint"""
+        register_data = {
+            "name": "Test User",
+            "email": self.test_user_email,
+            "password": self.test_user_password
+        }
         
         success, response = self.run_test(
-            "Create Status Check",
+            "User Registration",
             "POST",
-            "status",
+            "auth/register",
             200,
-            data=status_data
+            data=register_data
         )
         
-        if not success:
+        if success and response.get('success'):
+            self.log(f"   Registration successful for: {response.get('user', {}).get('email')}")
+            if response.get('token'):
+                self.token = response['token']
+                self.log("   JWT token received")
+        
+        return success
+
+    def test_user_login(self):
+        """Test user login endpoint"""
+        login_data = {
+            "email": self.test_user_email,
+            "password": self.test_user_password
+        }
+        
+        success, response = self.run_test(
+            "User Login",
+            "POST",
+            "auth/login",
+            200,
+            data=login_data
+        )
+        
+        if success and response.get('success'):
+            self.log(f"   Login successful for: {response.get('user', {}).get('email')}")
+            if response.get('token'):
+                self.token = response['token']
+                self.log("   JWT token received and stored")
+        
+        return success
+
+    def test_protected_route_me(self):
+        """Test protected /auth/me endpoint"""
+        if not self.token:
+            self.log("❌ No token available for authentication test")
             return False
             
-        # Get status checks
+        headers = {"Authorization": f"Bearer {self.token}"}
+        
         success, response = self.run_test(
-            "Get Status Checks",
+            "Protected Route /auth/me",
             "GET",
-            "status",
+            "auth/me",
+            200,
+            headers=headers
+        )
+        
+        if success and response.get('email'):
+            self.log(f"   User data retrieved: {response.get('email')} (subscription: {response.get('subscription')})")
+        
+        return success
+
+    def test_live_opportunities_free_user(self):
+        """Test live opportunities endpoint without authentication (free user)"""
+        success, response = self.run_test(
+            "Live Opportunities (Free User)",
+            "GET",
+            "analysis/opportunities",
             200
         )
         
-        if success and isinstance(response, list):
-            self.log(f"   Retrieved {len(response)} status checks")
+        if success and 'opportunities' in response:
+            opportunities = response['opportunities']
+            self.log(f"   Retrieved {len(opportunities)} opportunities for free user")
+            if len(opportunities) <= 5:
+                self.log(f"   ✅ Free user limit enforced (max 5, got {len(opportunities)})")
+            else:
+                self.log(f"   ⚠️ Free user limit issue (expected max 5, got {len(opportunities)})")
+        
+        return success
+
+    def test_live_opportunities_authenticated(self):
+        """Test live opportunities endpoint with authentication"""
+        if not self.token:
+            self.log("❌ No token available for authenticated opportunities test")
+            return False
+            
+        headers = {"Authorization": f"Bearer {self.token}"}
+        
+        success, response = self.run_test(
+            "Live Opportunities (Authenticated)",
+            "GET",
+            "analysis/opportunities",
+            200,
+            headers=headers
+        )
+        
+        if success and 'opportunities' in response:
+            opportunities = response['opportunities']
+            is_premium = response.get('is_premium', False)
+            self.log(f"   Retrieved {len(opportunities)} opportunities (premium: {is_premium})")
+            
+            # Check if opportunities have expected structure
+            if opportunities and len(opportunities) > 0:
+                opp = opportunities[0]
+                required_fields = ['id', 'match', 'market', 'confidence', 'risk_score', 'ev']
+                missing_fields = [field for field in required_fields if field not in opp]
+                if not missing_fields:
+                    self.log("   ✅ Opportunity structure complete")
+                else:
+                    self.log(f"   ⚠️ Missing fields in opportunity: {missing_fields}")
+        
+        return success
+
+    def test_payment_checkout_auth_required(self):
+        """Test payment checkout endpoint (requires authentication)"""
+        if not self.token:
+            self.log("❌ No token available for payment checkout test")
+            return False
+            
+        checkout_data = {
+            "plan": "pro",
+            "origin_url": "https://betradarmus-live.preview.emergentagent.com"
+        }
+        
+        headers = {"Authorization": f"Bearer {self.token}"}
+        
+        success, response = self.run_test(
+            "Payment Checkout (Pro Plan)",
+            "POST",
+            "payments/checkout",
+            200,
+            data=checkout_data,
+            headers=headers
+        )
+        
+        if success and response.get('success'):
+            checkout_url = response.get('checkout_url', '')
+            session_id = response.get('session_id', '')
+            self.log(f"   Checkout session created: {session_id[:20]}...")
+            if 'stripe.com' in checkout_url:
+                self.log("   ✅ Stripe checkout URL generated")
+        
+        return success
+
+    def test_subscription_plans_endpoint(self):
+        """Test subscription plans endpoint"""
+        success, response = self.run_test(
+            "Subscription Plans",
+            "GET",
+            "plans",
+            200
+        )
+        
+        if success and 'plans' in response:
+            plans = response['plans']
+            self.log(f"   Retrieved {len(plans)} subscription plans")
+            
+            plan_names = [plan.get('id') for plan in plans]
+            expected_plans = ['free', 'pro', 'elite']
+            
+            if all(plan in plan_names for plan in expected_plans):
+                self.log("   ✅ All expected plans available (free, pro, elite)")
+            else:
+                self.log(f"   ⚠️ Plans mismatch. Expected: {expected_plans}, Got: {plan_names}")
+                
+            # Check pricing
+            for plan in plans:
+                if plan.get('id') == 'pro':
+                    if plan.get('price') == 19:
+                        self.log("   ✅ Pro plan pricing correct (€19)")
+                    else:
+                        self.log(f"   ⚠️ Pro plan pricing issue: expected €19, got €{plan.get('price')}")
+                elif plan.get('id') == 'elite':
+                    if plan.get('price') == 39:
+                        self.log("   ✅ Elite plan pricing correct (€39)")
+                    else:
+                        self.log(f"   ⚠️ Elite plan pricing issue: expected €39, got €{plan.get('price')}")
         
         return success
 
@@ -189,17 +352,30 @@ class BetradarmusAPITester:
         self.log(f"Testing against: {self.api_url}")
         self.log("=" * 50)
 
-        test_methods = [
+        # Test authentication and new features first
+        auth_tests = [
+            self.test_user_registration,
+            self.test_user_login, 
+            self.test_protected_route_me,
+            self.test_live_opportunities_free_user,
+            self.test_live_opportunities_authenticated,
+            self.test_payment_checkout_auth_required,
+            self.test_subscription_plans_endpoint
+        ]
+
+        # Legacy tests
+        legacy_tests = [
             self.test_root_endpoint,
             self.test_early_access_signup,
             self.test_early_access_count,
             self.test_early_access_duplicate_email,
             self.test_contact_form,
-            self.test_invalid_contact_form,
-            self.test_status_endpoint
+            self.test_invalid_contact_form
         ]
 
-        for test_method in test_methods:
+        all_tests = auth_tests + legacy_tests
+
+        for test_method in all_tests:
             try:
                 test_method()
             except Exception as e:
