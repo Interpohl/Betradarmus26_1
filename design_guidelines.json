@@ -1,0 +1,123 @@
+{
+  "project_name": "BETRADARMUS",
+  "identity": {
+    "claim": "Live-Fußball intelligent analysiert",
+    "tone": "Analytical, Precise, High-Frequency, Trustworthy, 'Bloomberg for Football'",
+    "aesthetic": "Fintech Sports Data - Dark, Neon, Dense, Grid-heavy"
+  },
+  "typography": {
+    "headings": {
+      "font_family": "Barlow Condensed, sans-serif",
+      "weight": "700",
+      "style": "Uppercase for top-level headers, Tight tracking",
+      "sizes": {
+        "h1": "text-6xl md:text-8xl tracking-tighter uppercase font-bold",
+        "h2": "text-4xl md:text-5xl tracking-tight uppercase font-semibold",
+        "h3": "text-2xl md:text-3xl tracking-tight uppercase font-medium"
+      }
+    },
+    "body": {
+      "font_family": "Manrope, sans-serif",
+      "weight": "400",
+      "style": "Clean, high legibility",
+      "sizes": {
+        "base": "text-base leading-relaxed text-gray-300",
+        "small": "text-sm text-gray-400"
+      }
+    },
+    "mono": {
+      "font_family": "JetBrains Mono, monospace",
+      "usage": "Data points, Timestamps, Odds, Risk Scores",
+      "style": "text-xs or text-sm tracking-wide"
+    }
+  },
+  "colors": {
+    "theme": "dark",
+    "palette": {
+      "background": "#0a0a0a",
+      "surface": "#121212",
+      "surface_highlight": "#1A1A1A",
+      "primary": "#39FF14",
+      "primary_dim": "#2ebb11",
+      "secondary": "#00C2FF",
+      "danger": "#FF3B30",
+      "warning": "#FFD60A",
+      "text_main": "#EDEDED",
+      "text_muted": "#A1A1AA",
+      "border": "#27272A"
+    },
+    "gradients": {
+      "hero_glow": "radial-gradient(circle at center, rgba(57, 255, 20, 0.15) 0%, rgba(10, 10, 10, 0) 70%)",
+      "surface_sheen": "linear-gradient(145deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 100%)"
+    }
+  },
+  "visual_enhancers": {
+    "borders": "1px solid rgba(255,255,255,0.08)",
+    "glassmorphism": "backdrop-blur-xl bg-black/60 border border-white/10",
+    "neon_glow": "box-shadow: 0 0 10px rgba(57, 255, 20, 0.3)",
+    "grid_overlay": "background-size: 40px 40px; background-image: linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);",
+    "tracing_beam": "Animated gradient border for 'Elite' pricing card and key features"
+  },
+  "component_strategies": {
+    "buttons": {
+      "primary": "bg-[#39FF14] text-black font-bold uppercase tracking-wide hover:bg-[#32e012] hover:shadow-[0_0_20px_rgba(57,255,20,0.4)] transition-all",
+      "secondary": "bg-white/5 border border-white/10 text-white hover:bg-white/10 hover:border-white/20 uppercase tracking-wide transition-all",
+      "outline": "border border-[#39FF14] text-[#39FF14] hover:bg-[#39FF14]/10 uppercase tracking-wide"
+    },
+    "cards": {
+      "style": "bg-[#121212] border border-white/5 rounded-none md:rounded-sm hover:border-white/10 transition-colors",
+      "padding": "p-6 or p-8"
+    },
+    "inputs": {
+      "style": "bg-[#0a0a0a] border border-white/10 text-white focus:border-[#39FF14] focus:ring-1 focus:ring-[#39FF14] rounded-sm h-12"
+    },
+    "badges": {
+      "live": "bg-[#39FF14]/10 text-[#39FF14] border border-[#39FF14]/20 animate-pulse font-mono text-xs px-2 py-0.5 uppercase",
+      "risk": "bg-red-500/10 text-red-500 border border-red-500/20 font-mono text-xs px-2 py-0.5 uppercase"
+    }
+  },
+  "layout_grids": {
+    "hero": "Grid with 12 columns. Left 7 cols for text, Right 5 cols for 'Live Dashboard Simulation' graphic.",
+    "bento": "Grid with dense packing. Use col-span-2 or col-span-3 for emphasis. No gaps larger than gap-6.",
+    "section_spacing": "py-24 or py-32 for major sections. gap-12 for content."
+  },
+  "motion": {
+    "entrance": "Staggered fade-in-up for lists. Duration 0.4s.",
+    "hover": "Scale 1.02 for cards. Brightness 1.1 for buttons.",
+    "infinite": "Marquee for 'Live Opportunities' feed. Pulsing green dot for 'Live' status."
+  },
+  "image_urls": {
+    "hero_bg": "https://images.unsplash.com/photo-1697562160779-fed83c21a2cd?q=80&w=2000&auto=format&fit=crop",
+    "tech_bg": "https://images.unsplash.com/photo-1764303017897-16f5009d2bb1?q=80&w=2000&auto=format&fit=crop",
+    "architecture_bg": "https://images.unsplash.com/photo-1680992045535-95919d4971a9?q=80&w=2000&auto=format&fit=crop",
+    "persona_analyst": "https://images.unsplash.com/photo-1770894807442-108cc33c0a7a?q=80&w=800&auto=format&fit=crop",
+    "persona_fan": "https://images.unsplash.com/photo-1635880146777-1f84aeec8958?q=80&w=800&auto=format&fit=crop",
+    "persona_trader": "https://images.unsplash.com/photo-1766218329569-53c9270bb305?q=80&w=800&auto=format&fit=crop"
+  },
+  "pages_structure": {
+    "landing": [
+      "Hero (Live Dashboard Sim + Value Prop)",
+      "Live Feed Marquee (Ticker style)",
+      "Problem (The Market Inefficiency)",
+      "Solution (Risk Score, EV, AI)",
+      "Technology (Speed/Architecture)",
+      "Audience (3 Personas)",
+      "Pricing (SaaS Tiers)",
+      "Early Access (Email Capture)",
+      "Footer"
+    ],
+    "legal": ["Impressum", "Datenschutz", "Kontakt"]
+  },
+  "universal_guidelines": [
+    "Do not use gradients for text. Keep text sharp and legible.",
+    "Use uppercase for all labels (e.g., 'RISK SCORE', 'CONFIDENCE').",
+    "Ensure all numbers are monospace (JetBrains Mono).",
+    "Interactive elements must have a distinct hover state (glow or border color change).",
+    "Use 'Barlow Condensed' for all major headings to maintain the sports/analytics brand.",
+    "Never use pure black (#000000) for backgrounds; use #0a0a0a or #121212.",
+    "Neon Green (#39FF14) should be used sparingly for high-impact elements only (CTAs, Live Indicators, Profit stats).",
+    "All components must be responsive. Mobile: Stacked. Desktop: Grid.",
+    "Use Lucide React for icons. Style them with stroke-width=1.5 for a technical look."
+  ],
+  "instructions_to_main_agent": "You are building the frontend for BETRADARMUS. Focus on the 'Bloomberg Terminal' aesthetic. It must look expensive, fast, and precise. Use the provided image URLs for backgrounds and personas. For the 'Live Dashboard' in the Hero, create a visual simulation using CSS Grid, Borders, and Monospace text. Do not use actual complex charting libraries if a simple CSS composition can achieve the 'Look'. Use Recharts if charts are strictly necessary. Implement the 'Early Access' form to send data to a MongoDB backend (simulate the API call structure). Create separate pages for Legal content."
+}
