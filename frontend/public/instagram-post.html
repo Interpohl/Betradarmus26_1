@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BETRADARMUS Instagram Post</title>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .post {
+            width: 1080px;
+            height: 1080px;
+            background: linear-gradient(180deg, #0a0a0a 0%, #0d0d0d 50%, #0a0a0a 100%);
+            position: relative;
+            overflow: hidden;
+            font-family: 'Manrope', sans-serif;
+        }
+
+        /* Grid Background */
+        .grid-overlay {
+            position: absolute;
+            inset: 0;
+            background-size: 40px 40px;
+            background-image: 
+                linear-gradient(to right, rgba(57, 255, 20, 0.04) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(57, 255, 20, 0.04) 1px, transparent 1px);
+        }
+
+        /* Glow Effects */
+        .glow {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(57, 255, 20, 0.2) 0%, transparent 70%);
+            top: -200px;
+            right: -100px;
+            pointer-events: none;
+        }
+
+        .glow-2 {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(0, 194, 255, 0.1) 0%, transparent 70%);
+            bottom: -150px;
+            left: -100px;
+            pointer-events: none;
+        }
+
+        /* Content Container */
+        .content {
+            position: relative;
+            z-index: 10;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 60px;
+        }
+
+        /* Top Section */
+        .top-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        /* Logo */
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo-icon {
+            width: 56px;
+            height: 56px;
+            background: #39FF14;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+        }
+
+        .logo-icon svg {
+            width: 32px;
+            height: 32px;
+        }
+
+        .logo-text {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 32px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
+            color: #fff;
+        }
+
+        /* Live Badge */
+        .live-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            background: rgba(57, 255, 20, 0.1);
+            border: 2px solid rgba(57, 255, 20, 0.3);
+            border-radius: 6px;
+        }
+
+        .live-dot {
+            width: 10px;
+            height: 10px;
+            background: #39FF14;
+            border-radius: 50%;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.2); }
+        }
+
+        .live-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: #39FF14;
+        }
+
+        /* Center Section - Main Message */
+        .center-section {
+            text-align: center;
+            padding: 0 20px;
+        }
+
+        .main-headline {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 72px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
+            color: #fff;
+            line-height: 1.0;
+            margin-bottom: 24px;
+        }
+
+        .main-headline .highlight {
+            color: #39FF14;
+        }
+
+        .sub-headline {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 28px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #A1A1AA;
+            margin-bottom: 40px;
+        }
+
+        /* Stats Row */
+        .stats-row {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+        }
+
+        .stat-box {
+            padding: 20px 30px;
+            background: rgba(18, 18, 18, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 36px;
+            font-weight: 600;
+            color: #39FF14;
+            margin-bottom: 4px;
+        }
+
+        .stat-value.blue {
+            color: #00C2FF;
+        }
+
+        .stat-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: #A1A1AA;
+        }
+
+        /* Bottom Section */
+        .bottom-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .tagline {
+            font-family: 'Manrope', sans-serif;
+            font-size: 16px;
+            color: #A1A1AA;
+            max-width: 300px;
+            line-height: 1.5;
+        }
+
+        .cta-text {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 20px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #39FF14;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cta-text svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* Decorative Line */
+        .deco-line {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, transparent, #39FF14, #00C2FF, transparent);
+        }
+    </style>
+</head>
+<body>
+    <div class="post" id="post">
+        <!-- Background Effects -->
+        <div class="grid-overlay"></div>
+        <div class="glow"></div>
+        <div class="glow-2"></div>
+
+        <!-- Content -->
+        <div class="content">
+            <!-- Top Section -->
+            <div class="top-section">
+                <div class="logo-container">
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                    </div>
+                    <span class="logo-text">Betradarmus</span>
+                </div>
+                <div class="live-badge">
+                    <div class="live-dot"></div>
+                    <span class="live-text">Live</span>
+                </div>
+            </div>
+
+            <!-- Center Section -->
+            <div class="center-section">
+                <h1 class="main-headline">
+                    Live-Fußball<br>
+                    <span class="highlight">Intelligent</span><br>
+                    Analysiert
+                </h1>
+                <p class="sub-headline">KI-gestützte Marktanalyse in Echtzeit</p>
+                
+                <div class="stats-row">
+                    <div class="stat-box">
+                        <div class="stat-value">87%</div>
+                        <div class="stat-label">Confidence</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">LOW</div>
+                        <div class="stat-label">Risk Score</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value blue">+12.4%</div>
+                        <div class="stat-label">EV Bucket</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Section -->
+            <div class="bottom-section">
+                <p class="tagline">Risikobewertung und Echtzeit-Wahrscheinlichkeiten für ambitionierte Analysten.</p>
+                <div class="cta-text">
+                    Jetzt Early Access sichern
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                        <polyline points="12 5 19 12 12 19"></polyline>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Decorative Line -->
+        <div class="deco-line"></div>
+    </div>
+</body>
+</html>
