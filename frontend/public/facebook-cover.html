@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BETRADARMUS Facebook Cover</title>
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Manrope:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .cover {
+            width: 820px;
+            height: 312px;
+            background: linear-gradient(135deg, #0a0a0a 0%, #0d0d0d 50%, #0a0a0a 100%);
+            position: relative;
+            overflow: hidden;
+            font-family: 'Manrope', sans-serif;
+        }
+
+        /* Grid Background */
+        .grid-overlay {
+            position: absolute;
+            inset: 0;
+            background-size: 30px 30px;
+            background-image: 
+                linear-gradient(to right, rgba(57, 255, 20, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(57, 255, 20, 0.03) 1px, transparent 1px);
+            opacity: 0.8;
+        }
+
+        /* Glow Effect */
+        .glow {
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(57, 255, 20, 0.15) 0%, transparent 70%);
+            top: -100px;
+            right: -50px;
+            pointer-events: none;
+        }
+
+        .glow-2 {
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(0, 194, 255, 0.08) 0%, transparent 70%);
+            bottom: -100px;
+            left: 100px;
+            pointer-events: none;
+        }
+
+        /* Content */
+        .content {
+            position: relative;
+            z-index: 10;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            padding: 0 50px;
+        }
+
+        .left-section {
+            flex: 1;
+        }
+
+        /* Logo */
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .logo-icon {
+            width: 44px;
+            height: 44px;
+            background: #39FF14;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+
+        .logo-icon svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .logo-text {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 32px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: -0.02em;
+            color: #fff;
+        }
+
+        /* Tagline */
+        .tagline {
+            font-family: 'Barlow Condensed', sans-serif;
+            font-size: 28px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            color: #39FF14;
+            margin-bottom: 12px;
+            line-height: 1.1;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #A1A1AA;
+            max-width: 380px;
+            line-height: 1.5;
+        }
+
+        /* Live Badge */
+        .live-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            background: rgba(57, 255, 20, 0.1);
+            border: 1px solid rgba(57, 255, 20, 0.2);
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: #39FF14;
+            border-radius: 50%;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.2); }
+        }
+
+        .live-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #39FF14;
+        }
+
+        /* Right Section - Stats */
+        .right-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding-left: 40px;
+            border-left: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .stat-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 10px 16px;
+            background: rgba(18, 18, 18, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .stat-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #A1A1AA;
+            min-width: 80px;
+        }
+
+        .stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            font-weight: 500;
+            color: #39FF14;
+        }
+
+        .stat-value.blue {
+            color: #00C2FF;
+        }
+
+        .stat-value.white {
+            color: #EDEDED;
+        }
+
+        /* Confidence Bar */
+        .confidence-bar {
+            width: 60px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: #39FF14;
+            border-radius: 2px;
+        }
+
+        /* Decorative Elements */
+        .corner-accent {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 4px;
+        }
+
+        .corner-accent span {
+            width: 4px;
+            height: 4px;
+            background: #39FF14;
+            opacity: 0.5;
+        }
+
+        .corner-accent span:nth-child(2) {
+            opacity: 0.3;
+        }
+
+        .corner-accent span:nth-child(3) {
+            opacity: 0.15;
+        }
+    </style>
+</head>
+<body>
+    <div class="cover" id="cover">
+        <!-- Background Effects -->
+        <div class="grid-overlay"></div>
+        <div class="glow"></div>
+        <div class="glow-2"></div>
+
+        <!-- Content -->
+        <div class="content">
+            <div class="left-section">
+                <!-- Logo -->
+                <div class="logo-container">
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                        </svg>
+                    </div>
+                    <span class="logo-text">Betradarmus</span>
+                </div>
+
+                <!-- Tagline -->
+                <div class="tagline">Live-Fußball intelligent analysiert</div>
+                <p class="subtitle">KI-gestützte Marktanalyse mit Risikobewertung und Echtzeit-Wahrscheinlichkeiten für ambitionierte Analysten.</p>
+
+                <!-- Live Badge -->
+                <div class="live-badge">
+                    <div class="live-dot"></div>
+                    <span class="live-text">Live Analysis Active</span>
+                </div>
+            </div>
+
+            <div class="right-section">
+                <div class="stat-row">
+                    <span class="stat-label">Confidence</span>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" style="width: 87%"></div>
+                    </div>
+                    <span class="stat-value">87%</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">Risk Score</span>
+                    <span class="stat-value white">LOW (24)</span>
+                </div>
+                <div class="stat-row">
+                    <span class="stat-label">EV Bucket</span>
+                    <span class="stat-value blue">+12.4%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Corner Accent -->
+        <div class="corner-accent">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </div>
+</body>
+</html>
