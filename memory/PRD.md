@@ -1,113 +1,95 @@
 # BETRADARMUS - Product Requirements Document
 
 ## Original Problem Statement
-Build a modern, high-quality, trustworthy SaaS website for BETRADARMUS - an AI-powered live football/soccer analysis platform. The platform analyzes live markets, probabilities, and market inefficiencies in real-time. NOT a betting provider - provides data-based market analysis and risk assessments.
+Modern, high-quality, trustworthy SaaS website for AI startup "BETRADARMUS" - Live football intelligently analyzed. AI-powered live sports analysis platform for football markets.
 
-## User Personas
-1. **Data-Driven Fans** - Football fans seeking data-based insights and analytical understanding of games
-2. **Market Analysts** - Professional analysts systematically evaluating market movements and probabilities  
-3. **Performance Users** - Ambitious users requiring maximum speed and precise risk assessments
+## Target Audience
+- Ambitious sports analysts
+- Data-savvy football fans
+- Semi-professional market observers
+- Tech-savvy users
 
-## Core Requirements
-- Dark premium theme (Anthracite/Black) with Neon-Green (#39FF14) accent
-- German language website
-- Animated live dashboard mockup with simulated data
-- Real email capture for Early Access (MongoDB storage)
-- Separate legal pages (Impressum, Datenschutz, Kontakt)
-- Professional, analytical tone - NO gambling marketing
+## Design
+- Dark premium theme (anthracite/black) with neon-green accent
+- Tech/fintech aesthetic ("Bloomberg meets Football Analytics")
 
-## What's Been Implemented
-
-### Phase 1 - MVP (December 2025)
-- ✅ Landing page with all sections (Hero, Problem, Solution, Technology, Audience, Pricing, Early Access, Disclaimer)
-- ✅ Animated Live Dashboard with simulated data
-- ✅ Live Ticker marquee with match data
-- ✅ Pricing cards (FREE, PRO €19/month, ELITE €39/month)
-- ✅ Early Access email signup form with MongoDB storage
-- ✅ Legal pages: /impressum, /datenschutz, /kontakt
-- ✅ Contact form with validation
-- ✅ Dark theme with Neon-Green accents
-
-### Phase 2 - Core Features (December 2025)
-- ✅ **JWT User Authentication** (register, login, profile management)
-- ✅ **Stripe Subscription Payments** (checkout sessions, webhooks, transaction tracking)
-- ✅ **SofaScore API Integration** (live football data via RapidAPI)
-- ✅ **Premium Feature Gating** (Free: 5 opportunities, Pro: full access, Elite: AI insights)
-- ✅ **Real Live Dashboard** (authenticated users see real SofaScore data)
-- ✅ **Auth Modal** (login/register popup)
-- ✅ **Payment Success Page** with status polling
-
-### Backend APIs
-| Endpoint | Method | Auth | Description |
-|----------|--------|------|-------------|
-| /api/auth/register | POST | No | User registration |
-| /api/auth/login | POST | No | User login, returns JWT |
-| /api/auth/me | GET | Yes | Get current user profile |
-| /api/payments/checkout | POST | Yes | Create Stripe checkout session |
-| /api/payments/status/{id} | GET | Yes | Check payment status |
-| /api/webhook/stripe | POST | No | Stripe webhook handler |
-| /api/analysis/opportunities | GET | Optional | Live market opportunities |
-| /api/live/matches | GET | Optional | Live football matches |
-| /api/live/leagues | GET | No | Available leagues |
-| /api/early-access | POST | No | Early access signup |
-| /api/contact | POST | No | Contact form |
-| /api/plans | GET | No | Subscription plans |
-
-### Subscription Tiers
-| Plan | Price | Features |
-|------|-------|----------|
-| FREE | €0 | 5 opportunities, 3 leagues, basic analysis |
-| PRO | €19/mo | Full access, Risk Score, Confidence, all Top-5 leagues |
-| ELITE | €39/mo | Priority updates, historical analysis, Explainable AI, API |
-
-### Technical Stack
-- **Frontend**: React 19, TailwindCSS, Shadcn/UI, Recharts
-- **Backend**: FastAPI, Motor (MongoDB async), JWT, bcrypt
+## Tech Stack
+- **Frontend**: React, Tailwind CSS, Shadcn UI
+- **Backend**: FastAPI (Python)
 - **Database**: MongoDB
-- **APIs**: SofaScore via RapidAPI, Stripe
-- **Fonts**: Barlow Condensed, Manrope, JetBrains Mono
+- **Authentication**: JWT
+- **Payments**: Stripe (test mode)
+- **Deployment**: Docker, Docker Compose, Nginx on Strato V-Server
 
-## Prioritized Backlog
+## Deployment Info
+- **Server**: Strato V-Server (87.106.8.138)
+- **Domain**: betradarmus.de
+- **GitHub**: https://github.com/Interpohl/Betradarmus26_1
+- **Ports**: Frontend 3005, Backend 8005
 
-### P0 (Critical - Not Yet Implemented)
-- None - all critical features complete
+---
 
-### P1 (High Priority - Future Features)
-- Email confirmation for registration (Resend API needed)
-- Password reset functionality
-- Subscription management (cancel, upgrade/downgrade)
-- Recurring billing with Stripe subscriptions
+## Completed Features ✅
 
-### P2 (Medium Priority)
-- Admin dashboard for managing users/signups
-- Multi-language support (English)
-- Notification system for high-EV opportunities
-- Historical data analysis view
-- Mobile app (React Native)
+### December 2024 - March 2025
+- [x] Full landing page with all sections (Hero, Problem, Solution, Technology, Pricing, Footer)
+- [x] JWT-based user authentication (register/login)
+- [x] Stripe payment integration (PRO/ELITE plans)
+- [x] Early Access email capture form
+- [x] Contact form (saves to MongoDB)
+- [x] Docker deployment on Strato V-Server
+- [x] SSL certificate for betradarmus.de
+- [x] SEO files (sitemap.xml, robots.txt)
+- [x] Social media graphics created
 
-### P3 (Low Priority)
-- Social login (Google OAuth)
-- Referral program
-- Affiliate tracking
-- Advanced analytics dashboard
+### March 3, 2025
+- [x] **Impressum page** - /impressum with full company details
+- [x] **AGB page** - /agb (Terms & Conditions)
+- [x] **Datenschutz page** - /datenschutz (Privacy Policy)
+- [x] **Footer updated** - Added AGB link
+- [x] **Kontakt page updated** - Correct company address, email, phone from Impressum
+- [x] All legal pages deployed to production
 
-## Environment Variables
-```
-# Backend (.env)
-MONGO_URL=mongodb://localhost:27017
-DB_NAME=test_database
-CORS_ORIGINS=*
-STRIPE_API_KEY=sk_test_...
-SOFASCORE_API_KEY=...
-JWT_SECRET_KEY=...
+---
 
-# Frontend (.env)
-REACT_APP_BACKEND_URL=https://...
-```
+## In Progress / Blocked 🟡
 
-## Next Tasks
-1. Add Resend email confirmation for user registration
-2. Implement password reset flow
-3. Add subscription management (Stripe customer portal)
-4. Build admin panel for user management
-5. Add push notifications for live opportunities
+### Live Data Integration (P1) - BLOCKED
+- **Status**: Waiting for user to subscribe to API-Football on RapidAPI
+- **Issue**: Simulated data currently in use
+- **Next Steps**: 
+  1. User subscribes to https://rapidapi.com/api-sports/api/api-football
+  2. Implement real API calls in /api/analysis/opportunities endpoint
+
+### api.betradarmus.de Subdomain (P2)
+- **Status**: DNS configured, awaiting SSL certificate
+- **Next Steps**: Run certbot after DNS propagation
+
+---
+
+## Backlog / Future Tasks 📋
+
+### P2 - Medium Priority
+- [ ] Email confirmation for Early Access sign-ups (needs email service like Resend)
+- [ ] Google Search Console setup (blocked - user's Google account suspended)
+
+### P3 - Low Priority
+- [ ] Additional dashboard features for authenticated users
+- [ ] User profile management
+- [ ] Subscription management UI
+
+---
+
+## Known Issues ⚠️
+
+1. **Docker ContainerConfig Error**: Occasionally occurs during deployment. Fix: `docker-compose down`, remove images, rebuild.
+2. **Live Data**: Currently using simulated/mock data. Core feature pending API subscription.
+
+---
+
+## Company Details (for reference)
+- **Company**: Interpohl Solutions GmbH i.Gr.
+- **Address**: Kontor H72, Hansastr. 72, 44137 Dortmund
+- **Contact**: Tobias Pohl
+- **Email**: info@betradarmus.de
+- **Phone**: 0170-7967959
