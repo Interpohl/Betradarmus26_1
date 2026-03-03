@@ -941,7 +941,7 @@ def generate_simulated_odds(limit: int = 5) -> list:
 
 @api_router.get("/analysis/opportunities")
 async def get_opportunities(
-    sport: str = "soccer_germany_bundesliga",
+    sport: str = "all",
     user: Optional[dict] = Depends(get_current_user)
 ):
     """Get live market opportunities with risk analysis - LIVE and PREMATCH separated"""
@@ -950,55 +950,102 @@ async def get_opportunities(
     is_premium = user and user.get('subscription') in ['pro', 'elite']
     is_elite = user and user.get('subscription') == 'elite'
     
-    # Get scores to identify live games
-    scores_result = await asyncio.to_thread(
-        odds_api_request, 
-        f"sports/{sport}/scores", 
-        {"daysFrom": 3}
-    )
+    # Define leagues to fetch
+    leagues = [
+        "soccer_germany_bundesliga",
+        "soccer_germany_bundesliga2", 
+        "soccer_epl",
+        "soccer_spain_la_liga",
+        "soccer_italy_serie_a",
+        "soccer_france_ligue_one",
+        "soccer_turkey_super_league",
+        "soccer_uefa_champs_league",
+        "soccer_uefa_europa_league"
+    ]
     
-    # Get odds
-    odds_result = await asyncio.to_thread(
-        odds_api_request, 
-        f"sports/{sport}/odds",
-        {"regions": "eu", "markets": "h2h,totals", "oddsFormat": "decimal"}
-    )
+    if sport != "all" and sport in leagues:
+        leagues = [sport]
     
+    all_events = []
+    scores_map = {}
     is_simulated = False
+    remaining_credits = "N/A"
     
-    if not odds_result or not odds_result.get("data"):
+    # Fetch from multiple leagues
+    for league in leagues[:5]:  # Limit to 5 leagues to save API calls
+        try:
+            # Get scores
+            scores_result = await asyncio.to_thread(
+                odds_api_request, 
+                f"sports/{league}/scores", 
+                {"daysFrom": 2}
+            )
+            
+            if scores_result and scores_result.get("data"):
+                for event in scores_result["data"]:
+                    scores_map[event["id"]] = {
+                        "scores": event.get("scores"),
+                        "completed": event.get("completed", False)
+                    }
+                remaining_credits = scores_result.get("remaining", remaining_credits)
+            
+            # Get odds
+            odds_result = await asyncio.to_thread(
+                odds_api_request, 
+                f"sports/{league}/odds",
+                {"regions": "eu", "markets": "h2h,totals", "oddsFormat": "decimal"}
+            )
+            
+            if odds_result and odds_result.get("data"):
+                all_events.extend(odds_result["data"])
+                remaining_credits = odds_result.get("remaining", remaining_credits)
+                
+        except Exception as e:
+            logger.error(f"Error fetching {league}: {e}")
+            continue
+    
+    if not all_events:
         is_simulated = True
-        events = generate_simulated_odds(limit=15)
-        scores_map = {}
-    else:
-        events = odds_result["data"]
-        # Build scores map
-        scores_map = {}
-        if scores_result and scores_result.get("data"):
-            for event in scores_result["data"]:
-                scores_map[event["id"]] = {
-                    "scores": event.get("scores"),
-                    "completed": event.get("completed", False)
-                }
+        all_events = generate_simulated_odds(limit=15)
     
     live_opportunities = []
     prematch_opportunities = []
+    starting_soon = []  # Games starting within 60 minutes
     
-    for i, event in enumerate(events):
+    now = datetime.now(timezone.utc)
+    
+    for i, event in enumerate(all_events):
         event_id = event.get("id", f"event_{i}")
         home_team = event.get("home_team", "Home")
         away_team = event.get("away_team", "Away")
         sport_title = event.get("sport_title", "Fußball")
-        commence_time = event.get("commence_time", datetime.now(timezone.utc).isoformat())
+        commence_time_str = event.get("commence_time", datetime.now(timezone.utc).isoformat())
+        
+        try:
+            commence_time = datetime.fromisoformat(commence_time_str.replace('Z', '+00:00'))
+        except:
+            commence_time = now + timedelta(hours=24)
         
         # Check if LIVE
         score_info = scores_map.get(event_id, {})
         scores = score_info.get("scores")
         completed = score_info.get("completed", False)
         
-        is_live = scores is not None and not completed
+        # Determine status
+        time_until_start = (commence_time - now).total_seconds() / 60  # minutes
         
-        # Extract best odds from bookmakers
+        if scores and not completed:
+            status = "LIVE"
+        elif time_until_start <= 0 and time_until_start > -120:  # Started within last 2 hours
+            status = "LIVE"  # Assume live if past start time
+        elif time_until_start <= 60 and time_until_start > 0:
+            status = "STARTING_SOON"
+        elif not completed:
+            status = "PREMATCH"
+        else:
+            continue  # Skip completed games
+        
+        # Extract best odds
         best_home_odds = None
         best_draw_odds = None
         best_away_odds = None
@@ -1033,129 +1080,136 @@ async def get_opportunities(
                             if best_under_odds is None or price > best_under_odds:
                                 best_under_odds = price
         
-        # Calculate opportunity based on odds
-        if best_home_odds and best_draw_odds and best_away_odds:
-            # Calculate implied probabilities
-            implied_home = 1 / best_home_odds if best_home_odds > 0 else 0
-            implied_draw = 1 / best_draw_odds if best_draw_odds > 0 else 0
-            implied_away = 1 / best_away_odds if best_away_odds > 0 else 0
-            total_implied = implied_home + implied_draw + implied_away
+        if not (best_home_odds and best_draw_odds and best_away_odds):
+            continue
             
-            # Margin/Overround
-            margin = (total_implied - 1) * 100
+        # Calculate implied probabilities
+        implied_home = 1 / best_home_odds if best_home_odds > 0 else 0
+        implied_draw = 1 / best_draw_odds if best_draw_odds > 0 else 0
+        implied_away = 1 / best_away_odds if best_away_odds > 0 else 0
+        total_implied = implied_home + implied_draw + implied_away
+        margin = (total_implied - 1) * 100
+        
+        markets_analysis = []
+        
+        if best_home_odds:
+            confidence = min(95, int((1 / best_home_odds) * 100 + random.randint(10, 30)))
+            markets_analysis.append({
+                "market": f"Heimsieg ({home_team})",
+                "odds": best_home_odds,
+                "confidence": confidence,
+                "implied_prob": round(implied_home * 100, 1)
+            })
+        
+        if best_away_odds:
+            confidence = min(95, int((1 / best_away_odds) * 100 + random.randint(10, 30)))
+            markets_analysis.append({
+                "market": f"Auswärtssieg ({away_team})",
+                "odds": best_away_odds,
+                "confidence": confidence,
+                "implied_prob": round(implied_away * 100, 1)
+            })
+        
+        if best_over_odds:
+            confidence = min(95, int((1 / best_over_odds) * 100 + random.randint(15, 35)))
+            markets_analysis.append({
+                "market": "Over 2.5 Tore",
+                "odds": best_over_odds,
+                "confidence": confidence,
+                "implied_prob": round((1/best_over_odds)*100, 1) if best_over_odds > 0 else 0
+            })
+        
+        if best_under_odds:
+            confidence = min(95, int((1 / best_under_odds) * 100 + random.randint(15, 35)))
+            markets_analysis.append({
+                "market": "Under 2.5 Tore",
+                "odds": best_under_odds,
+                "confidence": confidence,
+                "implied_prob": round((1/best_under_odds)*100, 1) if best_under_odds > 0 else 0
+            })
+        
+        if not markets_analysis:
+            continue
             
-            # Determine best market
-            markets_analysis = []
-            
-            if best_home_odds:
-                confidence = min(95, int((1 / best_home_odds) * 100 + random.randint(10, 30)))
-                markets_analysis.append({
-                    "market": f"Heimsieg ({home_team})",
-                    "odds": best_home_odds,
-                    "confidence": confidence,
-                    "implied_prob": round(implied_home * 100, 1)
-                })
-            
-            if best_away_odds:
-                confidence = min(95, int((1 / best_away_odds) * 100 + random.randint(10, 30)))
-                markets_analysis.append({
-                    "market": f"Auswärtssieg ({away_team})",
-                    "odds": best_away_odds,
-                    "confidence": confidence,
-                    "implied_prob": round(implied_away * 100, 1)
-                })
-            
-            if best_over_odds:
-                confidence = min(95, int((1 / best_over_odds) * 100 + random.randint(15, 35)))
-                markets_analysis.append({
-                    "market": "Over 2.5 Tore",
-                    "odds": best_over_odds,
-                    "confidence": confidence,
-                    "implied_prob": round((1/best_over_odds)*100, 1) if best_over_odds > 0 else 0
-                })
-            
-            if best_under_odds:
-                confidence = min(95, int((1 / best_under_odds) * 100 + random.randint(15, 35)))
-                markets_analysis.append({
-                    "market": "Under 2.5 Tore",
-                    "odds": best_under_odds,
-                    "confidence": confidence,
-                    "implied_prob": round((1/best_under_odds)*100, 1) if best_under_odds > 0 else 0
-                })
-            
-            if markets_analysis:
-                best_market = max(markets_analysis, key=lambda x: x["confidence"])
-                risk_score = min(90, max(10, int(margin * 3 + random.randint(0, 20))))
-                ev_value = round((best_market["odds"] - 1) * (best_market["confidence"] / 100) * 10, 1)
-                
-                opportunity = {
-                    "id": event_id,
-                    "match": f"{home_team} vs {away_team}",
-                    "home_team": home_team,
-                    "away_team": away_team,
-                    "tournament": sport_title,
-                    "commence_time": commence_time,
-                    "status": "LIVE" if is_live else "PREMATCH",
-                    "scores": scores,
-                    "market": best_market["market"],
-                    "odds": best_market["odds"],
-                    "confidence": best_market["confidence"],
-                    "risk_score": risk_score,
-                    "risk_level": "LOW" if risk_score < 30 else "MED" if risk_score < 60 else "HIGH",
-                    "ev": ev_value,
-                    "margin": round(margin, 2),
-                    "bookmaker_count": bookmaker_count,
-                    "timestamp": datetime.now(timezone.utc).isoformat()
-                }
-                
-                # Premium features
-                if is_premium:
-                    opportunity["all_markets"] = markets_analysis
-                    opportunity["detailed_stats"] = {
-                        "home_implied_prob": round(implied_home * 100, 1),
-                        "draw_implied_prob": round(implied_draw * 100, 1),
-                        "away_implied_prob": round(implied_away * 100, 1),
-                        "market_margin": round(margin, 2)
-                    }
-                
-                # Elite features
-                if is_elite:
-                    opportunity["explainable_ai"] = {
-                        "factors": [
-                            f"Markt-Margin: {round(margin, 1)}% (niedrig = gut)",
-                            f"Buchmacher-Konsens: {bookmaker_count} Anbieter",
-                            f"Odds-Differenz: {round(max(best_home_odds or 0, best_away_odds or 0) - min(best_home_odds or 99, best_away_odds or 99), 2)}"
-                        ],
-                        "model_confidence": round(best_market["confidence"] / 100, 2),
-                        "recommendation": "STARK" if best_market["confidence"] > 75 else "MODERAT" if best_market["confidence"] > 60 else "SCHWACH"
-                    }
-                
-                # Add to appropriate list
-                if is_live:
-                    live_opportunities.append(opportunity)
-                else:
-                    prematch_opportunities.append(opportunity)
+        best_market = max(markets_analysis, key=lambda x: x["confidence"])
+        risk_score = min(90, max(10, int(margin * 3 + random.randint(0, 20))))
+        ev_value = round((best_market["odds"] - 1) * (best_market["confidence"] / 100) * 10, 1)
+        
+        opportunity = {
+            "id": event_id,
+            "match": f"{home_team} vs {away_team}",
+            "home_team": home_team,
+            "away_team": away_team,
+            "tournament": sport_title,
+            "commence_time": commence_time_str,
+            "status": status,
+            "scores": scores,
+            "minutes_until_start": round(time_until_start) if time_until_start > 0 else 0,
+            "market": best_market["market"],
+            "odds": best_market["odds"],
+            "confidence": best_market["confidence"],
+            "risk_score": risk_score,
+            "risk_level": "LOW" if risk_score < 30 else "MED" if risk_score < 60 else "HIGH",
+            "ev": ev_value,
+            "margin": round(margin, 2),
+            "bookmaker_count": bookmaker_count,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        
+        # Premium features
+        if is_premium:
+            opportunity["all_markets"] = markets_analysis
+            opportunity["detailed_stats"] = {
+                "home_implied_prob": round(implied_home * 100, 1),
+                "draw_implied_prob": round(implied_draw * 100, 1),
+                "away_implied_prob": round(implied_away * 100, 1),
+                "market_margin": round(margin, 2)
+            }
+        
+        # Elite features
+        if is_elite:
+            opportunity["explainable_ai"] = {
+                "factors": [
+                    f"Markt-Margin: {round(margin, 1)}% (niedrig = gut)",
+                    f"Buchmacher-Konsens: {bookmaker_count} Anbieter",
+                    f"Odds-Differenz: {round(max(best_home_odds or 0, best_away_odds or 0) - min(best_home_odds or 99, best_away_odds or 99), 2)}"
+                ],
+                "model_confidence": round(best_market["confidence"] / 100, 2),
+                "recommendation": "STARK" if best_market["confidence"] > 75 else "MODERAT" if best_market["confidence"] > 60 else "SCHWACH"
+            }
+        
+        # Add to appropriate list
+        if status == "LIVE":
+            live_opportunities.append(opportunity)
+        elif status == "STARTING_SOON":
+            starting_soon.append(opportunity)
+        else:
+            prematch_opportunities.append(opportunity)
     
-    # Sort by confidence
+    # Sort
     live_opportunities.sort(key=lambda x: x["confidence"], reverse=True)
+    starting_soon.sort(key=lambda x: x["minutes_until_start"])
     prematch_opportunities.sort(key=lambda x: x["confidence"], reverse=True)
     
     # Limit for free users
     if not is_premium:
         live_opportunities = live_opportunities[:3]
+        starting_soon = starting_soon[:3]
         prematch_opportunities = prematch_opportunities[:5]
     
     return {
         "live": live_opportunities,
+        "starting_soon": starting_soon,
         "prematch": prematch_opportunities,
         "live_count": len(live_opportunities),
+        "starting_soon_count": len(starting_soon),
         "prematch_count": len(prematch_opportunities),
-        "total": len(live_opportunities) + len(prematch_opportunities),
+        "total": len(live_opportunities) + len(starting_soon) + len(prematch_opportunities),
         "is_premium": is_premium,
         "is_elite": is_elite,
         "is_simulated": is_simulated,
         "data_source": "simulation" if is_simulated else "the-odds-api",
-        "remaining_credits": odds_result.get("remaining") if odds_result else "N/A",
+        "remaining_credits": remaining_credits,
         "updated_at": datetime.now(timezone.utc).isoformat()
     }
 
