@@ -3,9 +3,8 @@ FROM node:18-alpine as build
 
 WORKDIR /app
 
-# Dependencies - yarn.lock is optional
+# Dependencies - only package.json required
 COPY package.json ./
-COPY yarn.lock* ./
 RUN yarn install
 
 # Build
