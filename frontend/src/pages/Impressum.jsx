@@ -26,34 +26,35 @@ export const Impressum = () => {
           <section>
             <h2>Angaben gemäß § 5 TMG</h2>
             <p>
-              Betradarmus GmbH<br />
-              Musterstraße 123<br />
-              10115 Berlin<br />
+              <strong>Interpohl Solutions GmbH i.Gr.</strong><br />
+              Kontor H72<br />
+              Hansastr. 72<br />
+              44137 Dortmund<br />
               Deutschland
-            </p>
-          </section>
-
-          <section>
-            <h2>Kontakt</h2>
-            <p>
-              Telefon: +49 (0) 30 12345678<br />
-              E-Mail: kontakt@betradarmus.de
             </p>
           </section>
 
           <section>
             <h2>Vertreten durch</h2>
             <p>
-              Geschäftsführer: Max Mustermann
+              Geschäftsführer: Tobias Pohl
+            </p>
+          </section>
+
+          <section>
+            <h2>Kontakt</h2>
+            <p>
+              Telefon: 0170-7967959<br />
+              E-Mail: info@betradarmus.de
             </p>
           </section>
 
           <section>
             <h2>Registereintrag</h2>
             <p>
-              Eintragung im Handelsregister.<br />
-              Registergericht: Amtsgericht Berlin-Charlottenburg<br />
-              Registernummer: HRB 123456 B
+              Gesellschaft in Gründung (i.Gr.)<br />
+              Registergericht: Amtsgericht Dortmund<br />
+              <em>Registernummer wird nach Eintragung ergänzt.</em>
             </p>
           </section>
 
@@ -61,21 +62,22 @@ export const Impressum = () => {
             <h2>Umsatzsteuer-ID</h2>
             <p>
               Umsatzsteuer-Identifikationsnummer gemäß § 27 a Umsatzsteuergesetz:<br />
-              DE 123 456 789
+              <em>Wird nach Erteilung ergänzt.</em>
             </p>
           </section>
 
           <section>
             <h2>Verantwortlich für den Inhalt nach § 55 Abs. 2 RStV</h2>
             <p>
-              Max Mustermann<br />
-              Musterstraße 123<br />
-              10115 Berlin
+              Tobias Pohl<br />
+              Kontor H72<br />
+              Hansastr. 72<br />
+              44137 Dortmund
             </p>
           </section>
 
           <section>
-            <h2>Streitschlichtung</h2>
+            <h2>EU-Streitschlichtung</h2>
             <p>
               Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit: 
               <a 
@@ -87,6 +89,13 @@ export const Impressum = () => {
                 https://ec.europa.eu/consumers/odr/
               </a>
             </p>
+            <p>
+              Unsere E-Mail-Adresse finden Sie oben im Impressum.
+            </p>
+          </section>
+
+          <section>
+            <h2>Verbraucherstreitbeilegung / Universalschlichtungsstelle</h2>
             <p>
               Wir sind nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer 
               Verbraucherschlichtungsstelle teilzunehmen.
@@ -117,7 +126,14 @@ export const Impressum = () => {
               Unser Angebot enthält Links zu externen Websites Dritter, auf deren Inhalte wir keinen 
               Einfluss haben. Deshalb können wir für diese fremden Inhalte auch keine Gewähr übernehmen. 
               Für die Inhalte der verlinkten Seiten ist stets der jeweilige Anbieter oder Betreiber der 
-              Seiten verantwortlich.
+              Seiten verantwortlich. Die verlinkten Seiten wurden zum Zeitpunkt der Verlinkung auf 
+              mögliche Rechtsverstöße überprüft. Rechtswidrige Inhalte waren zum Zeitpunkt der 
+              Verlinkung nicht erkennbar.
+            </p>
+            <p>
+              Eine permanente inhaltliche Kontrolle der verlinkten Seiten ist jedoch ohne konkrete 
+              Anhaltspunkte einer Rechtsverletzung nicht zumutbar. Bei Bekanntwerden von 
+              Rechtsverletzungen werden wir derartige Links umgehend entfernen.
             </p>
           </section>
 
@@ -127,7 +143,15 @@ export const Impressum = () => {
               Die durch die Seitenbetreiber erstellten Inhalte und Werke auf diesen Seiten unterliegen 
               dem deutschen Urheberrecht. Die Vervielfältigung, Bearbeitung, Verbreitung und jede Art 
               der Verwertung außerhalb der Grenzen des Urheberrechtes bedürfen der schriftlichen 
-              Zustimmung des jeweiligen Autors bzw. Erstellers.
+              Zustimmung des jeweiligen Autors bzw. Erstellers. Downloads und Kopien dieser Seite sind 
+              nur für den privaten, nicht kommerziellen Gebrauch gestattet.
+            </p>
+            <p>
+              Soweit die Inhalte auf dieser Seite nicht vom Betreiber erstellt wurden, werden die 
+              Urheberrechte Dritter beachtet. Insbesondere werden Inhalte Dritter als solche 
+              gekennzeichnet. Sollten Sie trotzdem auf eine Urheberrechtsverletzung aufmerksam werden, 
+              bitten wir um einen entsprechenden Hinweis. Bei Bekanntwerden von Rechtsverletzungen 
+              werden wir derartige Inhalte umgehend entfernen.
             </p>
           </section>
 
