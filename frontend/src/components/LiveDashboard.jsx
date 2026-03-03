@@ -1,34 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Activity, TrendingUp, Clock, AlertTriangle, ChevronRight } from 'lucide-react';
+import axios from 'axios';
 
-const generateOpportunity = () => {
-  const matches = [
-    { home: 'Bayern München', away: 'Dortmund', league: 'Bundesliga' },
-    { home: 'Liverpool', away: 'Man City', league: 'Premier League' },
-    { home: 'Real Madrid', away: 'Barcelona', league: 'La Liga' },
-    { home: 'PSG', away: 'Marseille', league: 'Ligue 1' },
-    { home: 'Inter', away: 'AC Milan', league: 'Serie A' },
-    { home: 'Leipzig', away: 'Frankfurt', league: 'Bundesliga' },
-    { home: 'Arsenal', away: 'Chelsea', league: 'Premier League' },
-  ];
-  
-  const markets = ['Over 2.5', 'BTTS Ja', 'Heimsieg', 'Auswärtssieg', 'Under 3.5', 'Draw'];
-  const match = matches[Math.floor(Math.random() * matches.length)];
-  const market = markets[Math.floor(Math.random() * markets.length)];
-  const confidence = Math.floor(Math.random() * 30) + 70;
-  const risk = Math.floor(Math.random() * 100);
-  const ev = (Math.random() * 15 + 2).toFixed(1);
-  
-  return {
-    id: Date.now() + Math.random(),
-    match,
-    market,
-    confidence,
-    risk,
-    ev,
-    timestamp: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-  };
-};
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
 
 const getRiskColor = (risk) => {
   if (risk < 30) return 'text-[#39FF14]';
@@ -44,35 +19,60 @@ const getRiskLabel = (risk) => {
 
 export const LiveDashboard = () => {
   const [opportunities, setOpportunities] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [dataSource, setDataSource] = useState('loading');
   const [stats, setStats] = useState({
-    activeMatches: 47,
-    opportunities: 12,
-    avgConfidence: 78
+    activeMatches: 0,
+    opportunities: 0,
+    avgConfidence: 0
   });
 
-  useEffect(() => {
-    // Initialize with some opportunities
-    const initial = Array.from({ length: 5 }, () => generateOpportunity());
-    setOpportunities(initial);
-
-    // Add new opportunities periodically
-    const interval = setInterval(() => {
-      setOpportunities(prev => {
-        const newOpp = generateOpportunity();
-        const updated = [newOpp, ...prev.slice(0, 4)];
-        return updated;
+  const fetchOpportunities = useCallback(async () => {
+    try {
+      const response = await axios.get(`${API}/analysis/opportunities`);
+      const data = response.data;
+      
+      const opps = data.opportunities || [];
+      setOpportunities(opps.slice(0, 5)); // Show top 5
+      setDataSource(data.data_source || (data.is_simulated ? 'simulation' : 'the-odds-api'));
+      
+      // Calculate stats
+      const avgConf = opps.length > 0 
+        ? Math.round(opps.reduce((sum, o) => sum + o.confidence, 0) / opps.length)
+        : 0;
+      
+      setStats({
+        activeMatches: data.total || opps.length,
+        opportunities: opps.length,
+        avgConfidence: avgConf
       });
       
-      // Update stats
-      setStats(prev => ({
-        activeMatches: Math.floor(Math.random() * 20) + 40,
-        opportunities: Math.floor(Math.random() * 10) + 8,
-        avgConfidence: Math.floor(Math.random() * 15) + 75
-      }));
-    }, 3000);
-
-    return () => clearInterval(interval);
+    } catch (err) {
+      console.error('Failed to fetch opportunities:', err);
+      setDataSource('error');
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchOpportunities();
+    
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchOpportunities, 30000);
+    
+    return () => clearInterval(interval);
+  }, [fetchOpportunities]);
+
+  const formatTime = (timestamp) => {
+    if (!timestamp) return '--:--:--';
+    try {
+      const date = new Date(timestamp);
+      return date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    } catch {
+      return '--:--:--';
+    }
+  };
 
   return (
     <div className="bg-[#121212] border border-white/5 rounded-sm overflow-hidden" data-testid="live-dashboard">
@@ -81,6 +81,11 @@ export const LiveDashboard = () => {
         <div className="flex items-center gap-3">
           <div className="live-dot" />
           <span className="font-mono text-xs text-[#39FF14] uppercase tracking-wider">Live Feed</span>
+          {dataSource === 'the-odds-api' && (
+            <span className="px-2 py-0.5 bg-[#39FF14]/10 border border-[#39FF14]/20 text-[#39FF14] text-xs font-mono rounded-sm">
+              LIVE DATA
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-6">
           <div className="text-right">
@@ -109,50 +114,60 @@ export const LiveDashboard = () => {
         <div className="col-span-1 data-label text-right">Zeit</div>
       </div>
 
+      {/* Loading State */}
+      {loading && (
+        <div className="p-6 text-center">
+          <div className="inline-block animate-spin rounded-full h-6 w-6 border-2 border-[#39FF14] border-t-transparent" />
+          <p className="mt-2 text-xs text-[#A1A1AA]">Lade Live-Daten...</p>
+        </div>
+      )}
+
       {/* Opportunity Rows */}
-      <div className="divide-y divide-white/5">
-        {opportunities.map((opp, index) => (
-          <div 
-            key={opp.id}
-            className="grid grid-cols-12 gap-2 px-4 py-3 hover:bg-[#39FF14]/5 transition-colors cursor-pointer animate-fade-in-up"
-            style={{ animationDelay: `${index * 0.05}s` }}
-            data-testid={`opportunity-row-${index}`}
-          >
-            <div className="col-span-1 flex items-center">
-              <div className="live-dot" />
-            </div>
-            <div className="col-span-3">
-              <p className="text-sm text-white truncate">{opp.match.home} vs {opp.match.away}</p>
-              <p className="text-xs text-[#A1A1AA]">{opp.match.league}</p>
-            </div>
-            <div className="col-span-2 flex items-center">
-              <span className="font-mono text-sm text-white">{opp.market}</span>
-            </div>
-            <div className="col-span-2 flex items-center justify-center">
-              <div className="flex items-center gap-2">
-                <div className="w-16 h-1.5 bg-white/10 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-[#39FF14] rounded-full transition-all duration-500"
-                    style={{ width: `${opp.confidence}%` }}
-                  />
+      {!loading && (
+        <div className="divide-y divide-white/5" data-testid="live-opportunities">
+          {opportunities.map((opp, index) => (
+            <div 
+              key={opp.id || index}
+              className="grid grid-cols-12 gap-2 px-4 py-3 hover:bg-[#39FF14]/5 transition-colors cursor-pointer animate-fade-in-up"
+              style={{ animationDelay: `${index * 0.05}s` }}
+              data-testid={`opportunity-row-${index}`}
+            >
+              <div className="col-span-1 flex items-center">
+                <div className="live-dot" />
+              </div>
+              <div className="col-span-3">
+                <p className="text-sm text-white truncate">{opp.match || `${opp.home_team} vs ${opp.away_team}`}</p>
+                <p className="text-xs text-[#A1A1AA]">{opp.tournament}</p>
+              </div>
+              <div className="col-span-2 flex items-center">
+                <span className="font-mono text-sm text-white">{opp.market}</span>
+              </div>
+              <div className="col-span-2 flex items-center justify-center">
+                <div className="flex items-center gap-2">
+                  <div className="w-16 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-[#39FF14] rounded-full transition-all duration-500"
+                      style={{ width: `${opp.confidence}%` }}
+                    />
+                  </div>
+                  <span className="font-mono text-sm text-[#39FF14]">{opp.confidence}%</span>
                 </div>
-                <span className="font-mono text-sm text-[#39FF14]">{opp.confidence}%</span>
+              </div>
+              <div className="col-span-2 flex items-center justify-center">
+                <span className={`font-mono text-sm ${getRiskColor(opp.risk_score)}`}>
+                  {opp.risk_level || getRiskLabel(opp.risk_score)} ({opp.risk_score})
+                </span>
+              </div>
+              <div className="col-span-1 flex items-center justify-center">
+                <span className="font-mono text-sm text-[#00C2FF]">+{opp.ev}%</span>
+              </div>
+              <div className="col-span-1 flex items-center justify-end">
+                <span className="font-mono text-xs text-[#A1A1AA]">{formatTime(opp.timestamp)}</span>
               </div>
             </div>
-            <div className="col-span-2 flex items-center justify-center">
-              <span className={`font-mono text-sm ${getRiskColor(opp.risk)}`}>
-                {getRiskLabel(opp.risk)} ({opp.risk})
-              </span>
-            </div>
-            <div className="col-span-1 flex items-center justify-center">
-              <span className="font-mono text-sm text-[#00C2FF]">+{opp.ev}%</span>
-            </div>
-            <div className="col-span-1 flex items-center justify-end">
-              <span className="font-mono text-xs text-[#A1A1AA]">{opp.timestamp}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Footer */}
       <div className="flex items-center justify-between px-4 py-2 border-t border-white/5 bg-[#0a0a0a]">

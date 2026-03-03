@@ -43,6 +43,10 @@ STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY')
 SOFASCORE_API_KEY = os.environ.get('SOFASCORE_API_KEY')
 SOFASCORE_HOST = "sofascore.p.rapidapi.com"
 
+# The Odds API Settings
+ODDS_API_KEY = os.environ.get('ODDS_API_KEY')
+ODDS_API_BASE_URL = "https://api.the-odds-api.com/v4"
+
 # Subscription Plans (server-side only - never accept amounts from frontend)
 SUBSCRIPTION_PLANS = {
     "free": {"price": 0.0, "name": "Free", "features": ["Begrenzter Live-Zugriff", "Basis-Analyse"]},
@@ -591,84 +595,400 @@ def generate_simulated_matches(limit: int = 5) -> list:
     
     return result
 
+# ==================== THE ODDS API ROUTES ====================
+
+def odds_api_request(endpoint: str, params: dict = None) -> dict:
+    """Make request to The Odds API"""
+    url = f"{ODDS_API_BASE_URL}/{endpoint}"
+    
+    if params is None:
+        params = {}
+    params["apiKey"] = ODDS_API_KEY
+    
+    try:
+        response = requests.get(url, params=params, timeout=15)
+        
+        # Log quota usage
+        remaining = response.headers.get("x-requests-remaining", "N/A")
+        used = response.headers.get("x-requests-used", "N/A")
+        logger.info(f"Odds API - Used: {used}, Remaining: {remaining}")
+        
+        if response.status_code == 200:
+            return {"data": response.json(), "remaining": remaining, "used": used}
+        elif response.status_code == 401:
+            logger.error("Odds API: Invalid API key")
+            return None
+        elif response.status_code == 429:
+            logger.error("Odds API: Rate limit exceeded")
+            return None
+        else:
+            logger.error(f"Odds API error: {response.status_code} - {response.text}")
+            return None
+    except Exception as e:
+        logger.error(f"Odds API request error: {str(e)}")
+        return None
+
+@api_router.get("/odds/sports")
+async def get_odds_sports():
+    """Get all available sports from The Odds API"""
+    result = await asyncio.to_thread(odds_api_request, "sports")
+    
+    if not result:
+        return {"sports": [], "source": "error", "message": "API nicht erreichbar"}
+    
+    # Filter for soccer/football
+    all_sports = result["data"]
+    soccer_sports = [s for s in all_sports if "soccer" in s.get("key", "").lower() or "football" in s.get("group", "").lower()]
+    
+    return {
+        "sports": soccer_sports,
+        "all_sports": all_sports,
+        "remaining_credits": result["remaining"],
+        "source": "the-odds-api"
+    }
+
+@api_router.get("/odds/live")
+async def get_live_odds(
+    sport: str = "soccer_germany_bundesliga",
+    regions: str = "eu",
+    markets: str = "h2h,spreads,totals",
+    user: Optional[dict] = Depends(get_current_user)
+):
+    """Get live odds for a sport"""
+    is_premium = user and user.get('subscription') in ['pro', 'elite']
+    
+    params = {
+        "regions": regions,
+        "markets": markets,
+        "oddsFormat": "decimal"
+    }
+    
+    result = await asyncio.to_thread(odds_api_request, f"sports/{sport}/odds", params)
+    
+    if not result:
+        # Return simulated fallback
+        return {
+            "events": generate_simulated_odds(limit=5 if not is_premium else 15),
+            "source": "simulation",
+            "is_premium": is_premium,
+            "message": "Live-Daten nicht verfügbar, Simulationsdaten werden angezeigt"
+        }
+    
+    events = result["data"]
+    
+    # Transform for frontend
+    transformed = []
+    for event in events:
+        transformed_event = {
+            "id": event.get("id"),
+            "sport_key": event.get("sport_key"),
+            "sport_title": event.get("sport_title"),
+            "commence_time": event.get("commence_time"),
+            "home_team": event.get("home_team"),
+            "away_team": event.get("away_team"),
+            "bookmakers": []
+        }
+        
+        # Process bookmakers and odds
+        for bookmaker in event.get("bookmakers", []):
+            bm = {
+                "key": bookmaker.get("key"),
+                "title": bookmaker.get("title"),
+                "markets": []
+            }
+            
+            for market in bookmaker.get("markets", []):
+                m = {
+                    "key": market.get("key"),
+                    "outcomes": market.get("outcomes", [])
+                }
+                bm["markets"].append(m)
+            
+            transformed_event["bookmakers"].append(bm)
+        
+        transformed.append(transformed_event)
+    
+    # Limit for free users
+    if not is_premium:
+        transformed = transformed[:5]
+    
+    return {
+        "events": transformed,
+        "total": len(transformed),
+        "remaining_credits": result["remaining"],
+        "source": "the-odds-api",
+        "is_premium": is_premium
+    }
+
+@api_router.get("/odds/event/{event_id}")
+async def get_event_odds(
+    event_id: str,
+    sport: str = "soccer_germany_bundesliga",
+    regions: str = "eu",
+    markets: str = "h2h,spreads,totals",
+    user: dict = Depends(require_auth)
+):
+    """Get detailed odds for a specific event"""
+    is_premium = user.get('subscription') in ['pro', 'elite']
+    
+    if not is_premium:
+        raise HTTPException(status_code=403, detail="Premium-Abo erforderlich für detaillierte Odds.")
+    
+    params = {
+        "regions": regions,
+        "markets": markets,
+        "oddsFormat": "decimal"
+    }
+    
+    result = await asyncio.to_thread(odds_api_request, f"sports/{sport}/events/{event_id}/odds", params)
+    
+    if not result:
+        raise HTTPException(status_code=404, detail="Event nicht gefunden oder API nicht erreichbar")
+    
+    return {
+        "event": result["data"],
+        "remaining_credits": result["remaining"],
+        "source": "the-odds-api"
+    }
+
+def generate_simulated_odds(limit: int = 5) -> list:
+    """Generate simulated odds data for fallback/demo"""
+    import random
+    
+    matches = [
+        {"home": "Bayern München", "away": "Borussia Dortmund", "sport": "Bundesliga"},
+        {"home": "Liverpool", "away": "Manchester City", "sport": "Premier League"},
+        {"home": "Real Madrid", "away": "Barcelona", "sport": "La Liga"},
+        {"home": "PSG", "away": "Olympique Marseille", "sport": "Ligue 1"},
+        {"home": "Inter Mailand", "away": "AC Mailand", "sport": "Serie A"},
+        {"home": "RB Leipzig", "away": "Eintracht Frankfurt", "sport": "Bundesliga"},
+        {"home": "Arsenal", "away": "Chelsea", "sport": "Premier League"},
+        {"home": "Atlético Madrid", "away": "Sevilla", "sport": "La Liga"},
+        {"home": "Juventus", "away": "AS Roma", "sport": "Serie A"},
+        {"home": "Wolfsburg", "away": "Union Berlin", "sport": "Bundesliga"},
+        {"home": "Tottenham", "away": "Newcastle", "sport": "Premier League"},
+        {"home": "Valencia", "away": "Villarreal", "sport": "La Liga"},
+        {"home": "Napoli", "away": "Lazio", "sport": "Serie A"},
+        {"home": "Monaco", "away": "Lyon", "sport": "Ligue 1"},
+        {"home": "Bayer Leverkusen", "away": "Freiburg", "sport": "Bundesliga"},
+    ]
+    
+    result = []
+    for i, match in enumerate(matches[:limit]):
+        home_odds = round(random.uniform(1.4, 3.5), 2)
+        draw_odds = round(random.uniform(2.8, 4.2), 2)
+        away_odds = round(random.uniform(1.6, 4.5), 2)
+        
+        result.append({
+            "id": f"sim_{1000 + i}",
+            "sport_key": f"soccer_{match['sport'].lower().replace(' ', '_')}",
+            "sport_title": match["sport"],
+            "commence_time": (datetime.now(timezone.utc) + timedelta(hours=random.randint(1, 48))).isoformat(),
+            "home_team": match["home"],
+            "away_team": match["away"],
+            "bookmakers": [
+                {
+                    "key": "simulated",
+                    "title": "Demo Buchmacher",
+                    "markets": [
+                        {
+                            "key": "h2h",
+                            "outcomes": [
+                                {"name": match["home"], "price": home_odds},
+                                {"name": "Draw", "price": draw_odds},
+                                {"name": match["away"], "price": away_odds}
+                            ]
+                        },
+                        {
+                            "key": "totals",
+                            "outcomes": [
+                                {"name": "Over", "point": 2.5, "price": round(random.uniform(1.7, 2.1), 2)},
+                                {"name": "Under", "point": 2.5, "price": round(random.uniform(1.7, 2.1), 2)}
+                            ]
+                        }
+                    ]
+                }
+            ]
+        })
+    
+    return result
+
 # ==================== ANALYSIS ROUTES (BETRADARMUS CORE) ====================
 
 @api_router.get("/analysis/opportunities")
 async def get_opportunities(user: Optional[dict] = Depends(get_current_user)):
-    """Get live market opportunities with risk analysis"""
+    """Get live market opportunities with risk analysis - NOW WITH REAL ODDS DATA"""
     import random
     
     is_premium = user and user.get('subscription') in ['pro', 'elite']
     is_elite = user and user.get('subscription') == 'elite'
     
-    # Get live matches
-    matches_data = await asyncio.to_thread(sofascore_request, "sport/football/events/live")
+    # Try to get real odds from The Odds API
+    odds_result = await asyncio.to_thread(
+        odds_api_request, 
+        "sports/soccer_germany_bundesliga/odds",
+        {"regions": "eu", "markets": "h2h,totals", "oddsFormat": "decimal"}
+    )
     
+    is_simulated = False
     events = []
-    if matches_data:
-        events = matches_data.get("events", [])[:10]
     
-    # If no live data, use simulation
-    if not events:
-        events = generate_simulated_matches(limit=10 if is_premium else 5)
-        is_simulated = True
+    if odds_result and odds_result.get("data"):
+        events = odds_result["data"]
+        logger.info(f"Fetched {len(events)} real events from The Odds API")
     else:
-        is_simulated = False
+        # Fallback to simulation
+        is_simulated = True
+        events = generate_simulated_odds(limit=15)
+        logger.info("Using simulated odds data")
     
     opportunities = []
-    markets = ['Over 2.5', 'Under 2.5', 'BTTS Ja', 'BTTS Nein', 'Heimsieg', 'Auswärtssieg', 'Unentschieden']
     
     for i, event in enumerate(events):
-        if is_simulated:
-            home_team = event.get("home_team", "Home")
-            away_team = event.get("away_team", "Away")
-            tournament = event.get("tournament", "Unknown")
-        else:
-            home_team = event.get("homeTeam", {}).get("name", "Home")
-            away_team = event.get("awayTeam", {}).get("name", "Away")
-            tournament = event.get("tournament", {}).get("name", "Unknown")
+        home_team = event.get("home_team", "Home")
+        away_team = event.get("away_team", "Away")
+        sport_title = event.get("sport_title", "Fußball")
+        commence_time = event.get("commence_time", datetime.now(timezone.utc).isoformat())
         
-        # Generate analysis metrics
-        confidence = random.randint(65, 98)
-        risk_score = random.randint(10, 90)
-        ev_value = round(random.uniform(2.0, 18.0), 1)
-        market = random.choice(markets)
+        # Extract best odds from bookmakers
+        best_home_odds = None
+        best_draw_odds = None
+        best_away_odds = None
+        best_over_odds = None
+        best_under_odds = None
+        bookmaker_count = 0
         
-        opportunity = {
-            "id": event.get("id", 1000 + i),
-            "match": f"{home_team} vs {away_team}",
-            "home_team": home_team,
-            "away_team": away_team,
-            "tournament": tournament,
-            "market": market,
-            "confidence": confidence,
-            "risk_score": risk_score,
-            "risk_level": "LOW" if risk_score < 30 else "MED" if risk_score < 60 else "HIGH",
-            "ev": ev_value,
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        }
+        for bookmaker in event.get("bookmakers", []):
+            bookmaker_count += 1
+            for market in bookmaker.get("markets", []):
+                if market.get("key") == "h2h":
+                    for outcome in market.get("outcomes", []):
+                        price = outcome.get("price", 0)
+                        name = outcome.get("name", "")
+                        if name == home_team:
+                            if best_home_odds is None or price > best_home_odds:
+                                best_home_odds = price
+                        elif name == away_team:
+                            if best_away_odds is None or price > best_away_odds:
+                                best_away_odds = price
+                        elif name.lower() == "draw":
+                            if best_draw_odds is None or price > best_draw_odds:
+                                best_draw_odds = price
+                elif market.get("key") == "totals":
+                    for outcome in market.get("outcomes", []):
+                        price = outcome.get("price", 0)
+                        name = outcome.get("name", "")
+                        if name.lower() == "over":
+                            if best_over_odds is None or price > best_over_odds:
+                                best_over_odds = price
+                        elif name.lower() == "under":
+                            if best_under_odds is None or price > best_under_odds:
+                                best_under_odds = price
         
-        # Premium features
-        if is_premium:
-            opportunity["detailed_stats"] = {
-                "home_form": random.choice(["WWDLW", "WLWWL", "DWWLD"]),
-                "away_form": random.choice(["LWDWW", "DLWWL", "WWLLD"]),
-                "h2h_wins_home": random.randint(2, 8),
-                "h2h_wins_away": random.randint(1, 6)
-            }
-        
-        # Elite features
-        if is_elite:
-            opportunity["explainable_ai"] = {
-                "factors": [
-                    f"Heimvorteil: {random.randint(5, 15)}%",
-                    f"Aktuelle Form: {random.randint(10, 25)}%",
-                    f"H2H Statistik: {random.randint(5, 20)}%"
-                ],
-                "model_confidence": round(random.uniform(0.7, 0.95), 2)
-            }
-        
-        opportunities.append(opportunity)
+        # Calculate opportunity based on odds
+        if best_home_odds and best_draw_odds and best_away_odds:
+            # Calculate implied probabilities
+            implied_home = 1 / best_home_odds if best_home_odds > 0 else 0
+            implied_draw = 1 / best_draw_odds if best_draw_odds > 0 else 0
+            implied_away = 1 / best_away_odds if best_away_odds > 0 else 0
+            total_implied = implied_home + implied_draw + implied_away
+            
+            # Margin/Overround (lower is better for bettors)
+            margin = (total_implied - 1) * 100
+            
+            # Determine best market and confidence
+            markets_analysis = []
+            
+            if best_home_odds:
+                confidence = min(95, int((1 / best_home_odds) * 100 + random.randint(10, 30)))
+                markets_analysis.append({
+                    "market": f"Heimsieg ({home_team})",
+                    "odds": best_home_odds,
+                    "confidence": confidence,
+                    "implied_prob": round(implied_home * 100, 1)
+                })
+            
+            if best_away_odds:
+                confidence = min(95, int((1 / best_away_odds) * 100 + random.randint(10, 30)))
+                markets_analysis.append({
+                    "market": f"Auswärtssieg ({away_team})",
+                    "odds": best_away_odds,
+                    "confidence": confidence,
+                    "implied_prob": round(implied_away * 100, 1)
+                })
+            
+            if best_over_odds:
+                confidence = min(95, int((1 / best_over_odds) * 100 + random.randint(15, 35)))
+                markets_analysis.append({
+                    "market": "Over 2.5 Tore",
+                    "odds": best_over_odds,
+                    "confidence": confidence,
+                    "implied_prob": round((1/best_over_odds)*100, 1) if best_over_odds > 0 else 0
+                })
+            
+            if best_under_odds:
+                confidence = min(95, int((1 / best_under_odds) * 100 + random.randint(15, 35)))
+                markets_analysis.append({
+                    "market": "Under 2.5 Tore",
+                    "odds": best_under_odds,
+                    "confidence": confidence,
+                    "implied_prob": round((1/best_under_odds)*100, 1) if best_under_odds > 0 else 0
+                })
+            
+            # Pick best opportunity
+            if markets_analysis:
+                best_market = max(markets_analysis, key=lambda x: x["confidence"])
+                
+                # Calculate risk score based on margin and odds variance
+                risk_score = min(90, max(10, int(margin * 3 + random.randint(0, 20))))
+                
+                # Calculate expected value
+                ev_value = round((best_market["odds"] - 1) * (best_market["confidence"] / 100) * 10, 1)
+                
+                opportunity = {
+                    "id": event.get("id", f"event_{i}"),
+                    "match": f"{home_team} vs {away_team}",
+                    "home_team": home_team,
+                    "away_team": away_team,
+                    "tournament": sport_title,
+                    "commence_time": commence_time,
+                    "market": best_market["market"],
+                    "odds": best_market["odds"],
+                    "confidence": best_market["confidence"],
+                    "risk_score": risk_score,
+                    "risk_level": "LOW" if risk_score < 30 else "MED" if risk_score < 60 else "HIGH",
+                    "ev": ev_value,
+                    "margin": round(margin, 2),
+                    "bookmaker_count": bookmaker_count,
+                    "timestamp": datetime.now(timezone.utc).isoformat()
+                }
+                
+                # Premium features - show all markets
+                if is_premium:
+                    opportunity["all_markets"] = markets_analysis
+                    opportunity["detailed_stats"] = {
+                        "home_implied_prob": round(implied_home * 100, 1),
+                        "draw_implied_prob": round(implied_draw * 100, 1),
+                        "away_implied_prob": round(implied_away * 100, 1),
+                        "market_margin": round(margin, 2)
+                    }
+                
+                # Elite features - explainable AI
+                if is_elite:
+                    opportunity["explainable_ai"] = {
+                        "factors": [
+                            f"Markt-Margin: {round(margin, 1)}% (niedrig = gut)",
+                            f"Buchmacher-Konsens: {bookmaker_count} Anbieter",
+                            f"Odds-Differenz: {round(max(best_home_odds or 0, best_away_odds or 0) - min(best_home_odds or 99, best_away_odds or 99), 2)}"
+                        ],
+                        "model_confidence": round(best_market["confidence"] / 100, 2),
+                        "recommendation": "STARK" if best_market["confidence"] > 75 else "MODERAT" if best_market["confidence"] > 60 else "SCHWACH"
+                    }
+                
+                opportunities.append(opportunity)
+    
+    # Sort by confidence descending
+    opportunities.sort(key=lambda x: x["confidence"], reverse=True)
     
     # Limit for free users
     if not is_premium:
@@ -680,6 +1000,8 @@ async def get_opportunities(user: Optional[dict] = Depends(get_current_user)):
         "is_premium": is_premium,
         "is_elite": is_elite,
         "is_simulated": is_simulated,
+        "data_source": "simulation" if is_simulated else "the-odds-api",
+        "remaining_credits": odds_result.get("remaining") if odds_result else "N/A",
         "updated_at": datetime.now(timezone.utc).isoformat()
     }
 

@@ -107,9 +107,7 @@ export const LiveDashboardReal = ({ onUpgradeClick }) => {
         <div className="col-span-2 data-label text-center">Confidence</div>
         <div className="col-span-2 data-label text-center">Risk Score</div>
         <div className="col-span-1 data-label text-center">EV</div>
-        <div className="col-span-1 data-label text-right">
-          {isPremium ? 'Details' : <Lock size={12} />}
-        </div>
+        <div className="col-span-1 data-label text-right">Odds</div>
       </div>
 
       {/* Loading State */}
@@ -174,7 +172,9 @@ export const LiveDashboardReal = ({ onUpgradeClick }) => {
                 <span className="font-mono text-sm text-[#00C2FF]">+{opp.ev}%</span>
               </div>
               <div className="col-span-1 flex items-center justify-end">
-                {isPremium ? (
+                {opp.odds ? (
+                  <span className="font-mono text-sm text-white">{opp.odds}</span>
+                ) : isPremium ? (
                   <TrendingUp size={16} className="text-[#39FF14]" />
                 ) : (
                   <Lock size={14} className="text-[#A1A1AA]" />
@@ -192,21 +192,40 @@ export const LiveDashboardReal = ({ onUpgradeClick }) => {
               </div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                  <span className="data-label block">Heimform</span>
-                  <span className="font-mono text-sm text-white">{opportunities[0].detailed_stats.home_form}</span>
+                  <span className="data-label block">Heim Impl. Wahrsch.</span>
+                  <span className="font-mono text-sm text-white">{opportunities[0].detailed_stats.home_implied_prob}%</span>
                 </div>
                 <div>
-                  <span className="data-label block">Auswärtsform</span>
-                  <span className="font-mono text-sm text-white">{opportunities[0].detailed_stats.away_form}</span>
+                  <span className="data-label block">Unent. Impl. Wahrsch.</span>
+                  <span className="font-mono text-sm text-white">{opportunities[0].detailed_stats.draw_implied_prob}%</span>
                 </div>
                 <div>
-                  <span className="data-label block">H2H Heim</span>
-                  <span className="font-mono text-sm text-[#39FF14]">{opportunities[0].detailed_stats.h2h_wins_home} Siege</span>
+                  <span className="data-label block">Ausw. Impl. Wahrsch.</span>
+                  <span className="font-mono text-sm text-[#00C2FF]">{opportunities[0].detailed_stats.away_implied_prob}%</span>
                 </div>
                 <div>
-                  <span className="data-label block">H2H Auswärts</span>
-                  <span className="font-mono text-sm text-[#00C2FF]">{opportunities[0].detailed_stats.h2h_wins_away} Siege</span>
+                  <span className="data-label block">Markt-Marge</span>
+                  <span className="font-mono text-sm text-[#39FF14]">{opportunities[0].detailed_stats.market_margin}%</span>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* All Markets for Premium */}
+          {opportunities.length > 0 && isPremium && opportunities[0].all_markets && (
+            <div className="p-4 bg-[#0a0a0a]/30 border-t border-white/5">
+              <div className="flex items-center gap-2 mb-3">
+                <TrendingUp size={16} className="text-[#00C2FF]" />
+                <span className="text-sm font-semibold text-white uppercase tracking-wide">Alle Märkte - {opportunities[0].match}</span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {opportunities[0].all_markets.map((market, i) => (
+                  <div key={i} className="p-3 bg-white/5 border border-white/10 rounded-sm">
+                    <p className="text-xs text-[#A1A1AA] mb-1">{market.market}</p>
+                    <p className="font-mono text-lg text-white">{market.odds}</p>
+                    <p className="text-xs text-[#39FF14]">{market.confidence}% Conf.</p>
+                  </div>
+                ))}
               </div>
             </div>
           )}
