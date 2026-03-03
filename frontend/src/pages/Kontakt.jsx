@@ -86,7 +86,7 @@ export const Kontakt = () => {
               <h3 className="font-heading text-lg uppercase tracking-tight text-white mb-2">
                 E-Mail
               </h3>
-              <p className="text-[#A1A1AA]">kontakt@betradarmus.de</p>
+              <p className="text-[#A1A1AA]">info@betradarmus.de</p>
             </div>
 
             <div className="p-6 bg-[#121212] border border-white/5 rounded-sm">
@@ -97,8 +97,10 @@ export const Kontakt = () => {
                 Adresse
               </h3>
               <p className="text-[#A1A1AA]">
-                Musterstraße 123<br />
-                10115 Berlin<br />
+                Interpohl Solutions GmbH i.Gr.<br />
+                Kontor H72<br />
+                Hansastr. 72<br />
+                44137 Dortmund<br />
                 Deutschland
               </p>
             </div>
@@ -110,7 +112,7 @@ export const Kontakt = () => {
               <h3 className="font-heading text-lg uppercase tracking-tight text-white mb-2">
                 Telefon
               </h3>
-              <p className="text-[#A1A1AA]">+49 (0) 30 12345678</p>
+              <p className="text-[#A1A1AA]">0170-7967959</p>
             </div>
           </div>
 
