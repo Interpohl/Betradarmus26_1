@@ -1,0 +1,42 @@
+name: Deploy to Strato V-Server
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to V-Server via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.STRATO_HOST }}
+          username: ${{ secrets.STRATO_USER }}
+          key: ${{ secrets.STRATO_SSH_KEY }}
+          script: |
+            cd /var/www/betradarmus
+            
+            # Pull latest changes
+            git pull origin main
+            
+            # Rebuild and restart containers
+            docker-compose down
+            docker-compose up -d --build
+            
+            # Cleanup old images
+            docker image prune -f
+            
+            echo "✅ Deployment complete!"
+
+      - name: Health Check
+        run: |
+          sleep 30
+          curl -f https://betradarmus.de || exit 1
+          curl -f https://api.betradarmus.de/api/ || exit 1
+          echo "✅ Health check passed!"
