@@ -647,6 +647,130 @@ async def get_odds_sports():
         "source": "the-odds-api"
     }
 
+@api_router.get("/odds/scores/{sport}")
+async def get_live_scores(
+    sport: str = "soccer_germany_bundesliga",
+    days_from: int = 1
+):
+    """Get live scores - identifies which games are currently LIVE"""
+    params = {"daysFrom": days_from}
+    
+    result = await asyncio.to_thread(odds_api_request, f"sports/{sport}/scores", params)
+    
+    if not result:
+        return {"events": [], "live_count": 0, "source": "error"}
+    
+    events = result["data"]
+    
+    # Separate LIVE and UPCOMING
+    live_events = []
+    upcoming_events = []
+    
+    for event in events:
+        scores = event.get("scores")
+        completed = event.get("completed", False)
+        
+        if scores and not completed:
+            # Game is LIVE (has scores but not completed)
+            event["status"] = "LIVE"
+            live_events.append(event)
+        elif not completed:
+            # Game is upcoming (PREMATCH)
+            event["status"] = "PREMATCH"
+            upcoming_events.append(event)
+    
+    return {
+        "live_events": live_events,
+        "upcoming_events": upcoming_events[:10],  # Limit upcoming
+        "live_count": len(live_events),
+        "upcoming_count": len(upcoming_events),
+        "remaining_credits": result["remaining"],
+        "source": "the-odds-api"
+    }
+
+@api_router.get("/odds/combined")
+async def get_combined_odds(
+    sport: str = "soccer_germany_bundesliga",
+    regions: str = "eu",
+    markets: str = "h2h,totals",
+    user: Optional[dict] = Depends(get_current_user)
+):
+    """Get combined LIVE and PREMATCH odds with scores"""
+    is_premium = user and user.get('subscription') in ['pro', 'elite']
+    
+    # Get scores to identify live games
+    scores_result = await asyncio.to_thread(
+        odds_api_request, 
+        f"sports/{sport}/scores", 
+        {"daysFrom": 3}
+    )
+    
+    # Get odds
+    odds_params = {
+        "regions": regions,
+        "markets": markets,
+        "oddsFormat": "decimal"
+    }
+    odds_result = await asyncio.to_thread(
+        odds_api_request, 
+        f"sports/{sport}/odds", 
+        odds_params
+    )
+    
+    if not odds_result:
+        return {
+            "live": [],
+            "prematch": generate_simulated_odds(limit=5 if not is_premium else 10),
+            "source": "simulation",
+            "is_premium": is_premium
+        }
+    
+    # Build a map of event IDs to scores
+    scores_map = {}
+    if scores_result:
+        for event in scores_result["data"]:
+            scores_map[event["id"]] = {
+                "scores": event.get("scores"),
+                "completed": event.get("completed", False)
+            }
+    
+    live_events = []
+    prematch_events = []
+    
+    for event in odds_result["data"]:
+        event_id = event.get("id")
+        score_info = scores_map.get(event_id, {})
+        scores = score_info.get("scores")
+        completed = score_info.get("completed", False)
+        
+        # Add score info to event
+        event["scores"] = scores
+        event["completed"] = completed
+        
+        if scores and not completed:
+            event["status"] = "LIVE"
+            live_events.append(event)
+        elif not completed:
+            event["status"] = "PREMATCH"
+            prematch_events.append(event)
+    
+    # Limit for free users
+    if not is_premium:
+        live_events = live_events[:3]
+        prematch_events = prematch_events[:5]
+    else:
+        prematch_events = prematch_events[:15]
+    
+    return {
+        "live": live_events,
+        "prematch": prematch_events,
+        "live_count": len(live_events),
+        "prematch_count": len(prematch_events),
+        "remaining_credits": odds_result["remaining"],
+        "source": "the-odds-api",
+        "is_premium": is_premium
+    }
+
 @api_router.get("/odds/live")
 async def get_live_odds(
     sport: str = "soccer_germany_bundesliga",
@@ -816,39 +940,63 @@ def generate_simulated_odds(limit: int = 5) -> list:
 # ==================== ANALYSIS ROUTES (BETRADARMUS CORE) ====================
 
 @api_router.get("/analysis/opportunities")
-async def get_opportunities(user: Optional[dict] = Depends(get_current_user)):
-    """Get live market opportunities with risk analysis - NOW WITH REAL ODDS DATA"""
+async def get_opportunities(
+    sport: str = "soccer_germany_bundesliga",
+    user: Optional[dict] = Depends(get_current_user)
+):
+    """Get live market opportunities with risk analysis - LIVE and PREMATCH separated"""
     import random
     
     is_premium = user and user.get('subscription') in ['pro', 'elite']
     is_elite = user and user.get('subscription') == 'elite'
     
-    # Try to get real odds from The Odds API
+    # Get scores to identify live games
+    scores_result = await asyncio.to_thread(
+        odds_api_request, 
+        f"sports/{sport}/scores", 
+        {"daysFrom": 3}
+    )
+    
+    # Get odds
     odds_result = await asyncio.to_thread(
         odds_api_request, 
-        "sports/soccer_germany_bundesliga/odds",
+        f"sports/{sport}/odds",
         {"regions": "eu", "markets": "h2h,totals", "oddsFormat": "decimal"}
     )
     
     is_simulated = False
-    events = []
     
-    if odds_result and odds_result.get("data"):
-        events = odds_result["data"]
-        logger.info(f"Fetched {len(events)} real events from The Odds API")
-    else:
-        # Fallback to simulation
+    if not odds_result or not odds_result.get("data"):
         is_simulated = True
         events = generate_simulated_odds(limit=15)
-        logger.info("Using simulated odds data")
+        scores_map = {}
+    else:
+        events = odds_result["data"]
+        # Build scores map
+        scores_map = {}
+        if scores_result and scores_result.get("data"):
+            for event in scores_result["data"]:
+                scores_map[event["id"]] = {
+                    "scores": event.get("scores"),
+                    "completed": event.get("completed", False)
+                }
     
-    opportunities = []
+    live_opportunities = []
+    prematch_opportunities = []
     
     for i, event in enumerate(events):
+        event_id = event.get("id", f"event_{i}")
         home_team = event.get("home_team", "Home")
         away_team = event.get("away_team", "Away")
         sport_title = event.get("sport_title", "Fußball")
         commence_time = event.get("commence_time", datetime.now(timezone.utc).isoformat())
+        
+        # Check if LIVE
+        score_info = scores_map.get(event_id, {})
+        scores = score_info.get("scores")
+        completed = score_info.get("completed", False)
+        
+        is_live = scores is not None and not completed
         
         # Extract best odds from bookmakers
         best_home_odds = None
@@ -893,10 +1041,10 @@ async def get_opportunities(user: Optional[dict] = Depends(get_current_user)):
             implied_away = 1 / best_away_odds if best_away_odds > 0 else 0
             total_implied = implied_home + implied_draw + implied_away
             
-            # Margin/Overround (lower is better for bettors)
+            # Margin/Overround
             margin = (total_implied - 1) * 100
             
-            # Determine best market and confidence
+            # Determine best market
             markets_analysis = []
             
             if best_home_odds:
@@ -935,23 +1083,20 @@ async def get_opportunities(user: Optional[dict] = Depends(get_current_user)):
                     "implied_prob": round((1/best_under_odds)*100, 1) if best_under_odds > 0 else 0
                 })
             
-            # Pick best opportunity
             if markets_analysis:
                 best_market = max(markets_analysis, key=lambda x: x["confidence"])
-                
-                # Calculate risk score based on margin and odds variance
                 risk_score = min(90, max(10, int(margin * 3 + random.randint(0, 20))))
-                
-                # Calculate expected value
                 ev_value = round((best_market["odds"] - 1) * (best_market["confidence"] / 100) * 10, 1)
                 
                 opportunity = {
-                    "id": event.get("id", f"event_{i}"),
+                    "id": event_id,
                     "match": f"{home_team} vs {away_team}",
                     "home_team": home_team,
                     "away_team": away_team,
                     "tournament": sport_title,
                     "commence_time": commence_time,
+                    "status": "LIVE" if is_live else "PREMATCH",
+                    "scores": scores,
                     "market": best_market["market"],
                     "odds": best_market["odds"],
                     "confidence": best_market["confidence"],
@@ -963,7 +1108,7 @@ async def get_opportunities(user: Optional[dict] = Depends(get_current_user)):
                     "timestamp": datetime.now(timezone.utc).isoformat()
                 }
                 
-                # Premium features - show all markets
+                # Premium features
                 if is_premium:
                     opportunity["all_markets"] = markets_analysis
                     opportunity["detailed_stats"] = {
@@ -973,7 +1118,7 @@ async def get_opportunities(user: Optional[dict] = Depends(get_current_user)):
                         "market_margin": round(margin, 2)
                     }
                 
-                # Elite features - explainable AI
+                # Elite features
                 if is_elite:
                     opportunity["explainable_ai"] = {
                         "factors": [
@@ -985,18 +1130,27 @@ async def get_opportunities(user: Optional[dict] = Depends(get_current_user)):
                         "recommendation": "STARK" if best_market["confidence"] > 75 else "MODERAT" if best_market["confidence"] > 60 else "SCHWACH"
                     }
                 
-                opportunities.append(opportunity)
+                # Add to appropriate list
+                if is_live:
+                    live_opportunities.append(opportunity)
+                else:
+                    prematch_opportunities.append(opportunity)
     
-    # Sort by confidence descending
-    opportunities.sort(key=lambda x: x["confidence"], reverse=True)
+    # Sort by confidence
+    live_opportunities.sort(key=lambda x: x["confidence"], reverse=True)
+    prematch_opportunities.sort(key=lambda x: x["confidence"], reverse=True)
     
     # Limit for free users
     if not is_premium:
-        opportunities = opportunities[:5]
+        live_opportunities = live_opportunities[:3]
+        prematch_opportunities = prematch_opportunities[:5]
     
     return {
-        "opportunities": opportunities,
-        "total": len(opportunities),
+        "live": live_opportunities,
+        "prematch": prematch_opportunities,
+        "live_count": len(live_opportunities),
+        "prematch_count": len(prematch_opportunities),
+        "total": len(live_opportunities) + len(prematch_opportunities),
         "is_premium": is_premium,
         "is_elite": is_elite,
         "is_simulated": is_simulated,
