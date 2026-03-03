@@ -13,6 +13,7 @@ import { Footer } from "./components/Footer";
 // Pages
 import { Landing } from "./pages/Landing";
 import { Impressum } from "./pages/Impressum";
+import { AGB } from "./pages/AGB";
 import { Datenschutz } from "./pages/Datenschutz";
 import { Kontakt } from "./pages/Kontakt";
 import { PaymentSuccess } from "./pages/PaymentSuccess";
@@ -39,6 +40,7 @@ function App() {
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/impressum" element={<Impressum />} />
+              <Route path="/agb" element={<AGB />} />
               <Route path="/datenschutz" element={<Datenschutz />} />
               <Route path="/kontakt" element={<Kontakt />} />
               <Route path="/payment/success" element={<PaymentSuccess />} />

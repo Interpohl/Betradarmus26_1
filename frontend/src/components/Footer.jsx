@@ -65,6 +65,11 @@ export const Footer = () => {
                 </Link>
               </li>
               <li>
+                <Link to="/agb" className="footer-link text-sm" data-testid="footer-agb">
+                  AGB
+                </Link>
+              </li>
+              <li>
                 <Link to="/datenschutz" className="footer-link text-sm" data-testid="footer-datenschutz">
                   Datenschutz
                 </Link>
