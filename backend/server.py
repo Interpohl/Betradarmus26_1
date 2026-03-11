@@ -21,6 +21,9 @@ import stripe
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
+# Telegram Bot Token (must be after load_dotenv)
+TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
+
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
@@ -1343,6 +1346,190 @@ async def get_subscription_plans():
         ]
     }
 
+# ==================== TELEGRAM BOT INTEGRATION ====================
+
+from telegram_service import TelegramBotService, init_telegram_service, get_telegram_service, AVAILABLE_LEAGUES, SUBSCRIPTION_LIMITS
+
+# Telegram service instance
+telegram_service: Optional[TelegramBotService] = None
+
+# Signal Models
+class SignalCreate(BaseModel):
+    sport: str = "football"
+    league: str
+    match: str
+    market: str
+    confidence: float = Field(ge=0, le=1)
+    risk_score: int = Field(ge=0, le=100)
+    explanation: str = "Market deviation detected"
+
+class SignalResponse(BaseModel):
+    success: bool
+    signal_id: Optional[str] = None
+    distribution: Optional[Dict] = None
+    message: Optional[str] = None
+
+class TelegramUserSettings(BaseModel):
+    leagues: Optional[List[str]] = None
+    min_confidence: Optional[float] = None
+    alerts_enabled: Optional[bool] = None
+
+# ==================== SIGNAL API ROUTES ====================
+
+@api_router.post("/signals", response_model=SignalResponse)
+async def create_signal(signal: SignalCreate, user: dict = Depends(require_auth)):
+    """Create a new prediction signal and distribute to Telegram users"""
+    if user.get('subscription') != 'elite':
+        raise HTTPException(status_code=403, detail="Nur ELITE-Nutzer können Signale erstellen")
+    
+    signal_doc = {
+        "id": str(uuid.uuid4()),
+        "sport": signal.sport,
+        "league": signal.league,
+        "match": signal.match,
+        "market": signal.market,
+        "confidence": signal.confidence,
+        "risk_score": signal.risk_score,
+        "explanation": signal.explanation,
+        "created_by": user['id'],
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "distributed": False,
+        "distribution_results": None
+    }
+    
+    await db.signals.insert_one(signal_doc)
+    
+    distribution_results = {"sent": 0, "filtered": 0, "failed": 0}
+    
+    if telegram_service:
+        try:
+            distribution_results = await telegram_service.distribute_signal({
+                "match": signal.match,
+                "league": signal.league,
+                "market": signal.market,
+                "confidence": signal.confidence,
+                "risk_score": signal.risk_score,
+                "explanation": signal.explanation,
+                "timestamp": datetime.now(timezone.utc).strftime('%H:%M')
+            })
+            
+            await db.signals.update_one(
+                {"id": signal_doc["id"]},
+                {"$set": {"distributed": True, "distribution_results": distribution_results}}
+            )
+        except Exception as e:
+            logger.error(f"Signal distribution error: {e}")
+    
+    return SignalResponse(
+        success=True,
+        signal_id=signal_doc["id"],
+        distribution=distribution_results,
+        message=f"Signal erstellt und an {distribution_results['sent']} Nutzer verteilt"
+    )
+
+@api_router.get("/signals")
+async def get_signals(limit: int = 20, skip: int = 0, user: dict = Depends(require_auth)):
+    """Get recent signals"""
+    signals = await db.signals.find({}, {"_id": 0}).sort("timestamp", -1).skip(skip).limit(limit).to_list(length=limit)
+    total = await db.signals.count_documents({})
+    return {"signals": signals, "total": total, "limit": limit, "skip": skip}
+
+@api_router.get("/signals/{signal_id}")
+async def get_signal(signal_id: str, user: dict = Depends(require_auth)):
+    """Get a specific signal by ID"""
+    signal = await db.signals.find_one({"id": signal_id}, {"_id": 0})
+    if not signal:
+        raise HTTPException(status_code=404, detail="Signal nicht gefunden")
+    return signal
+
+# ==================== TELEGRAM USER ROUTES ====================
+
+@api_router.get("/telegram/status")
+async def get_telegram_status():
+    """Get Telegram bot status"""
+    if not telegram_service:
+        return {"status": "disabled", "message": "Telegram Bot nicht konfiguriert"}
+    
+    try:
+        bot_info = await telegram_service.get_bot_info()
+        user_count = await db.telegram_users.count_documents({})
+        active_count = await db.telegram_users.count_documents({"alerts_enabled": True})
+        
+        return {
+            "status": "active",
+            "bot": bot_info,
+            "users": {"total": user_count, "active": active_count},
+            "queue_size": telegram_service.signal_queue.size()
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@api_router.get("/telegram/users")
+async def get_telegram_users(limit: int = 50, skip: int = 0, user: dict = Depends(require_auth)):
+    """Get registered Telegram users (admin only)"""
+    if user.get('subscription') != 'elite':
+        raise HTTPException(status_code=403, detail="Nur für ELITE-Nutzer")
+    
+    users = await db.telegram_users.find({}, {"_id": 0}).skip(skip).limit(limit).to_list(length=limit)
+    total = await db.telegram_users.count_documents({})
+    return {"users": users, "total": total, "limit": limit, "skip": skip}
+
+@api_router.get("/telegram/leagues")
+async def get_available_leagues():
+    """Get available leagues for subscription"""
+    return {"leagues": AVAILABLE_LEAGUES, "subscription_limits": SUBSCRIPTION_LIMITS}
+
+@api_router.put("/telegram/users/{telegram_id}/settings")
+async def update_telegram_user_settings(telegram_id: str, settings: TelegramUserSettings, user: dict = Depends(require_auth)):
+    """Update Telegram user settings (admin only)"""
+    if user.get('subscription') != 'elite':
+        raise HTTPException(status_code=403, detail="Nur für ELITE-Nutzer")
+    
+    telegram_user = await db.telegram_users.find_one({"telegram_id": telegram_id})
+    if not telegram_user:
+        raise HTTPException(status_code=404, detail="Telegram-Nutzer nicht gefunden")
+    
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    if settings.leagues is not None:
+        update_data["leagues"] = settings.leagues
+    if settings.min_confidence is not None:
+        update_data["min_confidence"] = settings.min_confidence
+    if settings.alerts_enabled is not None:
+        update_data["alerts_enabled"] = settings.alerts_enabled
+    
+    await db.telegram_users.update_one({"telegram_id": telegram_id}, {"$set": update_data})
+    return {"success": True, "message": "Einstellungen aktualisiert"}
+
+@api_router.post("/telegram/broadcast")
+async def broadcast_message(message: str, user: dict = Depends(require_auth)):
+    """Broadcast a message to all active Telegram users (admin only)"""
+    if user.get('subscription') != 'elite':
+        raise HTTPException(status_code=403, detail="Nur für ELITE-Nutzer")
+    
+    if not telegram_service:
+        raise HTTPException(status_code=503, detail="Telegram Bot nicht verfügbar")
+    
+    users = await db.telegram_users.find({"alerts_enabled": True}, {"telegram_id": 1}).to_list(length=10000)
+    for u in users:
+        await telegram_service.signal_queue.add(u["telegram_id"], message)
+    
+    return {"success": True, "queued": len(users), "message": f"Nachricht an {len(users)} Nutzer in Warteschlange"}
+
+@api_router.post("/telegram/link")
+async def link_telegram_account(telegram_username: str, user: dict = Depends(require_auth)):
+    """Link a web account to a Telegram account"""
+    telegram_user = await db.telegram_users.find_one({"telegram_username": telegram_username})
+    if not telegram_user:
+        raise HTTPException(status_code=404, detail="Telegram-Nutzer nicht gefunden. Bitte zuerst /start im Bot senden.")
+    
+    await db.telegram_users.update_one(
+        {"telegram_username": telegram_username},
+        {"$set": {"web_user_id": user['id'], "subscription_level": user.get('subscription', 'free'), "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    await db.users.update_one({"id": user['id']}, {"$set": {"telegram_linked": True, "telegram_id": telegram_user["telegram_id"]}})
+    
+    return {"success": True, "message": f"Account mit Telegram @{telegram_username} verknüpft"}
+
 # Include the router in the main app
 app.include_router(api_router)
 
@@ -1354,6 +1541,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.on_event("startup")
+async def startup_event():
+    """Initialize services on startup"""
+    global telegram_service
+    
+    if TELEGRAM_BOT_TOKEN:
+        try:
+            telegram_service = await init_telegram_service(TELEGRAM_BOT_TOKEN, db)
+            await telegram_service.start_polling()
+            logger.info("Telegram Bot started successfully")
+        except Exception as e:
+            logger.error(f"Failed to start Telegram Bot: {e}")
+    else:
+        logger.warning("TELEGRAM_BOT_TOKEN not set - Telegram Bot disabled")
+
 @app.on_event("shutdown")
-async def shutdown_db_client():
+async def shutdown_event():
+    """Cleanup on shutdown"""
+    global telegram_service
+    
+    if telegram_service:
+        await telegram_service.stop()
+        logger.info("Telegram Bot stopped")
+    
     client.close()
+
