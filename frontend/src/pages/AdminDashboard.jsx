@@ -14,7 +14,13 @@ import {
   XCircle,
   RefreshCw,
   Plus,
-  Activity
+  Activity,
+  BarChart3,
+  PieChart,
+  Crown,
+  Zap,
+  Globe,
+  Calendar
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -39,6 +45,13 @@ export const AdminDashboard = () => {
   const [signals, setSignals] = useState([]);
   const [telegramUsers, setTelegramUsers] = useState([]);
   const [showCreateSignal, setShowCreateSignal] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview'); // overview, statistics, signals, users
+  const [statistics, setStatistics] = useState({
+    subscriptionBreakdown: { free: 0, pro: 0, elite: 0 },
+    leagueStats: {},
+    signalStats: { total: 0, distributed: 0, totalSent: 0, avgConfidence: 0 },
+    dailyActivity: []
+  });
   
   // Signal form
   const [signalForm, setSignalForm] = useState({
@@ -62,13 +75,52 @@ export const AdminDashboard = () => {
     try {
       const [statusRes, signalsRes, usersRes] = await Promise.all([
         axios.get(`${API}/telegram/status`),
-        axios.get(`${API}/signals?limit=10`),
-        axios.get(`${API}/telegram/users?limit=50`)
+        axios.get(`${API}/signals?limit=50`),
+        axios.get(`${API}/telegram/users?limit=200`)
       ]);
       
       setTelegramStatus(statusRes.data);
       setSignals(signalsRes.data.signals || []);
       setTelegramUsers(usersRes.data.users || []);
+      
+      // Calculate statistics from users
+      const users = usersRes.data.users || [];
+      const signalsData = signalsRes.data.signals || [];
+      
+      // Subscription breakdown
+      const subscriptionBreakdown = { free: 0, pro: 0, elite: 0 };
+      const leagueStats = {};
+      
+      users.forEach(user => {
+        const level = user.subscription_level || 'free';
+        subscriptionBreakdown[level] = (subscriptionBreakdown[level] || 0) + 1;
+        
+        (user.leagues || []).forEach(league => {
+          leagueStats[league] = (leagueStats[league] || 0) + 1;
+        });
+      });
+      
+      // Signal stats
+      const distributedSignals = signalsData.filter(s => s.distributed);
+      const totalSent = distributedSignals.reduce((sum, s) => 
+        sum + (s.distribution_results?.sent || 0), 0
+      );
+      const avgConfidence = signalsData.length > 0
+        ? signalsData.reduce((sum, s) => sum + (s.confidence || 0), 0) / signalsData.length
+        : 0;
+      
+      setStatistics({
+        subscriptionBreakdown,
+        leagueStats,
+        signalStats: {
+          total: signalsData.length,
+          distributed: distributedSignals.length,
+          totalSent,
+          avgConfidence
+        },
+        dailyActivity: []
+      });
+      
     } catch (error) {
       console.error('Failed to fetch data:', error);
       toast.error('Fehler beim Laden der Daten');
@@ -159,74 +211,421 @@ export const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          {/* Bot Status */}
-          <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-gray-400 text-sm">Bot Status</span>
-              {telegramStatus?.status === 'active' ? (
-                <CheckCircle className="w-5 h-5 text-green-500" />
-              ) : (
-                <XCircle className="w-5 h-5 text-red-500" />
-              )}
-            </div>
-            <p className="text-2xl font-bold text-white">
-              {telegramStatus?.status === 'active' ? 'Aktiv' : 'Offline'}
-            </p>
-            <p className="text-sm text-gray-500 mt-1">
-              @{telegramStatus?.bot?.username || 'N/A'}
-            </p>
-          </div>
-
-          {/* Total Users */}
-          <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-gray-400 text-sm">Telegram Nutzer</span>
-              <Users className="w-5 h-5 text-cyan-500" />
-            </div>
-            <p className="text-2xl font-bold text-white">
-              {telegramStatus?.users?.total || 0}
-            </p>
-            <p className="text-sm text-gray-500 mt-1">
-              {telegramStatus?.users?.active || 0} aktiv
-            </p>
-          </div>
-
-          {/* Queue Size */}
-          <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-gray-400 text-sm">Warteschlange</span>
-              <Bell className="w-5 h-5 text-yellow-500" />
-            </div>
-            <p className="text-2xl font-bold text-white">
-              {telegramStatus?.queue_size || 0}
-            </p>
-            <p className="text-sm text-gray-500 mt-1">Nachrichten pending</p>
-          </div>
-
-          {/* Total Signals */}
-          <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-gray-400 text-sm">Signale gesamt</span>
-              <TrendingUp className="w-5 h-5 text-green-500" />
-            </div>
-            <p className="text-2xl font-bold text-white">{signals.length}</p>
-            <p className="text-sm text-gray-500 mt-1">letzte 10 angezeigt</p>
-          </div>
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6 border-b border-gray-800 pb-4 overflow-x-auto">
+          {[
+            { id: 'overview', label: 'Übersicht', icon: Activity },
+            { id: 'statistics', label: 'Statistiken', icon: BarChart3 },
+            { id: 'signals', label: 'Signale', icon: Zap },
+            { id: 'users', label: 'Nutzer', icon: Users }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                activeTab === tab.id
+                  ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
+                  : 'text-gray-400 hover:text-white hover:bg-gray-800'
+              }`}
+            >
+              <tab.icon className="w-4 h-4" />
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Recent Signals */}
+        {/* Tab Content */}
+        {activeTab === 'overview' && (
+          <>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+              {/* Bot Status */}
+              <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-gray-400 text-sm">Bot Status</span>
+                  {telegramStatus?.status === 'active' ? (
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                  ) : (
+                    <XCircle className="w-5 h-5 text-red-500" />
+                  )}
+                </div>
+                <p className="text-2xl font-bold text-white">
+                  {telegramStatus?.status === 'active' ? 'Aktiv' : 'Offline'}
+                </p>
+                <p className="text-sm text-gray-500 mt-1">
+                  @{telegramStatus?.bot?.username || 'N/A'}
+                </p>
+              </div>
+
+              {/* Total Users */}
+              <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-gray-400 text-sm">Telegram Nutzer</span>
+                  <Users className="w-5 h-5 text-cyan-500" />
+                </div>
+                <p className="text-2xl font-bold text-white">
+                  {telegramStatus?.users?.total || 0}
+                </p>
+                <p className="text-sm text-gray-500 mt-1">
+                  {telegramStatus?.users?.active || 0} aktiv
+                </p>
+              </div>
+
+              {/* Queue Size */}
+              <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-gray-400 text-sm">Warteschlange</span>
+                  <Bell className="w-5 h-5 text-yellow-500" />
+                </div>
+                <p className="text-2xl font-bold text-white">
+                  {telegramStatus?.queue_size || 0}
+                </p>
+                <p className="text-sm text-gray-500 mt-1">Nachrichten pending</p>
+              </div>
+
+              {/* Total Signals */}
+              <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-gray-400 text-sm">Signale gesamt</span>
+                  <TrendingUp className="w-5 h-5 text-green-500" />
+                </div>
+                <p className="text-2xl font-bold text-white">{statistics.signalStats.total}</p>
+                <p className="text-sm text-gray-500 mt-1">{statistics.signalStats.totalSent} versendet</p>
+              </div>
+            </div>
+
+            {/* Quick Overview Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Recent Signals */}
+              <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
+                <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-cyan-500" />
+                  Letzte Signale
+                </h2>
+                
+                {signals.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">Noch keine Signale erstellt</p>
+                ) : (
+                  <div className="space-y-3">
+                    {signals.slice(0, 5).map((signal) => (
+                      <div 
+                        key={signal.id}
+                        className="bg-[#0a0a0a] border border-gray-800 rounded-lg p-4"
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <p className="text-white font-medium">{signal.match}</p>
+                            <p className="text-gray-500 text-sm">{signal.league}</p>
+                          </div>
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            signal.distributed 
+                              ? 'bg-green-500/20 text-green-400' 
+                              : 'bg-yellow-500/20 text-yellow-400'
+                          }`}>
+                            {signal.distributed ? 'Verteilt' : 'Pending'}
+                          </span>
+                        </div>
+                        <div className="flex gap-4 text-sm">
+                          <span className="text-gray-400">
+                            Markt: <span className="text-white">{signal.market}</span>
+                          </span>
+                          <span className="text-gray-400">
+                            Conf: <span className="text-cyan-400">{Math.round(signal.confidence * 100)}%</span>
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Quick User Stats */}
+              <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
+                <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                  <PieChart className="w-5 h-5 text-cyan-500" />
+                  Nutzer nach Plan
+                </h2>
+                
+                <div className="space-y-4">
+                  {/* FREE */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-gray-500"></div>
+                      <span className="text-gray-300">FREE</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-32 h-2 bg-gray-800 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gray-500 rounded-full"
+                          style={{ 
+                            width: `${telegramUsers.length > 0 ? (statistics.subscriptionBreakdown.free / telegramUsers.length) * 100 : 0}%` 
+                          }}
+                        ></div>
+                      </div>
+                      <span className="text-white font-medium w-8 text-right">{statistics.subscriptionBreakdown.free}</span>
+                    </div>
+                  </div>
+                  
+                  {/* PRO */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-cyan-500"></div>
+                      <span className="text-gray-300">PRO</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-32 h-2 bg-gray-800 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-cyan-500 rounded-full"
+                          style={{ 
+                            width: `${telegramUsers.length > 0 ? (statistics.subscriptionBreakdown.pro / telegramUsers.length) * 100 : 0}%` 
+                          }}
+                        ></div>
+                      </div>
+                      <span className="text-white font-medium w-8 text-right">{statistics.subscriptionBreakdown.pro}</span>
+                    </div>
+                  </div>
+                  
+                  {/* ELITE */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full bg-purple-500"></div>
+                      <span className="text-gray-300">ELITE</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="w-32 h-2 bg-gray-800 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-purple-500 rounded-full"
+                          style={{ 
+                            width: `${telegramUsers.length > 0 ? (statistics.subscriptionBreakdown.elite / telegramUsers.length) * 100 : 0}%` 
+                          }}
+                        ></div>
+                      </div>
+                      <span className="text-white font-medium w-8 text-right">{statistics.subscriptionBreakdown.elite}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mt-6 pt-4 border-t border-gray-800">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Gesamt</span>
+                    <span className="text-white font-medium">{telegramUsers.length} Nutzer</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* Statistics Tab */}
+        {activeTab === 'statistics' && (
+          <div className="space-y-6">
+            {/* Signal Performance */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
+                <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
+                  <Zap className="w-4 h-4" />
+                  Signale erstellt
+                </div>
+                <p className="text-3xl font-bold text-white">{statistics.signalStats.total}</p>
+              </div>
+              <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
+                <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
+                  <Send className="w-4 h-4" />
+                  Verteilt
+                </div>
+                <p className="text-3xl font-bold text-green-400">{statistics.signalStats.distributed}</p>
+              </div>
+              <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
+                <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
+                  <Users className="w-4 h-4" />
+                  Nachrichten gesendet
+                </div>
+                <p className="text-3xl font-bold text-cyan-400">{statistics.signalStats.totalSent}</p>
+              </div>
+              <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
+                <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
+                  <TrendingUp className="w-4 h-4" />
+                  Ø Confidence
+                </div>
+                <p className="text-3xl font-bold text-yellow-400">
+                  {Math.round(statistics.signalStats.avgConfidence * 100)}%
+                </p>
+              </div>
+            </div>
+
+            {/* League Statistics */}
+            <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
+              <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+                <Globe className="w-5 h-5 text-cyan-500" />
+                Liga-Abonnements
+              </h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {Object.entries(statistics.leagueStats)
+                  .sort(([,a], [,b]) => b - a)
+                  .map(([league, count]) => (
+                    <div 
+                      key={league}
+                      className="bg-[#0a0a0a] border border-gray-800 rounded-lg p-4"
+                    >
+                      <p className="text-white font-medium mb-1">{league}</p>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-2 bg-gray-800 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-gradient-to-r from-cyan-500 to-blue-600 rounded-full"
+                            style={{ 
+                              width: `${telegramUsers.length > 0 ? (count / telegramUsers.length) * 100 : 0}%` 
+                            }}
+                          ></div>
+                        </div>
+                        <span className="text-cyan-400 font-medium">{count}</span>
+                      </div>
+                    </div>
+                  ))}
+                {Object.keys(statistics.leagueStats).length === 0 && (
+                  <p className="text-gray-500 col-span-4 text-center py-4">
+                    Noch keine Liga-Abonnements
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Subscription Distribution Chart */}
+            <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
+              <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+                <Crown className="w-5 h-5 text-cyan-500" />
+                Subscription-Verteilung
+              </h2>
+              
+              <div className="flex items-center justify-center gap-8">
+                {/* Visual Pie Chart Alternative */}
+                <div className="relative w-48 h-48">
+                  <svg viewBox="0 0 100 100" className="transform -rotate-90">
+                    {(() => {
+                      const total = telegramUsers.length || 1;
+                      const freePercent = (statistics.subscriptionBreakdown.free / total) * 100;
+                      const proPercent = (statistics.subscriptionBreakdown.pro / total) * 100;
+                      const elitePercent = (statistics.subscriptionBreakdown.elite / total) * 100;
+                      
+                      let offset = 0;
+                      const segments = [];
+                      
+                      if (freePercent > 0) {
+                        segments.push(
+                          <circle
+                            key="free"
+                            cx="50"
+                            cy="50"
+                            r="40"
+                            fill="none"
+                            stroke="#6b7280"
+                            strokeWidth="20"
+                            strokeDasharray={`${freePercent * 2.51} 251`}
+                            strokeDashoffset={-offset * 2.51}
+                          />
+                        );
+                        offset += freePercent;
+                      }
+                      
+                      if (proPercent > 0) {
+                        segments.push(
+                          <circle
+                            key="pro"
+                            cx="50"
+                            cy="50"
+                            r="40"
+                            fill="none"
+                            stroke="#06b6d4"
+                            strokeWidth="20"
+                            strokeDasharray={`${proPercent * 2.51} 251`}
+                            strokeDashoffset={-offset * 2.51}
+                          />
+                        );
+                        offset += proPercent;
+                      }
+                      
+                      if (elitePercent > 0) {
+                        segments.push(
+                          <circle
+                            key="elite"
+                            cx="50"
+                            cy="50"
+                            r="40"
+                            fill="none"
+                            stroke="#a855f7"
+                            strokeWidth="20"
+                            strokeDasharray={`${elitePercent * 2.51} 251`}
+                            strokeDashoffset={-offset * 2.51}
+                          />
+                        );
+                      }
+                      
+                      if (total === 1 && telegramUsers.length === 0) {
+                        segments.push(
+                          <circle
+                            key="empty"
+                            cx="50"
+                            cy="50"
+                            r="40"
+                            fill="none"
+                            stroke="#1f2937"
+                            strokeWidth="20"
+                          />
+                        );
+                      }
+                      
+                      return segments;
+                    })()}
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-3xl font-bold text-white">{telegramUsers.length}</span>
+                    <span className="text-sm text-gray-400">Nutzer</span>
+                  </div>
+                </div>
+                
+                {/* Legend */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-4 h-4 rounded bg-gray-500"></div>
+                    <span className="text-gray-300">FREE</span>
+                    <span className="text-white font-bold ml-auto">{statistics.subscriptionBreakdown.free}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-4 h-4 rounded bg-cyan-500"></div>
+                    <span className="text-gray-300">PRO</span>
+                    <span className="text-white font-bold ml-auto">{statistics.subscriptionBreakdown.pro}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-4 h-4 rounded bg-purple-500"></div>
+                    <span className="text-gray-300">ELITE</span>
+                    <span className="text-white font-bold ml-auto">{statistics.subscriptionBreakdown.elite}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Signals Tab */}
+        {activeTab === 'signals' && (
           <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
-            <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-              <Activity className="w-5 h-5 text-cyan-500" />
-              Letzte Signale
-            </h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                <Zap className="w-5 h-5 text-cyan-500" />
+                Alle Signale
+              </h2>
+              <Button 
+                onClick={() => setShowCreateSignal(true)}
+                className="bg-gradient-to-r from-cyan-500 to-blue-600"
+                size="sm"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Neues Signal
+              </Button>
+            </div>
             
             {signals.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">Noch keine Signale erstellt</p>
+              <p className="text-gray-500 text-center py-12">Noch keine Signale erstellt</p>
             ) : (
               <div className="space-y-3">
                 {signals.map((signal) => (
@@ -247,7 +646,7 @@ export const AdminDashboard = () => {
                         {signal.distributed ? 'Verteilt' : 'Pending'}
                       </span>
                     </div>
-                    <div className="flex gap-4 text-sm">
+                    <div className="flex flex-wrap gap-4 text-sm">
                       <span className="text-gray-400">
                         Markt: <span className="text-white">{signal.market}</span>
                       </span>
@@ -259,34 +658,40 @@ export const AdminDashboard = () => {
                       </span>
                     </div>
                     {signal.distribution_results && (
-                      <div className="mt-2 text-xs text-gray-500">
-                        Gesendet: {signal.distribution_results.sent} | 
-                        Gefiltert: {signal.distribution_results.filtered}
+                      <div className="mt-2 text-xs text-gray-500 flex gap-4">
+                        <span>Gesendet: <span className="text-green-400">{signal.distribution_results.sent}</span></span>
+                        <span>Gefiltert: <span className="text-gray-400">{signal.distribution_results.filtered}</span></span>
+                        <span>Fehler: <span className="text-red-400">{signal.distribution_results.failed}</span></span>
                       </div>
                     )}
+                    <div className="mt-2 text-xs text-gray-600">
+                      {signal.timestamp && new Date(signal.timestamp).toLocaleString('de-DE')}
+                    </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
+        )}
 
-          {/* Telegram Users */}
+        {/* Users Tab */}
+        {activeTab === 'users' && (
           <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
-            <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+            <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
               <Users className="w-5 h-5 text-cyan-500" />
-              Telegram Nutzer
+              Telegram Nutzer ({telegramUsers.length})
             </h2>
             
             {telegramUsers.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">Noch keine Nutzer registriert</p>
+              <p className="text-gray-500 text-center py-12">Noch keine Nutzer registriert</p>
             ) : (
-              <div className="space-y-3 max-h-[400px] overflow-y-auto">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {telegramUsers.map((tgUser) => (
                   <div 
                     key={tgUser.telegram_id}
                     className="bg-[#0a0a0a] border border-gray-800 rounded-lg p-4"
                   >
-                    <div className="flex justify-between items-start mb-2">
+                    <div className="flex justify-between items-start mb-3">
                       <div>
                         <p className="text-white font-medium">
                           {tgUser.first_name} {tgUser.last_name || ''}
@@ -305,7 +710,7 @@ export const AdminDashboard = () => {
                         {tgUser.subscription_level || 'free'}
                       </span>
                     </div>
-                    <div className="flex flex-wrap gap-1 mt-2">
+                    <div className="flex flex-wrap gap-1 mb-3">
                       {(tgUser.leagues || []).map((league) => (
                         <span 
                           key={league}
@@ -315,12 +720,12 @@ export const AdminDashboard = () => {
                         </span>
                       ))}
                       {(!tgUser.leagues || tgUser.leagues.length === 0) && (
-                        <span className="text-xs text-gray-500">Keine Ligen abonniert</span>
+                        <span className="text-xs text-gray-500">Keine Ligen</span>
                       )}
                     </div>
-                    <div className="flex gap-4 mt-2 text-xs text-gray-500">
+                    <div className="flex justify-between text-xs text-gray-500 pt-2 border-t border-gray-800">
                       <span>Min. Conf: {Math.round((tgUser.min_confidence || 0.75) * 100)}%</span>
-                      <span>Signale heute: {tgUser.signals_today || 0}</span>
+                      <span>Heute: {tgUser.signals_today || 0}</span>
                       <span className={tgUser.alerts_enabled ? 'text-green-400' : 'text-red-400'}>
                         {tgUser.alerts_enabled ? 'Aktiv' : 'Inaktiv'}
                       </span>
@@ -330,7 +735,7 @@ export const AdminDashboard = () => {
               </div>
             )}
           </div>
-        </div>
+        )}
 
         {/* Create Signal Modal */}
         {showCreateSignal && (
