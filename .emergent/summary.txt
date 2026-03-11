@@ -3,115 +3,80 @@ The user wants to create a modern, high-quality, trustworthy SaaS website for an
 Claim: Live football intelligently analyzed.
 
 **PRODUCT REQUIREMENTS:**
--   **Positioning**: An AI-powered live sports analysis platform for football, analyzing live markets, probabilities, and market inefficiencies in real-time. It is NOT a betting provider. The tone should be professional, intelligent, and analytical, focusing on data and technology.
--   **Target Audience**: Ambitious sports analysts, data-savvy football fans, semi-professional market observers, and tech-savvy users.
--   **Design**: Dark premium theme (anthracite/black) with a neon-green or electric-blue accent. A tech/fintech aesthetic, similar to Bloomberg meets Football Analytics.
--   **Page Structure**:
-    -   **Hero Section**: Headline, subheadline, CTAs (View Live Demo, Secure Early Access), and a dashboard mockup visual.
-    -   **Problem Section**: Highlighting the difficulties of analyzing fast-moving live markets.
-    -   **Solution Section**: Describing core features like Live Opportunity Feed, Risk Score, Confidence Index, and Explainable AI.
-    -   **Technology Section**: High-level description of the real-time, scalable architecture.
-    -   **For Whom Section**: 3 boxes for different user personas.
-    -   **Pricing Section**: A 3-tier SaaS model (FREE, PRO, ELITE) with feature breakdowns.
-    -   **Legal Notice**: A disclaimer clarifying the nature of the platform.
-    -   **Footer**: Links to legal pages, contact, and social media.
--   **Copy Guidelines**: Use analytical terms (analysis, probability, risk assessment) and avoid gambling-related phrases (bet now, guaranteed profits).
--   **Technical Features**: Micro-animations, mobile-first optimization, user authentication, subscription payments (Stripe), real live football data integration, and an Early Access email capture form.
--   **Deployment**: The user wants the final application deployed to their own Strato V-Server with a CI/CD pipeline for automatic updates.
--   **SEO**: The site should be indexed by Google.
--   **Social Media Assets**: The user requested various social media graphics (Facebook cover, profile picture, Instagram post, Twitch banner) consistent with the website's design.
+-   **Positioning**: An AI-powered live sports analysis platform for football, analyzing live markets, probabilities, and market inefficiencies in real-time. It is NOT a betting provider.
+-   **Design**: Dark premium theme with a tech/fintech aesthetic.
+-   **Page Structure**: Hero, Problem, Solution, Technology, For Whom, Pricing, Legal Notice, and Footer sections.
+-   **Technical Features**: Micro-animations, mobile-first optimization, user authentication (JWT), subscription payments (Stripe), real live football data integration, and an Early Access email capture form.
+-   **Deployment**: The user wants the final application deployed to their own Strato V-Server with a CI/CD pipeline.
 
 **User's preferred language**: German
 
 **what currently exists?**
-A full-stack SaaS application (FastAPI backend, React frontend, MongoDB database) has been successfully built and deployed to the user's Strato V-Server using Docker, Docker Compose, and Nginx as a reverse proxy. The website is live and accessible via HTTPS on the user's domain.
+A full-stack application (React frontend, FastAPI backend, MongoDB) is built. The legal pages (Impressum, AGB, Datenschutz) and the contact page have been updated with the user's company details. A key feature, the live data feed, has been implemented as a hybrid solution: it uses The Odds API for prematch odds and a public API from Livescore.com for real-time scores, which successfully resolved the issue of finding a reliable live data source.
 
-Key implemented features include:
--   All landing page sections as per the prompt.
--   JWT-based user authentication (register/login).
--   A 3-tier pricing model with Stripe checkout integration (using a test key).
--   Early Access and Contact Us forms that save data to MongoDB.
--   A simulated live-data feed as a fallback, since real API integration is pending.
--   Deployment scripts (, ) and a GitHub Actions workflow file for CI/CD.
--   SEO files (, , Google verification file).
--   Legal page components have been created but are not yet deployed.
+However, the application is currently **DOWN** on the user's external Strato V-Server due to a series of cascading deployment failures.
 
 **Last working item**:
--   Last item agent was working: The agent was tasked with adding company details to the Impressum (Imprint) and generating content for the AGB (Terms & Conditions) and Datenschutz (Privacy Policy) pages. The agent created these three files: , , and .
+-   Last item agent was working: Fixing a critical deployment failure on the user's Strato V-Server, which is causing a 502 Bad Gateway error. The root cause was identified as the backend failing to start because it was trying to import the  package, which is unavailable on the external server. The agent provided a fix by removing the dependency and rewriting the Stripe integration to use the official  package. A secondary recurring issue with the frontend Dockerfile requiring  was also addressed.
 -   Status: IN PROGRESS
 -   Agent Testing Done: N
--   Which testing method agent to use? Manual testing by user/agent. The next agent must push the new files to the GitHub repository, pull the changes on the user's V-Server, and rebuild the Docker containers. Afterwards, the live URL for these pages must be checked.
+-   Which testing method agent to use? Manual testing by user. The user must deploy the latest fixes to their server.
 -   User Testing Done: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1 (P0)**: Deploy the newly created legal pages (Impressum, AGB, Datenschutz).
--   **Issue 2 (P1)**: Live data integration is not functional. The application currently relies on a simulated data feed.
--   **Issue 3 (P2)**: The  subdomain is not yet correctly configured and lacks an SSL certificate.
+-   **Issue 1 (P0)**: Fix production deployment; the website is down.
+-   **Issue 2 (P1)**: The CI/CD pipeline via GitHub Actions is broken due to missing secrets.
+-   **Issue 3 (P2)**: The  subdomain is not yet configured with an SSL certificate.
 -   **Issue 4 (P3)**: Google Search Console verification is blocked due to the user's Google account being suspended.
 
 **Issues Detail**:
--   **Issue 1: Deploy new legal pages**
-    -   **Attempted fixes**: The agent created the necessary React component files (, , ) and updated the main router (). However, these changes were not deployed to the server.
+-   **Issue 1: Fix production deployment**
+    -   **Attempted fixes**: The agent guided the user through a long series of debugging steps on the server, encountering and fixing: Docker , git conflicts (HEAD is now at 6b60f06 Auto-generated changes), missing , a port conflict with  (moved backend to port 8005), and an incorrect Node.js version. The final root cause was a . The agent has corrected  to remove this dependency and updated  to use . The user has not yet successfully deployed these fixes.
     -   **Next debug checklist**:
-        1.  Push the latest code changes (including the new legal pages) to the  repository.
-        2.  SSH into the user's server: .
-        3.  Run the deployment script: .
-        4.  Verify that the pages , , and  load correctly.
-    -   **Why fix this issue and what will be achieved with the fix?**: To make the legally required company information publicly available on the live website.
+        1.  Instruct the user to use the Save to Github button to ensure all local changes are pushed to the  branch.
+        2.  Guide the user to SSH into the server ().
+        3.  Execute a clean deployment, overwriting any local server changes:
+            
+        4.  If it fails, check the logs immediately:  and .
+    -   **Why fix this issue and what will be achieved with the fix?**: The production website is offline. This will bring it back online with the new hybrid live-data functionality.
     -   **Status**: IN PROGRESS
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** Frontend
-    -   **Blocked on other issue**: None
-
--   **Issue 2: Live Data Integration**
-    -   **Attempted fixes**: The agent tried integrating with two different RapidAPI services (SofaScore, Free API Live Football Data) but failed due to incorrect endpoints, rate limits, or subscription issues on the user's end. The final suggestion was to use , but the user had not yet subscribed to it on RapidAPI.
-    -   **Next debug checklist**:
-        1.  Ask the user to confirm they have subscribed to the  service on RapidAPI (https://rapidapi.com/api-sports/api/api-football) with the  plan.
-        2.  Once confirmed, obtain the user's RapidAPI key if different from the one provided ().
-        3.  Refactor the backend endpoint  in  to fetch data from  instead of returning simulated data.
-        4.  Update the server and test the endpoint.
-    -   **Why fix this issue and what will be achieved with the fix?**: This is the core feature of the application. Fixing it will replace the simulated demo data with real, live football data.
-    -   **Status**: BLOCKED (on user action: subscribing to the API).
     -   **Is recurring issue?** Y
-    -   **Should Test frontend/backend/both after fix?** Backend
-    -   **Blocked on other issue**: None
+    -   **Should Test frontend/backend/both after fix?** Both
+    -   **Blocked on other issue**: None. This is the main blocker.
+
+-   **Issue 2: Broken CI/CD Workflow**
+    -   **Attempted fixes**: The agent identified that the GitHub Actions workflow fails due to missing , , and  secrets in the repository settings. The agent explained to the user how to create an SSH key and add the secrets.
+    -   **Next debug checklist**: Postpone this until the site is back online. Then, guide the user to add the required secrets to their GitHub repository to enable automated deployments.
+    -   **Why fix this issue and what will be achieved with the fix?**: To automate deployment and avoid the error-prone manual deployment process that is currently causing problems.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** N/A (DevOps change).
+    -   **Blocked on other issue**: Blocked on Issue 1 (stabilizing the application).
 
 **In progress Task List**:
--   **Task 1: Deploy legal pages to production**
-    -   **Where to resume**: The files are created locally. The next step is to push them to the GitHub repository and then pull/rebuild on the production server.
-    -   **What will be achieved with this?**: The Impressum, AGB, and Datenschutz pages will be live on the user's website.
-    -   **Status**: IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?** Frontend
-    -   **Blocked on something**: No.
+-   None. All efforts are focused on fixing the production deployment.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks**:
-    -   **(P1)** Implement real-time data fetching by integrating a working football data API (e.g., API-Football).
-    -   **(P2)** Finalize the  subdomain setup by waiting for DNS propagation and then running  to issue an SSL certificate.
+    -   **(P1)** Fix the broken CI/CD pipeline (Issue 2).
+    -   **(P2)** Finalize  subdomain setup (DNS and SSL).
 -   **Future Tasks**:
-    -   **(P2)** Implement email confirmation for Early Access sign-ups (would require an email service like Resend and an API key from the user).
-    -   **(P3)** Complete Google Search Console setup once the user's Google account is reinstated.
+    -   **(P2)** Implement email confirmation for Early Access sign-ups.
+    -   **(P3)** Complete Google Search Console setup once the user's account is reinstated.
 
 **Completed work in this session**
--   Full-stack SaaS application (FastAPI, React, MongoDB) developed.
--   User authentication with JWT (registration, login) implemented.
--   Stripe payment integration for PRO/ELITE plans (in test mode).
--   Early Access and Contact Us forms created and connected to the backend.
--   Application deployed to the user's Strato V-Server () using Docker and Nginx.
--   SSL certificate successfully installed for the main domain () and  subdomain.
--   CI/CD pipeline foundation laid with , s, and a GitHub Actions workflow file.
--   SEO essentials (, , Google verification file) created and deployed.
--   Custom social media graphics (Facebook, Instagram, Twitch, Profile Picture) were created and provided to the user.
+-   Deployed legal pages (Impressum, AGB, Datenschutz) and updated Contact page on the live server.
+-   **Live Data Implemented**: Replaced the simulated data feed with a hybrid solution:
+    -   **Odds**: Integrated The Odds API for real prematch odds.
+    -   **Live Scores**: Integrated a public, key-less API from Livescore.com for real-time scores, successfully displaying games like Alanyaspor vs Galatasaray.
+-   **Frontend Overhaul**: Updated the dashboard to use the hybrid data, featuring LIVE, STARTING SOON, and PREMATCH tabs, along with badges indicating the data source.
+-   **Deployment Troubleshooting**: Identified and fixed numerous server-side issues including port conflicts, Dockerfile errors, and incorrect dependencies.
 
 **Earlier issues found/mentioned but not fixed**
--   **Issue 1: Real-time Data Feed**
-    -   **Debug checklist**: The agent cycled through several APIs (SofaScore, etc.) but was blocked by subscription/endpoint issues. The next step is to get confirmation from the user that they have subscribed to the recommended  and then implement it.
-    -   **Why to solve this issue and what will be achieved with this?**: This is the app's main value proposition. Solving it will make the product functional.
-    -   **Should Test frontend/backend/both after fix?** Backend.
-    -   **Is recurring issue?** Y
+-   The GitHub Actions CI/CD workflow is known to be broken. The user has been deploying manually, which has led to many of the current problems.
 
 **Known issue recurrence from previous fork**
--   N/A
+-   The dependency on  was noted as removed in the previous handoff but was re-introduced or not properly handled, causing the current critical backend failure on the external server.
 
 **Code Architecture**
 
@@ -120,10 +85,10 @@ Key implemented features include:
 -   **Frontend**: React, Tailwind CSS, Shadcn UI
 -   **Backend**: FastAPI (Python)
 -   **Database**: MongoDB
--   **Authentication**: JWT (JSON Web Tokens)
--   **Payments**: Stripe
--   **Deployment**: Docker, Docker Compose, Nginx (as reverse proxy), GitHub Actions (for CI/CD)
--   **Server**: Strato V-Server (Linux)
+-   **Authentication**: JWT
+-   **Payments**: Stripe (via direct Python SDK)
+-   **Live Data**: Hybrid solution using The Odds API and Livescore.com public API.
+-   **Deployment**: Docker, Docker Compose, Nginx on an external Strato V-Server.
 
 **key DB schema**
 -   **users**: 
@@ -131,70 +96,67 @@ Key implemented features include:
 -   **contact_messages**: 
 
 **changes in tech stack**
--   The  Python package was removed from  and the corresponding code in  was refactored out, as the package is not available on the user's external server.
+-   The  package was fully removed from the backend.
+-   Stripe integration was rewritten to use the official  Python package.
+-    was added for making asynchronous HTTP requests in the backend.
+-   The Odds API was integrated for betting odds.
+-   A public API from Livescore.com was integrated for live scores.
 
 **All files of reference**
--   : Defines the production services (frontend, backend, DB) and maps ports  (backend) and  (frontend) to avoid conflicts.
--   : Nginx reverse proxy configuration that routes  to the frontend container and  to the backend container.
--   : The main API file. Currently serves simulated data for the opportunities endpoint.
--   : Contains the React Router setup, including routes for the new legal pages.
--   : New file for the Impressum page.
--   : New file for the Terms & Conditions page.
--   : New file for the Privacy Policy page.
--   : Contains manual deployment instructions.
+-   : Major changes to remove , add  and  logic, and fix Stripe integration.
+-   :  removed,  and  added.
+-   : Line 1 changed to  to support newer dependencies. This change has been a recurring point of failure.
+-   : Backend port mapping changed to  to resolve a conflict.
+-   : Updated to display hybrid data with multiple tabs.
 
-**Areas that need refactoring**
--   The  endpoint in  needs to be refactored to call a real external API instead of generating random, simulated data.
+**Areas that need refactoring**:
+-   The manual deployment process is highly unstable. Fixing the CI/CD pipeline in  is critical for stability.
 
 **key api endpoints**
--   
--   
--   
--   
--   
--    (currently returns simulated data)
+-   : Now provides hybrid data (live scores and prematch odds).
 
 **Critical Info for New Agent**
--   **The application is deployed on an external Strato V-Server.** Do not use Emergent's preview URLs for testing deployment-related issues. The server IP is .
--   **Deployment Workflow**: Changes must be pushed to the user's GitHub repository (). Then, SSH into the server and run .
--   **Port Conflicts**: The application uses custom ports ( for frontend,  for backend) on the host to avoid conflicts with other applications running on the same server. Nginx handles routing from standard ports 80/443.
--   ** is unavailable**: The backend code was modified to remove dependencies on this internal package. Do not re-introduce it.
+-   **THE PRODUCTION SITE IS DOWN.** Your first and only priority is to get it back online. The user is waiting for instructions to deploy the latest fixes.
+-   **Root Cause**: The backend container fails to start due to . The agent has fixed the code, but it's not live yet.
+-   **Deployment is Manual & Fragile**: The user deploys by SSHing into the server () and running  + . This process has repeatedly failed. You will likely need to instruct the user to run  to force sync with the repository.
+-   **Check Dockerfile Version**: The frontend requires . This change has been reverted multiple times on the server. Verify  on the server before building if issues persist.
+-   **Port Change**: The backend now runs on host port  due to a conflict. This is configured in .
 
 **documents and test reports created in this job**
--   
--   
+-   None.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Asks to add company details to the Impressum and create AGB/Datenschutz pages. (PENDING - files created but not deployed)
-2.  **Agent**: Acknowledges and starts creating the legal pages.
-3.  **User**: Asks about Google indexing.
-4.  **Agent**: Explains the process and creates  and .
-5.  **User**: Provides the Google verification code.
-6.  **Agent**: Creates the verification file and instructs the user to deploy and verify.
-7.  **User**: Reports the Google account is suspended.
-8.  **Agent**: Clarifies the issue is with the Google account, not the website, and that SEO setup can wait.
-9.  **User**: Confirms they will wait for the Google appeal.
-10. **Agent**: Summarizes the project status and asks for further tasks.
+1.  **User**: Reports deployment failed with Node.js version error ( needs , got ).
+2.  **Agent**: Acknowledges the  was reverted again, provides the fix ().
+3.  **User**: Reports deployment still failing, now with a backend error.
+4.  **Agent**: Investigates logs and finds the critical .
+5.  **Agent**: Removes the  dependency from  and  and rewrites the Stripe integration.
+6.  **Agent**: Adds  to .
+7.  **Agent**: Instructs the user to Save and redeploy with HEAD is now at 6b60f06 Auto-generated changes.
+8.  **User**: Reports the  error again.
+9.  **Agent**: Realizes the Dockerfile fix was overwritten. Re-applies the  fix.
+10. **Agent**: Instructs the user again to Save and redeploy with HEAD is now at 6b60f06 Auto-generated changes. The user is waiting for these instructions to be confirmed.
 
 **Project Health Check:**
--   **Broken**: Real-time data feed (core functionality).
--   **Mocked**: The  endpoint returns simulated data.
+-   **Broken**: The entire application on the production server.
+-   **Mocked**: None.
 
 **3rd Party Integrations**
--   **Stripe**: Integrated for payments (using a test key ).
--   **RapidAPI**: User has an account and key. Used for attempting SofaScore integration. Awaiting user action to subscribe to API-Football.
+-   **Stripe**: Used for payments via the official Python SDK. Requires a user-provided API key (a test key is in use).
+-   **The Odds API**: Used for prematch odds. Requires a User API Key ( is being used).
+-   **Livescore.com**: A public, unauthenticated API is used for fetching live scores.
 
 **Testing status**
--   Testing agent used after significant changes: YES (during initial development).
--   Troubleshoot agent used after agent stuck in loop: NO.
--   Test files created: None.
--   Known regressions: None.
+-   Testing agent used after significant changes: NO
+-   Troubleshoot agent used after agent stuck in loop: NO
+-   Test files created: None
+-   Known regressions: The entire production application is non-functional.
 
 **Credentials to test flow:**
 -   **V-Server SSH**: 
 -   **GitHub Repo**: 
--   **Stripe Test API Key**: 
--   **RapidAPI Key**:  (Note: Subscription for a working API is likely needed).
+-   **The Odds API Key**: 
 
 **What agent forgot to execute**
--   The agent created the legal pages (, , ) but did not complete the process by pushing the changes to GitHub and deploying them on the user's server. This is the most immediate next step.</analysis>
+-   The agent failed to ensure that the removal of , a critical step noted in the initial handoff for external deployment, was respected. This led to the main deployment-blocking error.
+-   The agent got stuck in a repetitive loop of fixing the same  issue because the changes weren't being properly saved and deployed in a persistent way. A more robust fix (like committing  or a more forceful server update script) should have been considered.</analysis>
