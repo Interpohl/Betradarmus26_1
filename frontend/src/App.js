@@ -17,6 +17,7 @@ import { AGB } from "./pages/AGB";
 import { Datenschutz } from "./pages/Datenschutz";
 import { Kontakt } from "./pages/Kontakt";
 import { PaymentSuccess } from "./pages/PaymentSuccess";
+import { AdminDashboard } from "./pages/AdminDashboard";
 
 // Scroll to top on route change
 const ScrollToTop = () => {
@@ -39,6 +40,7 @@ function App() {
           <main>
             <Routes>
               <Route path="/" element={<Landing />} />
+              <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/impressum" element={<Impressum />} />
               <Route path="/agb" element={<AGB />} />
               <Route path="/datenschutz" element={<Datenschutz />} />

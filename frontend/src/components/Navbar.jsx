@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Activity, User, LogOut, Crown } from 'lucide-react';
+import { Menu, X, Activity, User, LogOut, Crown, Settings } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { AuthModal } from './AuthModal';
 
@@ -10,7 +10,7 @@ export const Navbar = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState('login');
   const location = useLocation();
-  const { user, isAuthenticated, isPremium, logout } = useAuth();
+  const { user, isAuthenticated, isPremium, isElite, logout } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -95,6 +95,15 @@ export const Navbar = () => {
           <div className="hidden md:flex items-center gap-4">
             {isAuthenticated ? (
               <>
+                {isElite && (
+                  <Link 
+                    to="/admin"
+                    className="flex items-center gap-1 px-3 py-1.5 bg-cyan-500/10 border border-cyan-500/20 rounded-sm hover:bg-cyan-500/20 transition-colors"
+                  >
+                    <Settings size={14} className="text-cyan-400" />
+                    <span className="text-xs text-cyan-400 font-mono uppercase">Admin</span>
+                  </Link>
+                )}
                 {isPremium && (
                   <span className="flex items-center gap-1 px-2 py-1 bg-[#39FF14]/10 border border-[#39FF14]/20 rounded-sm">
                     <Crown size={14} className="text-[#39FF14]" />
@@ -182,6 +191,16 @@ export const Navbar = () => {
                       </span>
                     )}
                   </div>
+                  {isElite && (
+                    <Link 
+                      to="/admin"
+                      className="h-10 bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-bold uppercase tracking-wide text-xs rounded-sm flex items-center justify-center gap-2"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <Settings size={16} />
+                      Admin Dashboard
+                    </Link>
+                  )}
                   <button 
                     onClick={logout}
                     className="mt-2 h-10 bg-white/5 border border-white/10 text-white font-bold uppercase tracking-wide text-xs rounded-sm flex items-center justify-center gap-2"
