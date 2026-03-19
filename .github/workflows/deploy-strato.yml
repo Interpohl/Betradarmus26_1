@@ -29,15 +29,30 @@ jobs:
             docker-compose down
             docker-compose up -d --build
             
-            # Wait for containers to be fully ready
-            echo "Waiting for containers to start..."
-            sleep 15
+            # Wait for backend to be healthy
+            echo "Waiting for backend to be ready..."
+            for i in {1..30}; do
+              if curl -s http://localhost:8005/api/ > /dev/null 2>&1; then
+                echo "Backend is ready!"
+                break
+              fi
+              echo "Waiting... ($i/30)"
+              sleep 2
+            done
             
-            # Reload nginx to pick up any changes
+            # Wait for frontend to be ready
+            echo "Waiting for frontend to be ready..."
+            for i in {1..30}; do
+              if curl -s http://localhost:3000 > /dev/null 2>&1; then
+                echo "Frontend is ready!"
+                break
+              fi
+              echo "Waiting... ($i/30)"
+              sleep 2
+            done
+            
+            # Reload nginx
             sudo systemctl reload nginx
-            
-            # Double-check nginx is running
-            sudo systemctl status nginx || sudo systemctl start nginx
             
             # Cleanup old images
             docker image prune -f
