@@ -150,7 +150,7 @@ export const Landing = () => {
               
               <div className="flex flex-col sm:flex-row gap-4 pt-4 animate-fade-in-up animation-delay-300">
                 <button 
-                  onClick={() => document.getElementById('solution')?.scrollIntoView({ behavior: 'smooth' })}
+                  onClick={() => document.getElementById('live-demo')?.scrollIntoView({ behavior: 'smooth' })}
                   className="h-12 px-6 bg-[#39FF14] text-black font-bold uppercase tracking-wide text-sm rounded-sm hover:bg-[#2ebb11] hover:shadow-[0_0_20px_rgba(57,255,20,0.4)] transition-all flex items-center justify-center gap-2"
                   data-testid="hero-demo-btn"
                 >
