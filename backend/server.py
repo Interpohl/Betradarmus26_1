@@ -18,6 +18,9 @@ import requests
 # Stripe integration - using stripe directly (not emergentintegrations)
 import stripe
 
+# Email Service
+from email_service import get_email_service
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
@@ -1302,12 +1305,30 @@ async def create_early_access_signup(input: EarlyAccessCreate):
     
     doc = signup_obj.model_dump()
     doc['timestamp'] = doc['timestamp'].isoformat()
+    doc['email_confirmed'] = False
     
     await db.early_access.insert_one(doc)
     
+    # Send confirmation email
+    email_service = get_email_service()
+    if email_service.is_enabled():
+        try:
+            email_sent = await email_service.send_early_access_confirmation(
+                to_email=input.email,
+                plan_interest=input.plan_interest
+            )
+            if email_sent:
+                await db.early_access.update_one(
+                    {"id": signup_obj.id},
+                    {"$set": {"email_confirmed": True, "confirmation_sent_at": datetime.now(timezone.utc).isoformat()}}
+                )
+                logger.info(f"Early Access confirmation email sent to {input.email}")
+        except Exception as e:
+            logger.error(f"Failed to send confirmation email: {e}")
+    
     return EarlyAccessResponse(
         success=True,
-        message="Erfolgreich registriert! Wir melden uns bald bei Ihnen.",
+        message="Erfolgreich registriert! Eine Bestätigungs-E-Mail wurde an Sie gesendet.",
         id=signup_obj.id
     )
 
