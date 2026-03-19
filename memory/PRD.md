@@ -25,14 +25,17 @@ An AI-powered live sports analysis platform for football, analyzing live markets
 ├── backend/
 │   ├── server.py              # Main FastAPI application
 │   ├── telegram_service.py    # Telegram Bot Service
-│   ├── email_service.py       # SendGrid Email Service (NEW)
+│   ├── email_service.py       # SendGrid Email Service
+│   ├── statistics_service.py  # Statistics & Tip Tracking Service (NEW)
 │   ├── requirements.txt
 │   ├── Dockerfile
 │   └── .env
 ├── frontend/
 │   ├── src/
+│   │   ├── components/
+│   │   │   └── Statistics.jsx     # Statistics Component (NEW)
 │   │   └── pages/
-│   │       └── AdminDashboard.jsx  # Admin Dashboard (NEW)
+│   │       └── AdminDashboard.jsx
 │   ├── package.json
 │   └── Dockerfile
 ├── docker-compose.yml
@@ -86,6 +89,21 @@ SENDER_NAME=BETRADARMUS
 - **Sender**: info@betradarmus.de
 - **Content**: Plan selection, feature list, Telegram bot link
 
+### Statistics & Performance Tracking (NEW)
+- **Location**: Öffentlich auf der Landing Page (zwischen Live Demo und Problem Sektion)
+- **Gamification-Elemente**:
+  - Animierte Zahlen-Counter
+  - HOT STREAK Badge (bei 3+ aufeinanderfolgenden Wins)
+  - Achievement-Badges (100 Tipps, 60% Rate, 5er Streak, +10% ROI, 70% Rate, 10er Streak)
+- **Charts**:
+  - Monatliche Performance (Area Chart via Recharts)
+  - Top Ligen nach Win Rate (Horizontal Bar Chart)
+- **Daten**: 
+  - Win Rate, ROI, Total Tips, Current Streak
+  - Performance pro Liga
+  - Letzte 10 ausgewertete Tipps mit WIN/LOSS Status
+- **Backend**: The Odds API Integration für automatisches Ergebnis-Tracking (täglich)
+
 ---
 
 ## Key API Endpoints
@@ -108,6 +126,14 @@ SENDER_NAME=BETRADARMUS
 
 ### Early Access
 - `POST /api/early-access` - Register + send confirmation email
+
+### Statistics (NEW)
+- `GET /api/statistics` - Overall tip statistics (win rate, ROI, streak)
+- `GET /api/statistics/leagues` - Performance breakdown by league
+- `GET /api/statistics/monthly` - Monthly performance data for charts
+- `GET /api/statistics/recent` - Recent evaluated tips
+- `POST /api/statistics/process` - Process pending tips (ELITE only)
+- `POST /api/statistics/record-tip` - Record a new tip (ELITE only)
 
 ---
 
@@ -153,7 +179,38 @@ SENDER_NAME=BETRADARMUS
 }
 ```
 
+### tip_results (NEW)
+```json
+{
+  "id": "uuid",
+  "match": "Bayern München vs Borussia Dortmund",
+  "league": "Bundesliga",
+  "market": "Over 2.5 Goals",
+  "predicted_outcome": "Over 2.5 Goals",
+  "confidence": 0.78,
+  "odds": 1.85,
+  "stake": 1.0,
+  "result": "WIN|LOSS|null",
+  "evaluated": true,
+  "created_at": "datetime",
+  "evaluated_at": "datetime",
+  "final_score": "2:1",
+  "home_score": 2,
+  "away_score": 1
+}
+```
+
 ---
+
+## Completed (2026-03-19)
+
+1. ✅ **Statistics & Performance Tracking** - Öffentliche Statistik-Sektion auf der Landing Page
+   - Gamification-Style mit animierten Zahlen, Streaks, Achievements
+   - Monatliche Performance Chart (Recharts Area)
+   - Liga-Performance Chart (Recharts Bar)
+   - Letzte ausgewertete Tipps mit WIN/LOSS Status
+   - Backend-Integration mit The Odds API für automatisches Ergebnis-Tracking
+   - Demo-Daten mit 150 Tipps geseedet
 
 ## Completed (2025-03-19)
 
@@ -189,9 +246,13 @@ SENDER_NAME=BETRADARMUS
 
 ## Future Tasks / Backlog
 
+### P1 - High
+- Echte Tipps über Admin Dashboard erfassen und automatisch auswerten lassen
+- Cronjob für tägliche Ergebnis-Aktualisierung via The Odds API
+
 ### P2 - Medium
 - Push notifications (Web)
-- Historical signal performance tracking
+- Erweitertes Tip-Management im Admin Dashboard
 
 ### P3 - Low
 - Multiple language support

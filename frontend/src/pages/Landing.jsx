@@ -7,6 +7,7 @@ import { LiveDashboard } from '../components/LiveDashboard';
 import { LiveDashboardReal } from '../components/LiveDashboardReal';
 import { LiveTicker } from '../components/LiveTicker';
 import { LiveDemo } from '../components/LiveDemo';
+import { Statistics } from '../components/Statistics';
 import { EarlyAccessForm } from '../components/EarlyAccessForm';
 import { PricingCard } from '../components/PricingCard';
 import { AuthModal } from '../components/AuthModal';
@@ -190,6 +191,9 @@ export const Landing = () => {
 
       {/* Live Demo Section */}
       <LiveDemo />
+
+      {/* Statistics Section */}
+      <Statistics />
 
       {/* Problem Section */}
       <section id="problem" className="py-24 md:py-32 relative" data-testid="problem-section">

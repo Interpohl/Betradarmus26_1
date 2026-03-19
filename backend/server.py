@@ -1443,9 +1443,13 @@ async def get_subscription_plans():
 # ==================== TELEGRAM BOT INTEGRATION ====================
 
 from telegram_service import TelegramBotService, init_telegram_service, get_telegram_service, AVAILABLE_LEAGUES, SUBSCRIPTION_LIMITS
+from statistics_service import StatisticsService, init_statistics_service, get_statistics_service
 
 # Telegram service instance
 telegram_service: Optional[TelegramBotService] = None
+
+# Statistics service instance  
+statistics_service: Optional[StatisticsService] = None
 
 # Signal Models
 class SignalCreate(BaseModel):
@@ -1624,6 +1628,68 @@ async def link_telegram_account(telegram_username: str, user: dict = Depends(req
     
     return {"success": True, "message": f"Account mit Telegram @{telegram_username} verknüpft"}
 
+# ==================== STATISTICS API ROUTES ====================
+
+@api_router.get("/statistics")
+async def get_statistics():
+    """Get overall tip statistics"""
+    if not statistics_service:
+        raise HTTPException(status_code=503, detail="Statistics service nicht verfügbar")
+    
+    stats = await statistics_service.get_statistics()
+    return stats
+
+@api_router.get("/statistics/leagues")
+async def get_league_statistics():
+    """Get statistics breakdown by league"""
+    if not statistics_service:
+        raise HTTPException(status_code=503, detail="Statistics service nicht verfügbar")
+    
+    leagues = await statistics_service.get_league_performance()
+    return {"leagues": leagues}
+
+@api_router.get("/statistics/monthly")
+async def get_monthly_statistics():
+    """Get monthly performance data"""
+    if not statistics_service:
+        raise HTTPException(status_code=503, detail="Statistics service nicht verfügbar")
+    
+    monthly = await statistics_service.get_monthly_performance()
+    return {"monthly": monthly}
+
+@api_router.get("/statistics/recent")
+async def get_recent_tips(limit: int = 20):
+    """Get recent evaluated tips"""
+    if not statistics_service:
+        raise HTTPException(status_code=503, detail="Statistics service nicht verfügbar")
+    
+    tips = await statistics_service.get_recent_tips(limit)
+    return {"tips": tips}
+
+@api_router.post("/statistics/process")
+async def process_pending_tips(user: dict = Depends(require_auth)):
+    """Process pending tips - fetch results from API (admin only)"""
+    if user.get('subscription') != 'elite':
+        raise HTTPException(status_code=403, detail="Nur für ELITE-Nutzer")
+    
+    if not statistics_service:
+        raise HTTPException(status_code=503, detail="Statistics service nicht verfügbar")
+    
+    result = await statistics_service.process_pending_tips()
+    return {"success": True, **result}
+
+@api_router.post("/statistics/record-tip")
+async def record_tip(tip_data: dict, user: dict = Depends(require_auth)):
+    """Record a new tip for tracking (admin only)"""
+    if user.get('subscription') != 'elite':
+        raise HTTPException(status_code=403, detail="Nur für ELITE-Nutzer")
+    
+    if not statistics_service:
+        raise HTTPException(status_code=503, detail="Statistics service nicht verfügbar")
+    
+    tip_id = await statistics_service.record_tip(tip_data)
+    return {"success": True, "tip_id": tip_id}
+
 # Include the router in the main app
 app.include_router(api_router)
 
@@ -1638,7 +1704,14 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup_event():
     """Initialize services on startup"""
-    global telegram_service
+    global telegram_service, statistics_service
+    
+    # Initialize Statistics Service
+    try:
+        statistics_service = await init_statistics_service(db)
+        logger.info("Statistics Service started successfully")
+    except Exception as e:
+        logger.error(f"Failed to start Statistics Service: {e}")
     
     if TELEGRAM_BOT_TOKEN and ENABLE_TELEGRAM_BOT:
         try:
