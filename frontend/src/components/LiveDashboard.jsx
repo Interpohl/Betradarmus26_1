@@ -218,7 +218,7 @@ export const LiveDashboard = () => {
             <>
               <Radio size={28} className="mx-auto mb-3 text-[#A1A1AA]" />
               <p className="text-sm text-[#A1A1AA]">Keine Live-Spiele gefunden</p>
-              <p className="text-xs text-[#A1A1AA]/70 mt-1">Wechseln Sie zu "BALD" oder "PREMATCH"</p>
+              <p className="text-xs text-[#A1A1AA]/70 mt-1">Wechsle zu "BALD" oder "PREMATCH"</p>
             </>
           ) : activeTab === 'starting_soon' ? (
             <>

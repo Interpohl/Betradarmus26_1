@@ -85,7 +85,7 @@ export const Footer = () => {
           {/* Social */}
           <div>
             <h4 className="font-heading text-sm font-semibold uppercase tracking-wider text-white mb-4">
-              Folgen Sie uns
+              Folge uns
             </h4>
             <div className="flex items-center gap-4">
               <a 

@@ -15,7 +15,7 @@ export const EarlyAccessForm = ({ planInterest = 'free' }) => {
     
     if (!email || !email.includes('@')) {
       setStatus('error');
-      setMessage('Bitte geben Sie eine gültige E-Mail-Adresse ein.');
+      setMessage('Bitte gib eine gültige E-Mail-Adresse ein.');
       return;
     }
 
@@ -37,7 +37,7 @@ export const EarlyAccessForm = ({ planInterest = 'free' }) => {
       }
     } catch (error) {
       setStatus('error');
-      setMessage('Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
+      setMessage('Ein Fehler ist aufgetreten. Bitte versuche es später erneut.');
     }
   };
 
@@ -49,7 +49,7 @@ export const EarlyAccessForm = ({ planInterest = 'free' }) => {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="Ihre E-Mail-Adresse"
+            placeholder="Deine E-Mail-Adresse"
             className="w-full h-12 px-4 bg-[#0a0a0a] border border-white/10 text-white placeholder-[#A1A1AA] rounded-sm focus:border-[#39FF14] focus:ring-1 focus:ring-[#39FF14] focus:outline-none transition-all font-body"
             disabled={status === 'loading' || status === 'success'}
             data-testid="early-access-email-input"

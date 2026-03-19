@@ -107,7 +107,7 @@ export const PricingCard = ({ plan, onSelect, onAuthRequired }) => {
       }
     } catch (err) {
       console.error('Checkout error:', err);
-      setError('Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.');
+      setError('Ein Fehler ist aufgetreten. Bitte versuche es erneut.');
     } finally {
       setLoading(false);
     }

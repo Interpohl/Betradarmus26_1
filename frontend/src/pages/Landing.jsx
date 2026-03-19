@@ -364,10 +364,10 @@ export const Landing = () => {
         <div className="max-w-7xl mx-auto px-4 md:px-8">
           <div className="max-w-3xl mx-auto text-center mb-16">
             <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-semibold uppercase tracking-tight text-white mb-6">
-              Wählen Sie Ihren Plan
+              Wähle deinen Plan
             </h2>
             <p className="text-[#A1A1AA] text-base md:text-lg">
-              Starten Sie kostenlos und upgraden Sie, wenn Sie bereit sind.
+              Starte kostenlos und upgrade, wenn du bereit bist.
             </p>
           </div>
 
@@ -395,7 +395,7 @@ export const Landing = () => {
             </h2>
             
             <p className="text-[#A1A1AA] text-base md:text-lg mb-8">
-              Registrieren Sie sich jetzt und erhalten Sie exklusiven Zugang zu Betradarmus, bevor wir offiziell starten.
+              Registriere dich jetzt und erhalte exklusiven Zugang zu Betradarmus, bevor wir offiziell starten.
             </p>
 
             <div className="flex justify-center">

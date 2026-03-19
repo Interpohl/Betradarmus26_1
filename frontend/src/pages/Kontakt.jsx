@@ -27,13 +27,13 @@ export const Kontakt = () => {
     // Validation
     if (!formData.name || !formData.email || !formData.subject || !formData.message) {
       setStatus('error');
-      setErrorMessage('Bitte füllen Sie alle Felder aus.');
+      setErrorMessage('Bitte fülle alle Felder aus.');
       return;
     }
 
     if (!formData.email.includes('@')) {
       setStatus('error');
-      setErrorMessage('Bitte geben Sie eine gültige E-Mail-Adresse ein.');
+      setErrorMessage('Bitte gib eine gültige E-Mail-Adresse ein.');
       return;
     }
 
@@ -51,7 +51,7 @@ export const Kontakt = () => {
       }
     } catch (error) {
       setStatus('error');
-      setErrorMessage('Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut.');
+      setErrorMessage('Ein Fehler ist aufgetreten. Bitte versuche es später erneut.');
     }
   };
 
@@ -73,7 +73,7 @@ export const Kontakt = () => {
           Kontakt
         </h1>
         <p className="text-[#A1A1AA] text-lg mb-12 max-w-2xl">
-          Haben Sie Fragen zu Betradarmus? Wir freuen uns auf Ihre Nachricht.
+          Hast du Fragen zu Betradarmus? Wir freuen uns auf deine Nachricht.
         </p>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-12">
@@ -128,7 +128,7 @@ export const Kontakt = () => {
                     Nachricht gesendet
                   </h3>
                   <p className="text-[#A1A1AA] mb-6">
-                    Vielen Dank für Ihre Nachricht. Wir werden uns in Kürze bei Ihnen melden.
+                    Vielen Dank für deine Nachricht. Wir werden uns in Kürze bei dir melden.
                   </p>
                   <button
                     onClick={() => setStatus('idle')}
@@ -195,7 +195,7 @@ export const Kontakt = () => {
                       onChange={handleChange}
                       rows={6}
                       className="w-full px-4 py-3 bg-[#0a0a0a] border border-white/10 text-white placeholder-[#A1A1AA]/50 rounded-sm focus:border-[#39FF14] focus:ring-1 focus:ring-[#39FF14] focus:outline-none transition-all resize-none"
-                      placeholder="Ihre Nachricht..."
+                      placeholder="Deine Nachricht..."
                       data-testid="contact-message-input"
                     />
                   </div>

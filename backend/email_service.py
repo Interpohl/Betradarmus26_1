@@ -228,7 +228,7 @@ class EmailService:
             
             <p>Vielen Dank für Ihr Interesse an <span class="highlight">BETRADARMUS</span> - der KI-gestützten Live-Fußball-Analyseplattform.</p>
             
-            <p>Sie haben sich für folgenden Plan interessiert:</p>
+            <p>Du hast dich für folgenden Plan interessiert:</p>
             
             <div class="plan-badge">{plan_display}</div>
             
@@ -251,14 +251,14 @@ class EmailService:
                 </div>
             </div>
             
-            <p>Wir werden Sie benachrichtigen, sobald der volle Zugang verfügbar ist. Bis dahin können Sie unseren Telegram-Bot testen:</p>
+            <p>Wir werden dich benachrichtigen, sobald der volle Zugang verfügbar ist. Bis dahin kannst du unseren Telegram-Bot testen:</p>
             
             <center>
                 <a href="https://t.me/Betradarmus_bot" class="cta-button">Telegram Bot starten</a>
             </center>
             
             <p style="font-size: 14px; color: #666; margin-top: 24px;">
-                Bei Fragen erreichen Sie uns unter <a href="mailto:info@betradarmus.de" style="color: #39FF14;">info@betradarmus.de</a>
+                Bei Fragen erreichst du uns unter <a href="mailto:info@betradarmus.de" style="color: #39FF14;">info@betradarmus.de</a>
             </p>
         </div>
         
@@ -270,7 +270,7 @@ class EmailService:
                 <a href="https://betradarmus.de/agb">AGB</a>
             </p>
             <p style="margin-top: 16px; color: #444;">
-                Sie erhalten diese E-Mail, weil Sie sich für den Early Access bei BETRADARMUS angemeldet haben.
+                Du erhältst diese E-Mail, weil du dich für den Early Access bei BETRADARMUS angemeldet hast.
             </p>
         </div>
     </div>
@@ -283,15 +283,15 @@ BETRADARMUS - Early Access bestätigt!
 
 Vielen Dank für Ihr Interesse an BETRADARMUS - der KI-gestützten Live-Fußball-Analyseplattform.
 
-Sie haben sich für folgenden Plan interessiert: {plan_display}
+Du hast dich für folgenden Plan interessiert: {plan_display}
 
-Was Sie erwartet:
+Was dich erwartet:
 - Live-Marktanalyse in Echtzeit
 - KI-gestützte Wahrscheinlichkeitsberechnung
 - Telegram Signal-Benachrichtigungen
 - Markt-Ineffizienzen erkennen
 
-Wir werden Sie benachrichtigen, sobald der volle Zugang verfügbar ist.
+Wir werden dich benachrichtigen, sobald der volle Zugang verfügbar ist.
 
 Telegram Bot: https://t.me/Betradarmus_bot
 

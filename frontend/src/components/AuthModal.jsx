@@ -74,8 +74,8 @@ export const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
         </h2>
         <p className="text-sm text-[#A1A1AA] mb-6">
           {mode === 'login' 
-            ? 'Melden Sie sich an, um auf alle Features zuzugreifen.' 
-            : 'Erstellen Sie ein kostenloses Konto.'}
+            ? 'Melde dich an, um auf alle Features zuzugreifen.' 
+            : 'Erstelle ein kostenloses Konto.'}
         </p>
 
         {/* Form */}
