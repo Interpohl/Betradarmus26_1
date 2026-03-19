@@ -97,9 +97,15 @@ export const Landing = () => {
 
   const handlePlanSelect = (plan) => {
     setSelectedPlan(plan);
-    const earlyAccessSection = document.getElementById('early-access');
-    if (earlyAccessSection) {
-      earlyAccessSection.scrollIntoView({ behavior: 'smooth' });
+    if (plan === 'free') {
+      // Open registration modal for free plan
+      setPendingPlan('free');
+      setShowAuthModal(true);
+    } else {
+      const earlyAccessSection = document.getElementById('early-access');
+      if (earlyAccessSection) {
+        earlyAccessSection.scrollIntoView({ behavior: 'smooth' });
+      }
     }
   };
 
