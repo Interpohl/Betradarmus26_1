@@ -35,6 +35,9 @@ AVAILABLE_LEAGUES = [
     "2. Bundesliga"
 ]
 
+# Telegram Group Links
+TELEGRAM_FREE_GROUP = "https://t.me/+Pb8X_nXzKu41N2Yy"
+
 # Subscription level limits
 SUBSCRIPTION_LIMITS = {
     "free": {"max_leagues": 2, "min_confidence": 0.75, "signals_per_day": 5},
@@ -164,6 +167,9 @@ Live-Fußball intelligent analysiert. Wir erkennen Markt-Ineffizienzen und sende
 • Min. Confidence: 75%
 • 5 Signale pro Tag
 
+👥 *Tritt unserer FREE Community bei:*
+[Hier klicken zum Beitreten]({TELEGRAM_FREE_GROUP})
+
 *Nächste Schritte:*
 1️⃣ /subscribe - Wähle deine Ligen
 2️⃣ /settings - Passe Einstellungen an
@@ -171,7 +177,7 @@ Live-Fußball intelligent analysiert. Wir erkennen Markt-Ineffizienzen und sende
 
 Upgrade auf PRO oder ELITE unter betradarmus.de für mehr Signale!
 """
-        await update.message.reply_text(welcome_text, parse_mode=ParseMode.MARKDOWN)
+        await update.message.reply_text(welcome_text, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True)
         
     async def cmd_settings(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /settings command - Show settings menu"""

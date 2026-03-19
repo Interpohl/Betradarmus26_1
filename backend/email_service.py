@@ -87,6 +87,18 @@ class EmailService:
         }
         plan_display = plan_names.get(plan_interest, plan_interest)
         
+        # FREE Community Group Link
+        free_group_link = "https://t.me/+Pb8X_nXzKu41N2Yy"
+        free_group_section = ""
+        if plan_interest == "free":
+            free_group_section = f"""
+            <div style="background-color: #0a0a0a; border: 1px solid #39FF14; border-radius: 8px; padding: 20px; margin: 24px 0; text-align: center;">
+                <p style="color: #39FF14; font-weight: bold; margin: 0 0 12px 0;">👥 Tritt unserer FREE Community bei!</p>
+                <p style="color: #a1a1aa; margin: 0 0 16px 0; font-size: 14px;">Tausche dich mit anderen FREE-Nutzern aus und erhalte exklusive Tipps.</p>
+                <a href="{free_group_link}" style="display: inline-block; background-color: #39FF14; color: #000000; padding: 12px 24px; border-radius: 4px; font-weight: bold; text-decoration: none; font-size: 14px;">Telegram Gruppe beitreten</a>
+            </div>
+            """
+        
         subject = "Willkommen bei BETRADARMUS - Early Access bestätigt!"
         
         html_content = f"""
@@ -250,6 +262,8 @@ class EmailService:
                     <span>Markt-Ineffizienzen erkennen</span>
                 </div>
             </div>
+            
+            {free_group_section}
             
             <p>Wir werden dich benachrichtigen, sobald der volle Zugang verfügbar ist. Bis dahin kannst du unseren Telegram-Bot testen:</p>
             
