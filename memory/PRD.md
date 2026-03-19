@@ -15,6 +15,7 @@ An AI-powered live sports analysis platform for football, analyzing live markets
 - **Payments**: Stripe (official Python SDK)
 - **Live Data**: Hybrid solution - The Odds API (prematch odds) + Livescore.com (live scores)
 - **Signal Distribution**: Telegram Bot (python-telegram-bot)
+- **Email**: SendGrid
 - **Deployment**: Docker, Docker Compose, Nginx on Strato V-Server
 - **CI/CD**: GitHub Actions
 
@@ -23,12 +24,15 @@ An AI-powered live sports analysis platform for football, analyzing live markets
 /app
 ├── backend/
 │   ├── server.py              # Main FastAPI application
-│   ├── telegram_service.py    # Telegram Bot Service (NEW)
+│   ├── telegram_service.py    # Telegram Bot Service
+│   ├── email_service.py       # SendGrid Email Service (NEW)
 │   ├── requirements.txt
 │   ├── Dockerfile
 │   └── .env
 ├── frontend/
 │   ├── src/
+│   │   └── pages/
+│   │       └── AdminDashboard.jsx  # Admin Dashboard (NEW)
 │   ├── package.json
 │   └── Dockerfile
 ├── docker-compose.yml
@@ -39,52 +43,48 @@ An AI-powered live sports analysis platform for football, analyzing live markets
 - **Frontend**: Port 3000 → nginx → betradarmus.de (SSL)
 - **Backend**: Port 8005 → nginx → api.betradarmus.de (SSL)
 - **MongoDB**: Internal Docker network
-- **Telegram Bot**: Polling mode on backend
+- **Telegram Bot**: Polling mode (only on production via ENABLE_TELEGRAM_BOT=true)
+
+## Environment Variables
+```
+# Backend .env (Production)
+MONGO_URL=...
+TELEGRAM_BOT_TOKEN=...
+ENABLE_TELEGRAM_BOT=true        # Only true on production!
+SENDGRID_API_KEY=...
+SENDER_EMAIL=info@betradarmus.de
+SENDER_NAME=BETRADARMUS
+```
 
 ---
 
-## Telegram Signal Distribution System (NEW)
+## Features Implemented
 
-### Bot Commands
-- `/start` - Register user
-- `/settings` - Show/change settings
-- `/subscribe` - Subscribe to leagues
-- `/unsubscribe` - Unsubscribe from leagues
-- `/status` - Show current status
-- `/help` - Show help
+### Admin Dashboard (/admin)
+- **Tabs**: Übersicht, Statistiken, Signale, Nutzer
+- **Signal Creation**: Create and distribute signals to Telegram users
+- **Statistics**: 
+  - Subscription breakdown (FREE/PRO/ELITE)
+  - League subscription stats
+  - Signal performance metrics
+  - Visual pie chart for user distribution
+- **Access**: ELITE users only
 
-### Subscription Levels
-| Level | Max Leagues | Min Confidence | Signals/Day |
-|-------|-------------|----------------|-------------|
-| FREE  | 2           | 75%            | 5           |
-| PRO   | 5           | 60%            | 50          |
-| ELITE | 8           | 50%            | Unlimited   |
+### Telegram Signal Distribution
+- **Bot**: @Betradarmus_bot
+- **Commands**: /start, /settings, /subscribe, /unsubscribe, /status, /help
+- **Features**:
+  - User registration
+  - League subscription
+  - Signal filtering by league, confidence, subscription level
+  - Rate limiting (25 msg/sec)
+- **Conflict Resolution**: Bot only runs on production (ENABLE_TELEGRAM_BOT=true)
 
-### Available Leagues
-- Bundesliga, 2. Bundesliga
-- Premier League
-- La Liga
-- Serie A
-- Ligue 1
-- Champions League
-- Europa League
-
-### Signal Message Format
-```
-⚡ BETRADARMUS LIVE SIGNAL
-
-🏟️ Spiel: Dortmund vs Leipzig
-🏆 Liga: Bundesliga
-
-📊 Markt: Over 2.5
-🟢 Confidence: 78%
-🟡 Risk Score: 41
-
-📝 Analyse:
-Market deviation detected.
-
-🕐 Zeit: 20:17
-```
+### Email Confirmation (SendGrid)
+- **Trigger**: Early Access signup
+- **Template**: Professional HTML email with BETRADARMUS branding
+- **Sender**: info@betradarmus.de
+- **Content**: Plan selection, feature list, Telegram bot link
 
 ---
 
@@ -95,52 +95,25 @@ Market deviation detected.
 - `POST /api/auth/login` - User login
 - `GET /api/auth/me` - Get current user
 
-### Payments
-- `POST /api/payments/checkout` - Create Stripe checkout
-- `GET /api/payments/status/{session_id}` - Check payment status
-
-### Live Data
-- `GET /api/analysis/opportunities` - Live market opportunities (hybrid data)
-- `GET /api/livescore/live` - Live scores from Livescore.com
-- `GET /api/odds/live` - Odds from The Odds API
-
-### Signals (NEW)
+### Signals
 - `POST /api/signals` - Create signal (ELITE only)
 - `GET /api/signals` - List signals
-- `GET /api/signals/{signal_id}` - Get specific signal
+- `GET /api/signals/{id}` - Get specific signal
 
-### Telegram (NEW)
+### Telegram
 - `GET /api/telegram/status` - Bot status
 - `GET /api/telegram/leagues` - Available leagues
 - `GET /api/telegram/users` - List users (ELITE only)
-- `PUT /api/telegram/users/{id}/settings` - Update user settings
 - `POST /api/telegram/broadcast` - Broadcast message (ELITE only)
-- `POST /api/telegram/link` - Link web account to Telegram
 
-### Other
-- `POST /api/early-access` - Early access signup
-- `POST /api/contact` - Contact form
-- `GET /api/plans` - Subscription plans
+### Early Access
+- `POST /api/early-access` - Register + send confirmation email
 
 ---
 
 ## Database Schema
 
-### users
-```json
-{
-  "id": "uuid",
-  "email": "string",
-  "password_hash": "string",
-  "name": "string",
-  "subscription": "free|pro|elite",
-  "telegram_linked": "boolean",
-  "telegram_id": "string",
-  "created_at": "datetime"
-}
-```
-
-### telegram_users (NEW)
+### telegram_users
 ```json
 {
   "telegram_id": "string",
@@ -150,84 +123,76 @@ Market deviation detected.
   "leagues": ["Bundesliga", "..."],
   "min_confidence": 0.75,
   "alerts_enabled": true,
-  "signals_today": 0,
-  "web_user_id": "string (optional)",
-  "created_at": "datetime"
+  "signals_today": 0
 }
 ```
 
-### signals (NEW)
+### signals
 ```json
 {
   "id": "uuid",
-  "sport": "football",
   "league": "string",
   "match": "string",
   "market": "string",
   "confidence": 0.78,
   "risk_score": 41,
   "explanation": "string",
-  "created_by": "user_id",
   "distributed": true,
-  "distribution_results": {"sent": 10, "filtered": 5, "failed": 0},
-  "timestamp": "datetime"
+  "distribution_results": {"sent": 10, "filtered": 5, "failed": 0}
 }
 ```
+
+### early_access
+```json
+{
+  "id": "uuid",
+  "email": "string",
+  "plan_interest": "free|pro|elite",
+  "email_confirmed": true,
+  "confirmation_sent_at": "datetime"
+}
+```
+
+---
+
+## Completed (2025-03-19)
+
+1. ✅ **Admin Dashboard** - Signal creation & management
+2. ✅ **Telegram Statistics** - User & signal analytics with charts
+3. ✅ **Email Confirmation** - SendGrid integration for Early Access
+4. ✅ **Bot Conflict Fix** - ENABLE_TELEGRAM_BOT flag for production-only
+
+## Completed (2025-03-11)
+
+1. ✅ Production deployment fix (port 8005)
+2. ✅ CI/CD Pipeline (GitHub Actions)
+3. ✅ SSL for api.betradarmus.de
+4. ✅ Google Search Console verification
+5. ✅ Telegram Bot implementation
 
 ---
 
 ## 3rd Party Integrations
 - **Stripe**: Payment processing
 - **The Odds API**: Prematch odds
-- **Livescore.com**: Public API for live scores
+- **Livescore.com**: Live scores
 - **Telegram Bot API**: Signal distribution
-
----
-
-## Completed Features ✅
-
-### 2025-03-11 - Telegram Signal Distribution
-- Implemented Telegram Bot with python-telegram-bot
-- Bot commands: /start, /settings, /subscribe, /unsubscribe, /status, /help
-- User registration and league subscription
-- Signal distribution with filtering (league, confidence, subscription level)
-- Rate limiting (25 messages/second)
-- In-memory queue for message delivery
-- REST API for signal management
-
-### 2025-03-11 - Production Deployment & CI/CD
-- Fixed port conflict (Backend on port 8005)
-- Fixed nginx syntax error
-- Configured SSL for api.betradarmus.de
-- Set up GitHub Actions CI/CD pipeline
-- Google Search Console verified
-
-### Previous Completions
-- Full landing page with Hero, Problem, Solution, Technology, Pricing sections
-- Legal pages: Impressum, AGB, Datenschutz
-- Contact page with company details
-- User authentication (JWT)
-- Stripe payment integration
-- Live data integration (hybrid: Livescore.com + The Odds API)
-- Dashboard with LIVE, STARTING SOON, and PREMATCH tabs
-
----
-
-## Pending/Future Tasks
-
-### P2 - Medium Priority
-- Email confirmation for Early Access sign-ups
-- Admin dashboard for signal management (Frontend)
-- Telegram user statistics dashboard
-
-### P3 - Low Priority
-- Push notifications (Web)
-- Historical signal performance tracking
-- Multiple language support
-
----
+- **SendGrid**: Email service
 
 ## Credentials
-- **Server SSH**: `ssh root@87.106.8.138`
-- **GitHub Repo**: `https://github.com/Interpohl/Betradarmus26_1`
-- **Telegram Bot**: `@Betradarmus_Bot`
+- **Server**: ssh root@87.106.8.138
+- **GitHub**: https://github.com/Interpohl/Betradarmus26_1
+- **Telegram Bot**: @Betradarmus_bot
+- **SendGrid Sender**: info@betradarmus.de
+
+---
+
+## Future Tasks / Backlog
+
+### P2 - Medium
+- Push notifications (Web)
+- Historical signal performance tracking
+
+### P3 - Low
+- Multiple language support
+- Mobile app (React Native)
