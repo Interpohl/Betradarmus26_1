@@ -200,3 +200,33 @@ html {
     background-position: -200% 0;
   }
 }
+
+
+/* Live Demo Animations */
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.5s ease-out;
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(57, 255, 20, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(57, 255, 20, 0.6);
+  }
+}
+
+.glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
