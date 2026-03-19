@@ -24,7 +24,7 @@ const plans = {
   },
   pro: {
     name: 'Pro',
-    price: '19',
+    price: '49',
     period: '/Monat',
     description: 'Für ambitionierte Analysten',
     icon: Zap,
@@ -33,7 +33,6 @@ const plans = {
       'Risk Score Analyse',
       'Confidence Index',
       'Erweiterte Liga-Filter',
-      'Alle Top-5 Ligen',
       'E-Mail Support'
     ],
     cta: 'Pro Wählen',
