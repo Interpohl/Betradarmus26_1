@@ -11,13 +11,13 @@ const plans = {
     name: 'Free',
     price: '0',
     period: 'Kostenlos',
-    description: 'Grundlegender Zugang zur Live-Analyse',
+    description: 'Kostenloser Einstieg in die BETRADARMUS Community',
     icon: Star,
     features: [
-      'Begrenzter Live-Zugriff',
-      'Basis-Analyse',
-      '3 Ligen verfügbar',
-      'Community Support'
+      'Zugang zur Telegram-Gruppe',
+      'Free-Tipps',
+      'Community Support',
+      'Freier Zugang zur TV-Show auf Twitch'
     ],
     cta: 'Kostenlos Starten',
     highlight: false
