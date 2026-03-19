@@ -26,7 +26,7 @@ export const Impressum = () => {
           <section>
             <h2>Angaben gemäß § 5 TMG</h2>
             <p>
-              <strong>Interpohl Solutions GmbH i.Gr.</strong><br />
+              <strong>INTERPOHL Solutions GmbH</strong><br />
               Kontor H72<br />
               Hansastr. 72<br />
               44137 Dortmund<br />
@@ -52,9 +52,8 @@ export const Impressum = () => {
           <section>
             <h2>Registereintrag</h2>
             <p>
-              Gesellschaft in Gründung (i.Gr.)<br />
               Registergericht: Amtsgericht Dortmund<br />
-              <em>Registernummer wird nach Eintragung ergänzt.</em>
+              Registernummer: HRB 38151
             </p>
           </section>
 
