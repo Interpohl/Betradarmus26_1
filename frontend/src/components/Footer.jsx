@@ -1,6 +1,20 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Activity, Linkedin, Twitter } from 'lucide-react';
+import { Activity, Facebook, Instagram } from 'lucide-react';
+
+// Custom TikTok Icon (not in lucide)
+const TikTokIcon = () => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+  </svg>
+);
+
+// Custom Twitch Icon
+const TwitchIcon = () => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+    <path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/>
+  </svg>
+);
 
 export const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -87,24 +101,42 @@ export const Footer = () => {
             <h4 className="font-heading text-sm font-semibold uppercase tracking-wider text-white mb-4">
               Folge uns
             </h4>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <a 
-                href="https://linkedin.com" 
+                href="https://facebook.com/betradarmus" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="w-10 h-10 flex items-center justify-center bg-white/5 border border-white/10 rounded-sm hover:bg-white/10 hover:border-white/20 transition-all"
-                data-testid="footer-linkedin"
+                className="w-10 h-10 flex items-center justify-center bg-white/5 border border-white/10 rounded-sm hover:bg-[#1877F2]/20 hover:border-[#1877F2]/50 transition-all group"
+                data-testid="footer-facebook"
               >
-                <Linkedin size={18} className="text-[#A1A1AA]" />
+                <Facebook size={18} className="text-[#A1A1AA] group-hover:text-[#1877F2]" />
               </a>
               <a 
-                href="https://twitter.com" 
+                href="https://instagram.com/betradarmus" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="w-10 h-10 flex items-center justify-center bg-white/5 border border-white/10 rounded-sm hover:bg-white/10 hover:border-white/20 transition-all"
-                data-testid="footer-twitter"
+                className="w-10 h-10 flex items-center justify-center bg-white/5 border border-white/10 rounded-sm hover:bg-[#E4405F]/20 hover:border-[#E4405F]/50 transition-all group"
+                data-testid="footer-instagram"
               >
-                <Twitter size={18} className="text-[#A1A1AA]" />
+                <Instagram size={18} className="text-[#A1A1AA] group-hover:text-[#E4405F]" />
+              </a>
+              <a 
+                href="https://tiktok.com/@betradarmus" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-10 h-10 flex items-center justify-center bg-white/5 border border-white/10 rounded-sm hover:bg-white/20 hover:border-white/50 transition-all group"
+                data-testid="footer-tiktok"
+              >
+                <span className="text-[#A1A1AA] group-hover:text-white"><TikTokIcon /></span>
+              </a>
+              <a 
+                href="https://twitch.tv/betradarmus" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-10 h-10 flex items-center justify-center bg-white/5 border border-white/10 rounded-sm hover:bg-[#9146FF]/20 hover:border-[#9146FF]/50 transition-all group"
+                data-testid="footer-twitch"
+              >
+                <span className="text-[#A1A1AA] group-hover:text-[#9146FF]"><TwitchIcon /></span>
               </a>
             </div>
           </div>
