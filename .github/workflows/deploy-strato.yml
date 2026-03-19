@@ -29,8 +29,15 @@ jobs:
             docker-compose down
             docker-compose up -d --build
             
+            # Wait for containers to be fully ready
+            echo "Waiting for containers to start..."
+            sleep 15
+            
             # Reload nginx to pick up any changes
             sudo systemctl reload nginx
+            
+            # Double-check nginx is running
+            sudo systemctl status nginx || sudo systemctl start nginx
             
             # Cleanup old images
             docker image prune -f
