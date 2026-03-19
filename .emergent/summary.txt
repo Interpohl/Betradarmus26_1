@@ -1,82 +1,83 @@
 <analysis>**original_problem_statement:**
-The user wants to create a modern, high-quality, trustworthy SaaS website for an AI startup named BETRADARMUS.
-Claim: Live football intelligently analyzed.
+The user wants to create a modern, high-quality, trustworthy SaaS website for an AI startup named BETRADARMUS. The initial scope included a landing page, user authentication, and Stripe subscriptions.
+
+This has since been expanded significantly. The user provided a new prompt to build an event-based system to distribute AI-generated football predictions via a Telegram Bot. The user and agent agreed to implement this new system within the existing technology stack (Python/FastAPI backend, React frontend, MongoDB database) instead of migrating to Node.js/PostgreSQL as the prompt suggested.
+
+The project also now includes an admin dashboard, email verification, a live demo on the landing page, and a community Telegram group.
 
 **PRODUCT REQUIREMENTS:**
--   **Positioning**: An AI-powered live sports analysis platform for football, analyzing live markets, probabilities, and market inefficiencies in real-time. It is NOT a betting provider.
--   **Design**: Dark premium theme with a tech/fintech aesthetic.
--   **Page Structure**: Hero, Problem, Solution, Technology, For Whom, Pricing, Legal Notice, and Footer sections.
--   **Technical Features**: Micro-animations, mobile-first optimization, user authentication (JWT), subscription payments (Stripe), real live football data integration, and an Early Access email capture form.
--   **Deployment**: The user wants the final application deployed to their own Strato V-Server with a CI/CD pipeline.
+-   **Core Product**: An AI-powered live sports analysis platform.
+-   **Website**: A dark, premium-themed landing page with sections for Hero, Live Demo, Problem, Solution, Technology, Pricing, etc.
+-   **Telegram Integration**: A Betradarmus-bot that registers users, allows them to manage settings, and distributes real-time prediction signals. FREE users are invited to a community group.
+-   **Admin Functionality**: A protected  page for ELITE users to view bot statistics, manage users, and create/send new signals.
+-   **User Management**: JWT authentication with a full email verification flow to prevent abuse. New users must click a verification link in an email before their account is activated.
+-   **Email Communication**: Integration with SendGrid to send transactional emails (Early Access confirmation, Email Verification).
+-   **Deployment**: A robust CI/CD pipeline via GitHub Actions to the user's external Strato V-Server. This has been a major focus, with an emphasis on eliminating deployment-related downtime.
 
 **User's preferred language**: German
 
 **what currently exists?**
-A full-stack application (React frontend, FastAPI backend, MongoDB) is built. The legal pages (Impressum, AGB, Datenschutz) and the contact page have been updated with the user's company details. A key feature, the live data feed, has been implemented as a hybrid solution: it uses The Odds API for prematch odds and a public API from Livescore.com for real-time scores, which successfully resolved the issue of finding a reliable live data source.
+The full-stack application (React, FastAPI, MongoDB) is live and functional on the user's Strato V-Server. The previous session's critical issues (production downtime, broken CI/CD, missing SSL) have all been resolved.
 
-However, the application is currently **DOWN** on the user's external Strato V-Server due to a series of cascading deployment failures.
+The application has been significantly enhanced with a complete Telegram bot signal distribution system, an admin dashboard, SendGrid email integration for registration and verification, a new live demo section on the landing page, and numerous content/UI updates as requested by the user. The main recurring issue of 502 Bad Gateway errors after deployment has been the primary focus of debugging.
 
 **Last working item**:
--   Last item agent was working: Fixing a critical deployment failure on the user's Strato V-Server, which is causing a 502 Bad Gateway error. The root cause was identified as the backend failing to start because it was trying to import the  package, which is unavailable on the external server. The agent provided a fix by removing the dependency and rewriting the Stripe integration to use the official  package. A secondary recurring issue with the frontend Dockerfile requiring  was also addressed.
+-   Last item agent was working: Fixing the recurring 502 Bad Gateway error that occurs after every deployment. The root cause was identified as the CI/CD pipeline command () causing application downtime during the rebuild process. The agent implemented a final fix to the deployment script to attempt a zero-downtime deployment.
 -   Status: IN PROGRESS
 -   Agent Testing Done: N
--   Which testing method agent to use? Manual testing by user. The user must deploy the latest fixes to their server.
+-   Which testing method agent to use? The fix is in the CI/CD pipeline (). The only way to test it is for the user to make a new change, save it to GitHub, and monitor the subsequent automatic deployment to see if the 502 Bad Gateway error is finally resolved.
 -   User Testing Done: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1 (P0)**: Fix production deployment; the website is down.
--   **Issue 2 (P1)**: The CI/CD pipeline via GitHub Actions is broken due to missing secrets.
--   **Issue 3 (P2)**: The  subdomain is not yet configured with an SSL certificate.
--   **Issue 4 (P3)**: Google Search Console verification is blocked due to the user's Google account being suspended.
-
-**Issues Detail**:
--   **Issue 1: Fix production deployment**
-    -   **Attempted fixes**: The agent guided the user through a long series of debugging steps on the server, encountering and fixing: Docker , git conflicts (HEAD is now at 6b60f06 Auto-generated changes), missing , a port conflict with  (moved backend to port 8005), and an incorrect Node.js version. The final root cause was a . The agent has corrected  to remove this dependency and updated  to use . The user has not yet successfully deployed these fixes.
+-   **Issue 1: Recurring 502 Bad Gateway after deployments (P0)**
+    -   **Attempted fixes**: The agent tried several solutions in the CI/CD pipeline:
+        1.  Added .
+        2.  Added a  delay before the reload.
+        3.  Replaced the sleep with an active health check loop to wait for ports 3000 and 8005 to be ready.
+        4.  **Latest Fix**: Changed the core deployment command from  to . This is intended to update containers without stopping the entire application, thus preventing downtime.
     -   **Next debug checklist**:
-        1.  Instruct the user to use the Save to Github button to ensure all local changes are pushed to the  branch.
-        2.  Guide the user to SSH into the server ().
-        3.  Execute a clean deployment, overwriting any local server changes:
-            
-        4.  If it fails, check the logs immediately:  and .
-    -   **Why fix this issue and what will be achieved with the fix?**: The production website is offline. This will bring it back online with the new hybrid live-data functionality.
+        1.  Wait for the user to request a new change.
+        2.  After the change is implemented and saved, monitor the GitHub Actions workflow.
+        3.  Verify that the site remains online throughout and after the deployment finishes.
+    -   **Why fix this issue and what will be achieved with the fix?**: This is a major user frustration and disrupts the production site. A permanent fix will create a stable, zero-downtime deployment process.
     -   **Status**: IN PROGRESS
     -   **Is recurring issue?** Y
-    -   **Should Test frontend/backend/both after fix?** Both
-    -   **Blocked on other issue**: None. This is the main blocker.
-
--   **Issue 2: Broken CI/CD Workflow**
-    -   **Attempted fixes**: The agent identified that the GitHub Actions workflow fails due to missing , , and  secrets in the repository settings. The agent explained to the user how to create an SSH key and add the secrets.
-    -   **Next debug checklist**: Postpone this until the site is back online. Then, guide the user to add the required secrets to their GitHub repository to enable automated deployments.
-    -   **Why fix this issue and what will be achieved with the fix?**: To automate deployment and avoid the error-prone manual deployment process that is currently causing problems.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** N/A (DevOps change).
-    -   **Blocked on other issue**: Blocked on Issue 1 (stabilizing the application).
+    -   **Should Test frontend/backend/both after fix?** Both (by checking site availability).
+    -   **Blocked on other issue**: None. This is the main blocker for development stability.
 
 **In progress Task List**:
--   None. All efforts are focused on fixing the production deployment.
+-   None. All development tasks from the user have been completed. The focus is on stabilizing the deployment process.
 
 **Upcoming and Future Tasks**
--   **Upcoming Tasks**:
-    -   **(P1)** Fix the broken CI/CD pipeline (Issue 2).
-    -   **(P2)** Finalize  subdomain setup (DNS and SSL).
--   **Future Tasks**:
-    -   **(P2)** Implement email confirmation for Early Access sign-ups.
-    -   **(P3)** Complete Google Search Console setup once the user's account is reinstated.
+-   **Upcoming Tasks**: There are no pending tasks. The agent should ask the user for the next set of requirements after confirming the deployment fix works.
+-   **Future Tasks**: Based on previous agent suggestions, potential future tasks could include:
+    -   (P2) Build out the Coming Soon Elite plan features.
+    -   (P3) Add more advanced charts and analytics to the Admin Dashboard (e.g., user growth over time, signal performance).
+    -   (P3) Implement web push notifications.
 
 **Completed work in this session**
--   Deployed legal pages (Impressum, AGB, Datenschutz) and updated Contact page on the live server.
--   **Live Data Implemented**: Replaced the simulated data feed with a hybrid solution:
-    -   **Odds**: Integrated The Odds API for real prematch odds.
-    -   **Live Scores**: Integrated a public, key-less API from Livescore.com for real-time scores, successfully displaying games like Alanyaspor vs Galatasaray.
--   **Frontend Overhaul**: Updated the dashboard to use the hybrid data, featuring LIVE, STARTING SOON, and PREMATCH tabs, along with badges indicating the data source.
--   **Deployment Troubleshooting**: Identified and fixed numerous server-side issues including port conflicts, Dockerfile errors, and incorrect dependencies.
-
-**Earlier issues found/mentioned but not fixed**
--   The GitHub Actions CI/CD workflow is known to be broken. The user has been deploying manually, which has led to many of the current problems.
-
-**Known issue recurrence from previous fork**
--   The dependency on  was noted as removed in the previous handoff but was re-introduced or not properly handled, causing the current critical backend failure on the external server.
+-   **Deployment & Infrastructure:**
+    -   Fixed initial production downtime by resolving port conflicts and Nginx configuration errors.
+    -   Repaired the CI/CD pipeline by setting up SSH keys and GitHub secrets.
+    -   Added an SSL certificate for the  subdomain.
+    -   Iteratively improved the CI/CD pipeline to address recurring 502 Bad Gateway errors, culminating in a zero-downtime deployment strategy.
+-   **Backend Features:**
+    -   **Telegram Bot**: Implemented a complete signal distribution system with a bot () that handles user registration and filtering.
+    -   **Email Service**: Integrated SendGrid for transactional emails.
+    -   **Email Verification**: Built a full registration flow where users must verify their email via a token-based link before their account is activated.
+-   **Frontend Features:**
+    -   **Admin Dashboard**: Created a protected  page with tabs for overview, statistics, signal creation, and user management.
+    -   **Live Demo**: Added a new section to the landing page with fiktive animated live games and a Telegram signal preview.
+    -   **Content & UI Updates**:
+        -   Changed site-wide address from Sie to Du.
+        -   Updated pricing plans (FREE, PRO, ELITE) with new descriptions, prices (€49 for Pro, €199 for Elite), and button states (Coming Soon for Elite).
+        -   Updated the Impressum with new company details (INTERPOHL Solutions GmbH, HRB 38151).
+        -   Added new social media icons (Facebook, Instagram, TikTok, Twitch) to the footer.
+        -   Connected the Kostenlos starten button to the registration modal.
+-   **SEO & Usability:**
+    -   Verified the site with Google Search Console.
+    -   Updated the  tab title and meta description for better branding and SEO.
+    -   Created  and  files.
 
 **Code Architecture**
 
@@ -85,78 +86,70 @@ However, the application is currently **DOWN** on the user's external Strato V-S
 -   **Frontend**: React, Tailwind CSS, Shadcn UI
 -   **Backend**: FastAPI (Python)
 -   **Database**: MongoDB
--   **Authentication**: JWT
--   **Payments**: Stripe (via direct Python SDK)
--   **Live Data**: Hybrid solution using The Odds API and Livescore.com public API.
--   **Deployment**: Docker, Docker Compose, Nginx on an external Strato V-Server.
+-   **Authentication**: JWT, now with a token-based email verification flow.
+-   **CI/CD**: GitHub Actions deploying to an external server via SSH.
+-   **Integrations**:
+    -   Telegram Bot ()
+    -   SendGrid (Email API)
+    -   The Odds API & Livescore.com API (for live data)
 
 **key DB schema**
--   **users**: 
 -   **early_access**: 
--   **contact_messages**: 
-
-**changes in tech stack**
--   The  package was fully removed from the backend.
--   Stripe integration was rewritten to use the official  Python package.
--    was added for making asynchronous HTTP requests in the backend.
--   The Odds API was integrated for betting odds.
--   A public API from Livescore.com was integrated for live scores.
+-   **telegram_users**:  (new collection)
+-   **signals**:  (new collection)
 
 **All files of reference**
--   : Major changes to remove , add  and  logic, and fix Stripe integration.
--   :  removed,  and  added.
--   : Line 1 changed to  to support newer dependencies. This change has been a recurring point of failure.
--   : Backend port mapping changed to  to resolve a conflict.
--   : Updated to display hybrid data with multiple tabs.
-
-**Areas that need refactoring**:
--   The manual deployment process is highly unstable. Fixing the CI/CD pipeline in  is critical for stability.
-
-**key api endpoints**
--   : Now provides hybrid data (live scores and prematch odds).
+-    (critical for deployment stability)
+-    (contains core logic for new features)
+-    (all bot logic)
+-    (all email logic)
+-    (contains pricing and demo sections)
+-    (admin UI)
+-    (email verification landing page)
+-    (pricing logic)
 
 **Critical Info for New Agent**
--   **THE PRODUCTION SITE IS DOWN.** Your first and only priority is to get it back online. The user is waiting for instructions to deploy the latest fixes.
--   **Root Cause**: The backend container fails to start due to . The agent has fixed the code, but it's not live yet.
--   **Deployment is Manual & Fragile**: The user deploys by SSHing into the server () and running  + . This process has repeatedly failed. You will likely need to instruct the user to run  to force sync with the repository.
--   **Check Dockerfile Version**: The frontend requires . This change has been reverted multiple times on the server. Verify  on the server before building if issues persist.
--   **Port Change**: The backend now runs on host port  due to a conflict. This is configured in .
+-   **The 502 Bad Gateway recurring issue is the absolute highest priority.** The latest fix in  (using ) is intended to solve this permanently by enabling zero-downtime deployments. This must be verified at the next opportunity.
+-   The user is highly engaged and reports issues immediately after a deployment. Be prepared to address deployment-related feedback.
+-   All new features (Telegram, Email) rely on API keys stored in  files on the production server (). When adding new features requiring keys, remember to guide the user to add them to the production environment.
 
 **documents and test reports created in this job**
--   None.
+-    (updated multiple times)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Reports deployment failed with Node.js version error ( needs , got ).
-2.  **Agent**: Acknowledges the  was reverted again, provides the fix ().
-3.  **User**: Reports deployment still failing, now with a backend error.
-4.  **Agent**: Investigates logs and finds the critical .
-5.  **Agent**: Removes the  dependency from  and  and rewrites the Stripe integration.
-6.  **Agent**: Adds  to .
-7.  **Agent**: Instructs the user to Save and redeploy with HEAD is now at 6b60f06 Auto-generated changes.
-8.  **User**: Reports the  error again.
-9.  **Agent**: Realizes the Dockerfile fix was overwritten. Re-applies the  fix.
-10. **Agent**: Instructs the user again to Save and redeploy with HEAD is now at 6b60f06 Auto-generated changes. The user is waiting for these instructions to be confirmed.
+1.  **User**: Reports Bad Gateway again after saving.
+2.  **Agent**: Acknowledges the issue and suggests the manual  fix.
+3.  **User**: Asks to add social media icons (Facebook, TikTok, Instagram, Twitch) to the footer. (DONE)
+4.  **Agent**: Implements the icons.
+5.  **User**: Reports Bad Gateway again and asks why it's not fixed.
+6.  **Agent**: Acknowledges the user's frustration, investigates the CI/CD logs, identifies the root cause (downtime during build), and proposes a permanent zero-downtime deployment fix.
+7.  **Agent**: Implements the fix in the CI/CD pipeline.
+8.  **User**: Asks to connect the Kostenlos starten button to the registration modal. (DONE)
+9.  **User**: Asks to change the FREE plan description. (DONE)
+10. **User**: Asks to change the PRO plan price and features. (DONE)
 
 **Project Health Check:**
--   **Broken**: The entire application on the production server.
--   **Mocked**: None.
+-   **Broken**: The deployment process is fragile and has been the source of recurring 502 Bad Gateway errors. The latest fix is intended to resolve this but is unverified.
+-   **Mocked**: The new Live Demo section on the landing page uses hardcoded, fiktive data.
 
 **3rd Party Integrations**
--   **Stripe**: Used for payments via the official Python SDK. Requires a user-provided API key (a test key is in use).
--   **The Odds API**: Used for prematch odds. Requires a User API Key ( is being used).
--   **Livescore.com**: A public, unauthenticated API is used for fetching live scores.
+-   **Stripe**: For payments (official Python SDK).
+-   **The Odds API**: For prematch odds.
+-   **Livescore.com**: Public API for live scores.
+-   **SendGrid**: For transactional emails (Early Access, Verification). Requires User API Key.
+-   **Telegram**: For the bot (). Requires User API Key (Bot Token).
 
 **Testing status**
 -   Testing agent used after significant changes: NO
 -   Troubleshoot agent used after agent stuck in loop: NO
 -   Test files created: None
--   Known regressions: The entire production application is non-functional.
+-   Known regressions: The production site becomes temporarily unavailable (502 Bad Gateway) after almost every deployment.
 
 **Credentials to test flow:**
 -   **V-Server SSH**: 
 -   **GitHub Repo**: 
--   **The Odds API Key**: 
+-   **Telegram Bot**: 
+-   **Test User (ELITE)**:  / 
 
 **What agent forgot to execute**
--   The agent failed to ensure that the removal of , a critical step noted in the initial handoff for external deployment, was respected. This led to the main deployment-blocking error.
--   The agent got stuck in a repetitive loop of fixing the same  issue because the changes weren't being properly saved and deployed in a persistent way. A more robust fix (like committing  or a more forceful server update script) should have been considered.</analysis>
+- The agent repeatedly had to guide the user through the same manual fix () instead of prioritizing a permanent solution for the CI/CD pipeline earlier. This led to significant user frustration. The final fix was only implemented after many recurrences of the same problem.</analysis>

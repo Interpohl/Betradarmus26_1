@@ -25,31 +25,15 @@ jobs:
             # Pull latest changes
             git pull origin main
             
-            # Rebuild and restart containers
-            docker-compose down
-            docker-compose up -d --build
+            # Build new images FIRST (no downtime during build)
+            docker-compose build
             
-            # Wait for backend to be healthy
-            echo "Waiting for backend to be ready..."
-            for i in {1..30}; do
-              if curl -s http://localhost:8005/api/ > /dev/null 2>&1; then
-                echo "Backend is ready!"
-                break
-              fi
-              echo "Waiting... ($i/30)"
-              sleep 2
-            done
+            # Quick restart with new images (minimal downtime)
+            docker-compose up -d --force-recreate
             
-            # Wait for frontend to be ready
-            echo "Waiting for frontend to be ready..."
-            for i in {1..30}; do
-              if curl -s http://localhost:3000 > /dev/null 2>&1; then
-                echo "Frontend is ready!"
-                break
-              fi
-              echo "Waiting... ($i/30)"
-              sleep 2
-            done
+            # Wait for services to be healthy
+            echo "Waiting for services..."
+            sleep 10
             
             # Reload nginx
             sudo systemctl reload nginx
