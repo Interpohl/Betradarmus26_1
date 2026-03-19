@@ -40,7 +40,7 @@ const plans = {
   },
   elite: {
     name: 'Elite',
-    price: '39',
+    price: '199',
     period: '/Monat',
     description: 'Maximale Performance',
     icon: Crown,
@@ -53,9 +53,10 @@ const plans = {
       'Priority Support',
       'Explainable AI Details'
     ],
-    cta: 'Elite Wählen',
+    cta: 'Coming Soon',
     highlight: false,
-    elite: true
+    elite: true,
+    disabled: true
   }
 };
 
@@ -184,15 +185,17 @@ export const PricingCard = ({ plan, onSelect, onAuthRequired }) => {
       {/* CTA */}
       <button
         onClick={handleClick}
-        disabled={loading || isCurrentPlan}
+        disabled={loading || isCurrentPlan || planData.disabled}
         className={`w-full h-12 font-bold uppercase tracking-wide text-sm rounded-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
           isCurrentPlan
             ? 'bg-white/10 text-white border border-white/20'
-            : planData.highlight 
-              ? 'bg-[#39FF14] text-black hover:bg-[#2ebb11] hover:shadow-[0_0_20px_rgba(57,255,20,0.4)]'
-              : planData.elite
-                ? 'bg-[#00C2FF] text-black hover:bg-[#00a8dd] hover:shadow-[0_0_20px_rgba(0,194,255,0.4)]'
-                : 'bg-white/5 text-white border border-white/10 hover:bg-white/10 hover:border-white/20'
+            : planData.disabled
+              ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
+              : planData.highlight 
+                ? 'bg-[#39FF14] text-black hover:bg-[#2ebb11] hover:shadow-[0_0_20px_rgba(57,255,20,0.4)]'
+                : planData.elite
+                  ? 'bg-[#00C2FF] text-black hover:bg-[#00a8dd] hover:shadow-[0_0_20px_rgba(0,194,255,0.4)]'
+                  : 'bg-white/5 text-white border border-white/10 hover:bg-white/10 hover:border-white/20'
         }`}
         data-testid={`pricing-cta-${plan}`}
       >
@@ -200,6 +203,8 @@ export const PricingCard = ({ plan, onSelect, onAuthRequired }) => {
           <Loader2 size={18} className="animate-spin" />
         ) : isCurrentPlan ? (
           'Aktueller Plan'
+        ) : planData.disabled ? (
+          planData.cta
         ) : !isAuthenticated && plan !== 'free' ? (
           'Anmelden & Upgraden'
         ) : (
