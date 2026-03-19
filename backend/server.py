@@ -26,6 +26,7 @@ load_dotenv(ROOT_DIR / '.env')
 
 # Telegram Bot Token (must be after load_dotenv)
 TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
+ENABLE_TELEGRAM_BOT = os.environ.get('ENABLE_TELEGRAM_BOT', 'false').lower() == 'true'
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
@@ -1567,13 +1568,15 @@ async def startup_event():
     """Initialize services on startup"""
     global telegram_service
     
-    if TELEGRAM_BOT_TOKEN:
+    if TELEGRAM_BOT_TOKEN and ENABLE_TELEGRAM_BOT:
         try:
             telegram_service = await init_telegram_service(TELEGRAM_BOT_TOKEN, db)
             await telegram_service.start_polling()
             logger.info("Telegram Bot started successfully")
         except Exception as e:
             logger.error(f"Failed to start Telegram Bot: {e}")
+    elif TELEGRAM_BOT_TOKEN and not ENABLE_TELEGRAM_BOT:
+        logger.info("Telegram Bot disabled (ENABLE_TELEGRAM_BOT=false)")
     else:
         logger.warning("TELEGRAM_BOT_TOKEN not set - Telegram Bot disabled")
 
