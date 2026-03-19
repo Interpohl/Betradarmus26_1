@@ -1294,44 +1294,116 @@ async def root():
 async def create_early_access_signup(input: EarlyAccessCreate):
     existing = await db.early_access.find_one({"email": input.email}, {"_id": 0})
     if existing:
-        return EarlyAccessResponse(
-            success=False,
-            message="Diese E-Mail-Adresse ist bereits für den Early Access registriert."
-        )
+        if existing.get('email_verified'):
+            return EarlyAccessResponse(
+                success=False,
+                message="Diese E-Mail-Adresse ist bereits verifiziert und registriert."
+            )
+        else:
+            # Resend verification email
+            email_service = get_email_service()
+            if email_service.is_enabled():
+                verification_token = str(uuid.uuid4())
+                await db.early_access.update_one(
+                    {"email": input.email},
+                    {"$set": {
+                        "verification_token": verification_token,
+                        "verification_token_expires": (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat()
+                    }}
+                )
+                await email_service.send_verification_email(input.email, verification_token, existing.get('plan_interest', 'free'))
+            return EarlyAccessResponse(
+                success=True,
+                message="Eine neue Bestätigungs-E-Mail wurde gesendet. Bitte prüfe deinen Posteingang."
+            )
     
     signup_obj = EarlyAccessSignup(
         email=input.email,
         plan_interest=input.plan_interest
     )
     
+    # Generate verification token
+    verification_token = str(uuid.uuid4())
+    
     doc = signup_obj.model_dump()
     doc['timestamp'] = doc['timestamp'].isoformat()
-    doc['email_confirmed'] = False
+    doc['email_verified'] = False
+    doc['verification_token'] = verification_token
+    doc['verification_token_expires'] = (datetime.now(timezone.utc) + timedelta(hours=24)).isoformat()
     
     await db.early_access.insert_one(doc)
     
-    # Send confirmation email
+    # Send verification email
     email_service = get_email_service()
     if email_service.is_enabled():
         try:
-            email_sent = await email_service.send_early_access_confirmation(
+            email_sent = await email_service.send_verification_email(
                 to_email=input.email,
+                verification_token=verification_token,
                 plan_interest=input.plan_interest
             )
             if email_sent:
-                await db.early_access.update_one(
-                    {"id": signup_obj.id},
-                    {"$set": {"email_confirmed": True, "confirmation_sent_at": datetime.now(timezone.utc).isoformat()}}
-                )
-                logger.info(f"Early Access confirmation email sent to {input.email}")
+                logger.info(f"Verification email sent to {input.email}")
         except Exception as e:
-            logger.error(f"Failed to send confirmation email: {e}")
+            logger.error(f"Failed to send verification email: {e}")
     
     return EarlyAccessResponse(
         success=True,
-        message="Erfolgreich registriert! Eine Bestätigungs-E-Mail wurde an Sie gesendet.",
+        message="Fast geschafft! Bitte bestätige deine E-Mail-Adresse über den Link in deinem Posteingang.",
         id=signup_obj.id
     )
+
+@api_router.get("/verify-email/{token}")
+async def verify_email(token: str):
+    """Verify email address with token"""
+    signup = await db.early_access.find_one({"verification_token": token}, {"_id": 0})
+    
+    if not signup:
+        raise HTTPException(status_code=400, detail="Ungültiger oder abgelaufener Verifizierungslink.")
+    
+    # Check if token expired
+    token_expires = signup.get('verification_token_expires')
+    if token_expires:
+        expires_dt = datetime.fromisoformat(token_expires.replace('Z', '+00:00'))
+        if datetime.now(timezone.utc) > expires_dt:
+            raise HTTPException(status_code=400, detail="Der Verifizierungslink ist abgelaufen. Bitte registriere dich erneut.")
+    
+    if signup.get('email_verified'):
+        return {"success": True, "message": "E-Mail bereits verifiziert.", "already_verified": True}
+    
+    # Mark as verified
+    await db.early_access.update_one(
+        {"verification_token": token},
+        {
+            "$set": {
+                "email_verified": True,
+                "verified_at": datetime.now(timezone.utc).isoformat()
+            },
+            "$unset": {
+                "verification_token": "",
+                "verification_token_expires": ""
+            }
+        }
+    )
+    
+    # Send confirmation email with group invite etc.
+    email_service = get_email_service()
+    if email_service.is_enabled():
+        try:
+            await email_service.send_early_access_confirmation(
+                to_email=signup['email'],
+                plan_interest=signup.get('plan_interest', 'free')
+            )
+            logger.info(f"Early Access confirmation sent to {signup['email']}")
+        except Exception as e:
+            logger.error(f"Failed to send confirmation: {e}")
+    
+    return {
+        "success": True,
+        "message": "E-Mail erfolgreich verifiziert! Willkommen bei BETRADARMUS.",
+        "email": signup['email'],
+        "plan": signup.get('plan_interest', 'free')
+    }
 
 @api_router.get("/early-access/count")
 async def get_early_access_count():

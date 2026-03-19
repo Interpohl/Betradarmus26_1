@@ -77,6 +77,166 @@ class EmailService:
             logger.error(f"Email send error: {str(e)}")
             return False
     
+    async def send_verification_email(self, to_email: str, verification_token: str, plan_interest: str = "free") -> bool:
+        """Send email verification link"""
+        
+        verification_url = f"https://betradarmus.de/verify?token={verification_token}"
+        
+        plan_names = {
+            "free": "Free",
+            "pro": "Pro",
+            "elite": "Elite"
+        }
+        plan_display = plan_names.get(plan_interest, plan_interest)
+        
+        subject = "BETRADARMUS - Bitte bestätige deine E-Mail-Adresse"
+        
+        html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #0a0a0a;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+        }}
+        .container {{
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }}
+        .header {{
+            text-align: center;
+            margin-bottom: 40px;
+        }}
+        .logo-text {{
+            font-size: 24px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #ffffff;
+        }}
+        .content {{
+            background-color: #121212;
+            border: 1px solid #222;
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 24px;
+        }}
+        h1 {{
+            color: #39FF14;
+            font-size: 24px;
+            margin: 0 0 16px 0;
+        }}
+        p {{
+            color: #a1a1aa;
+            line-height: 1.6;
+            margin: 0 0 16px 0;
+        }}
+        .highlight {{
+            color: #ffffff;
+        }}
+        .cta-button {{
+            display: inline-block;
+            background-color: #39FF14;
+            color: #000000;
+            padding: 16px 40px;
+            border-radius: 4px;
+            font-weight: bold;
+            text-transform: uppercase;
+            text-decoration: none;
+            font-size: 14px;
+            letter-spacing: 1px;
+            margin: 24px 0;
+        }}
+        .plan-info {{
+            background-color: #0a0a0a;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 20px 0;
+            text-align: center;
+        }}
+        .footer {{
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+            padding: 20px;
+        }}
+        .footer a {{
+            color: #39FF14;
+            text-decoration: none;
+        }}
+        .warning {{
+            font-size: 12px;
+            color: #666;
+            margin-top: 20px;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <span class="logo-text">BETRADARMUS</span>
+        </div>
+        
+        <div class="content">
+            <h1>Bestätige deine E-Mail-Adresse</h1>
+            
+            <p>Vielen Dank für dein Interesse an <span class="highlight">BETRADARMUS</span>!</p>
+            
+            <p>Um deine Registrierung abzuschließen und Zugang zu erhalten, klicke bitte auf den folgenden Button:</p>
+            
+            <center>
+                <a href="{verification_url}" class="cta-button">E-Mail bestätigen</a>
+            </center>
+            
+            <div class="plan-info">
+                <p style="margin: 0; color: #666;">Dein gewählter Plan:</p>
+                <p style="margin: 8px 0 0 0; color: #39FF14; font-weight: bold; font-size: 18px;">{plan_display}</p>
+            </div>
+            
+            <p class="warning">
+                Falls du dich nicht bei BETRADARMUS registriert hast, kannst du diese E-Mail ignorieren.
+                Der Link ist 24 Stunden gültig.
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p>© 2025 BETRADARMUS. Alle Rechte vorbehalten.</p>
+            <p>
+                <a href="https://betradarmus.de/impressum">Impressum</a> | 
+                <a href="https://betradarmus.de/datenschutz">Datenschutz</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+        
+        plain_content = f"""
+BETRADARMUS - E-Mail-Bestätigung
+
+Vielen Dank für dein Interesse an BETRADARMUS!
+
+Um deine Registrierung abzuschließen, klicke bitte auf folgenden Link:
+{verification_url}
+
+Dein gewählter Plan: {plan_display}
+
+Falls du dich nicht registriert hast, ignoriere diese E-Mail.
+Der Link ist 24 Stunden gültig.
+
+---
+BETRADARMUS
+https://betradarmus.de
+"""
+        
+        return await self.send_email(to_email, subject, html_content, plain_content)
+    
     async def send_early_access_confirmation(self, to_email: str, plan_interest: str) -> bool:
         """Send Early Access confirmation email"""
         
