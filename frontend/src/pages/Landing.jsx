@@ -520,8 +520,7 @@ export const Landing = () => {
                   { text: "Confidence Index", included: true },
                   { text: "Liga & Markt Filter", included: true },
                   { text: "Priority Telegram Signale", included: true },
-                  { text: "E-Mail Support", included: true },
-                  { text: "7 Tage Geld-zurück-Garantie", included: true }
+                  { text: "E-Mail Support", included: true }
                 ].map((item, index) => (
                   <li key={index} className="flex items-center gap-3">
                     <CheckCircle className="w-5 h-5 text-[#39FF14]" />

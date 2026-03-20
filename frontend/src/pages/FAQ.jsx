@@ -87,10 +87,6 @@ const faqData = [
       {
         q: "Kann ich jederzeit kündigen?",
         a: "Ja, du kannst dein Abo jederzeit zum Ende des Abrechnungszeitraums kündigen. Es gibt keine versteckten Gebühren oder Mindestlaufzeiten."
-      },
-      {
-        q: "Gibt es eine Geld-zurück-Garantie?",
-        a: "Wir bieten eine 7-Tage-Geld-zurück-Garantie für neue PRO-Abonnenten. Wenn du nicht zufrieden bist, kontaktiere uns innerhalb von 7 Tagen nach dem Kauf."
       }
     ]
   },
