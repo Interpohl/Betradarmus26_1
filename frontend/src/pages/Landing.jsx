@@ -8,6 +8,9 @@ import { LiveDashboard } from '../components/LiveDashboard';
 import { LiveDashboardReal } from '../components/LiveDashboardReal';
 import { LiveTicker } from '../components/LiveTicker';
 import { LiveDemo } from '../components/LiveDemo';
+import { LiveCounter } from '../components/LiveCounter';
+import { ComparisonSection } from '../components/ComparisonSection';
+import { TelegramPreview } from '../components/TelegramPreview';
 import { Statistics } from '../components/Statistics';
 import { EarlyAccessForm } from '../components/EarlyAccessForm';
 import { PricingCard } from '../components/PricingCard';
@@ -217,6 +220,9 @@ export const Landing = () => {
         </div>
       </section>
 
+      {/* Live Counter Bar */}
+      <LiveCounter />
+
       {/* Live Ticker */}
       <LiveTicker />
 
@@ -386,6 +392,12 @@ export const Landing = () => {
           </div>
         </div>
       </section>
+
+      {/* Comparison Section - BETRADARMUS vs Bauchgefühl */}
+      <ComparisonSection />
+
+      {/* Telegram Preview Section */}
+      <TelegramPreview />
 
       {/* AI Model Transparency Section - NEW */}
       <section className="py-16 md:py-20 bg-[#121212]/50 relative overflow-hidden" data-testid="ai-model-section">

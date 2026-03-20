@@ -259,6 +259,9 @@ SENDER_NAME=BETRADARMUS
    - Auth Modal (link at bottom)
 2. ✅ **Comprehensive Testing** - Backend API tests (22/22) + Frontend E2E tests (30/30) all passing
 3. ✅ **Telegram Group Welcome Message** - Auto-greet new members with bot link (@Betradarmus_bot)
+4. ✅ **Live Counter Bar** - Shows "X Nutzer online", "Nächstes Signal in X:XX", "X Signale heute" with live updates
+5. ✅ **Comparison Section** - "BETRADARMUS vs. Bauchgefühl" with side-by-side comparison cards
+6. ✅ **Telegram Preview Section** - Phone mockup with rotating live signals, CTAs for Community & Bot
 
 ## Completed (2025-03-19)
 
