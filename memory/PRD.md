@@ -250,12 +250,29 @@ SENDER_NAME=BETRADARMUS
    - Backend-Integration mit The Odds API für automatisches Ergebnis-Tracking
    - Demo-Daten mit 150 Tipps geseedet
 
+## Completed (2026-03-20)
+
+1. ✅ **Telegram FREE Group Link Integration** - Added link `https://t.me/+Pb8X_nXzKu41N2Yy` to:
+   - Footer (prominent Telegram icon + text link)
+   - Landing Page "How it works" Step 2
+   - FAQ Page (dedicated CTA box + updated FAQ answer)
+   - Auth Modal (link at bottom)
+2. ✅ **Comprehensive Testing** - Backend API tests (22/22) + Frontend E2E tests (30/30) all passing
+
 ## Completed (2025-03-19)
 
-1. ✅ **Admin Dashboard** - Signal creation & management
+1. ✅ **Admin Dashboard** - Signal creation & management, expanded with Website Users, Telegram Users, Payments, Email blasting tabs
 2. ✅ **Telegram Statistics** - User & signal analytics with charts
 3. ✅ **Email Confirmation** - SendGrid integration for Early Access
 4. ✅ **Bot Conflict Fix** - ENABLE_TELEGRAM_BOT flag for production-only
+5. ✅ **Statistics Section** - Gamification with animated counters, HOT STREAK badges, achievement system
+6. ✅ **FAQ Page** - Comprehensive FAQ with accordion categories
+7. ✅ **Automated AI Signal Generator** - backend/signal_generator.py with start/stop controls
+8. ✅ **Stripe Expanded Payments** - PayPal and Klarna support added
+9. ✅ **Football-Data.org API** - For past match results (replaced The Odds API for results)
+10. ✅ **Telegram Elite Channel** - /elite command support
+11. ✅ **Landing Page Revamp** - How it works, Testimonials, AI Model explanation, Free Trial section, Partner Logos
+12. ✅ **Docker Compose v2.24.0** - Fixed 502 errors on production
 
 ## Completed (2025-03-11)
 
@@ -284,13 +301,28 @@ SENDER_NAME=BETRADARMUS
 
 ## Future Tasks / Backlog
 
+### P0 - Critical (User Action Required)
+- **Production Server Environment Update**: User needs to SSH into Strato server and run:
+  ```bash
+  cd /var/www/betradarmus
+  echo "FOOTBALL_DATA_API_KEY=79715cd143144f1196e894f1cdd334bf" >> backend/.env
+  echo "TELEGRAM_ELITE_CHANNEL=https://t.me/+SODfqorGIt8khC_9" >> backend/.env
+  git pull
+  /usr/local/bin/docker-compose up -d --build
+  ```
+- **Stripe Dashboard Configuration**: Enable PayPal and Klarna in Stripe Dashboard manually
+- **Create Admin User on Production**: Run the admin creation script on production server
+
 ### P1 - High
+- **Elite-Plan Activation**: Change "Coming Soon" button to active purchase button
 - Echte Tipps über Admin Dashboard erfassen und automatisch auswerten lassen
 - Cronjob für tägliche Ergebnis-Aktualisierung via The Odds API
 
 ### P2 - Medium
 - Push notifications (Web)
 - Erweitertes Tip-Management im Admin Dashboard
+- Refactor AdminDashboard.jsx (~1400 lines) into smaller tab components
+- Refactor server.py into separate routers (routes/admin.py, routes/signals.py)
 
 ### P3 - Low
 - Multiple language support
