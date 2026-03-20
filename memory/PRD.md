@@ -258,6 +258,7 @@ SENDER_NAME=BETRADARMUS
    - FAQ Page (dedicated CTA box + updated FAQ answer)
    - Auth Modal (link at bottom)
 2. ✅ **Comprehensive Testing** - Backend API tests (22/22) + Frontend E2E tests (30/30) all passing
+3. ✅ **Telegram Group Welcome Message** - Auto-greet new members with bot link (@Betradarmus_bot)
 
 ## Completed (2025-03-19)
 

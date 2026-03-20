@@ -94,6 +94,12 @@ class TelegramBotService:
         self.application.add_handler(CommandHandler("elite", self.cmd_elite))
         self.application.add_handler(CallbackQueryHandler(self.handle_callback))
         
+        # Handler for new members in groups
+        self.application.add_handler(MessageHandler(
+            filters.StatusUpdate.NEW_CHAT_MEMBERS,
+            self.handle_new_member
+        ))
+        
         # Initialize the application
         await self.application.initialize()
         
@@ -371,6 +377,52 @@ Upgrade: betradarmus.de
 Support: support@betradarmus.de
 """
         await update.message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
+    
+    async def handle_new_member(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle new members joining a group - Send welcome message"""
+        if not update.message or not update.message.new_chat_members:
+            return
+            
+        for new_member in update.message.new_chat_members:
+            # Skip if the bot itself joined
+            if new_member.is_bot:
+                continue
+                
+            first_name = new_member.first_name or "Neues Mitglied"
+            
+            welcome_text = f"""
+👋 *Willkommen in der BETRADARMUS Community, {first_name}!*
+
+Schön, dass du dabei bist! 🎉
+
+*Was erwartet dich hier:*
+• 📊 Kostenlose KI-Signale
+• 💬 Austausch mit anderen Mitgliedern
+• 📈 Tipps & Insights zu Live-Fußball-Analysen
+
+*Starte jetzt deinen Bot:*
+👉 [Klicke hier: @Betradarmus\\_bot](https://t.me/Betradarmus_bot)
+
+Sende /start an den Bot, um:
+✅ Dich zu registrieren
+✅ Deine Lieblings-Ligen zu wählen
+✅ Personalisierte Signale zu erhalten
+
+*Upgrade auf PRO/ELITE:*
+Mehr Signale, mehr Ligen, exklusive Features!
+🔗 betradarmus.de
+
+Bei Fragen: support@betradarmus.de
+"""
+            try:
+                await update.message.reply_text(
+                    welcome_text,
+                    parse_mode=ParseMode.MARKDOWN,
+                    disable_web_page_preview=True
+                )
+                logger.info(f"Sent welcome message to new member: {new_member.username or new_member.id}")
+            except Exception as e:
+                logger.error(f"Failed to send welcome message: {e}")
     
     async def cmd_elite(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /elite command - Send Elite channel invite link"""
