@@ -161,7 +161,10 @@ export const Landing = () => {
               </div>
               
               <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-bold uppercase tracking-tighter text-white leading-[0.95] animate-fade-in-up animation-delay-100">
-                <span className="text-[#FFD700]">Gewinnen statt zocken.</span> KI-Signale mit <span className="text-[#39FF14]">71% Trefferquote</span>.
+                <span className="text-[#FFD700]">Gewinnen statt zocken.</span>
+                <br />
+                <span className="text-white">KI-Signale mit </span>
+                <span className="text-[#39FF14]">71% Trefferquote.</span>
               </h1>
               
               <p className="text-base md:text-lg text-[#A1A1AA] leading-relaxed animate-fade-in-up animation-delay-200">
