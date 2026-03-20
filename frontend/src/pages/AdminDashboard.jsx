@@ -23,7 +23,12 @@ import {
   Calendar,
   Play,
   Square,
-  Cpu
+  Cpu,
+  CreditCard,
+  Mail,
+  Trash2,
+  Edit,
+  Eye
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -68,6 +73,12 @@ export const AdminDashboard = () => {
   const [submitting, setSubmitting] = useState(false);
   const [generatorStatus, setGeneratorStatus] = useState({ running: false });
   const [generatingSignals, setGeneratingSignals] = useState(false);
+  const [websiteUsers, setWebsiteUsers] = useState([]);
+  const [earlyAccessUsers, setEarlyAccessUsers] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [paymentStats, setPaymentStats] = useState({ total_revenue: 0, successful_payments: 0 });
+  const [emailForm, setEmailForm] = useState({ subject: '', message: '', recipients: 'all' });
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   useEffect(() => {
     if (isElite) {
@@ -78,11 +89,15 @@ export const AdminDashboard = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [statusRes, signalsRes, usersRes, generatorRes] = await Promise.all([
+      const [statusRes, signalsRes, usersRes, generatorRes, websiteUsersRes, earlyAccessRes, paymentsRes, paymentStatsRes] = await Promise.all([
         axios.get(`${API}/telegram/status`),
         axios.get(`${API}/signals?limit=50`),
         axios.get(`${API}/telegram/users?limit=200`),
-        axios.get(`${API}/signals/generator/status`).catch(() => ({ data: { running: false } }))
+        axios.get(`${API}/signals/generator/status`).catch(() => ({ data: { running: false } })),
+        axios.get(`${API}/admin/users?limit=100`).catch(() => ({ data: { users: [] } })),
+        axios.get(`${API}/admin/early-access?limit=100`).catch(() => ({ data: { registrations: [] } })),
+        axios.get(`${API}/admin/payments?limit=50`).catch(() => ({ data: { payments: [] } })),
+        axios.get(`${API}/admin/payments/stats`).catch(() => ({ data: { total_revenue: 0, successful_payments: 0 } }))
       ]);
       
       setTelegramStatus(statusRes.data);
@@ -128,6 +143,10 @@ export const AdminDashboard = () => {
       });
       
       setGeneratorStatus(generatorRes.data);
+      setWebsiteUsers(websiteUsersRes.data.users || []);
+      setEarlyAccessUsers(earlyAccessRes.data.registrations || []);
+      setPayments(paymentsRes.data.payments || []);
+      setPaymentStats(paymentStatsRes.data);
       
     } catch (error) {
       console.error('Failed to fetch data:', error);
@@ -192,6 +211,67 @@ export const AdminDashboard = () => {
     }
   };
 
+  const updateUserSubscription = async (userId, newPlan, isTelegram = false) => {
+    try {
+      if (isTelegram) {
+        await axios.put(`${API}/admin/telegram-users/${userId}/subscription?subscription=${newPlan}`);
+      } else {
+        await axios.put(`${API}/admin/users/${userId}/subscription?subscription=${newPlan}`);
+      }
+      toast.success(`Plan auf ${newPlan.toUpperCase()} geändert`);
+      fetchData();
+    } catch (error) {
+      toast.error('Fehler beim Ändern des Plans');
+    }
+  };
+
+  const deleteUser = async (userId, isTelegram = false) => {
+    if (!confirm('Wirklich löschen?')) return;
+    try {
+      if (isTelegram) {
+        await axios.delete(`${API}/admin/telegram-users/${userId}`);
+      } else {
+        await axios.delete(`${API}/admin/users/${userId}`);
+      }
+      toast.success('Nutzer gelöscht');
+      fetchData();
+    } catch (error) {
+      toast.error('Fehler beim Löschen');
+    }
+  };
+
+  const deleteEarlyAccess = async (email) => {
+    if (!confirm('Registrierung löschen?')) return;
+    try {
+      await axios.delete(`${API}/admin/early-access/${encodeURIComponent(email)}`);
+      toast.success('Registrierung gelöscht');
+      fetchData();
+    } catch (error) {
+      toast.error('Fehler beim Löschen');
+    }
+  };
+
+  const sendEmailToUsers = async () => {
+    if (!emailForm.subject || !emailForm.message) {
+      toast.error('Betreff und Nachricht erforderlich');
+      return;
+    }
+    setSendingEmail(true);
+    try {
+      const res = await axios.post(`${API}/admin/email/send`, null, {
+        params: {
+          subject: emailForm.subject,
+          message: emailForm.message
+        }
+      });
+      toast.success(`E-Mail an ${res.data.sent} Nutzer gesendet`);
+      setEmailForm({ subject: '', message: '', recipients: 'all' });
+    } catch (error) {
+      toast.error('Fehler beim Senden');
+    }
+    setSendingEmail(false);
+  };
+
   if (!isElite) {
     return (
       <div className="min-h-screen bg-[#0a0a0a] pt-24 px-4">
@@ -253,9 +333,12 @@ export const AdminDashboard = () => {
           {[
             { id: 'overview', label: 'Übersicht', icon: Activity },
             { id: 'generator', label: 'KI Generator', icon: Cpu },
-            { id: 'statistics', label: 'Statistiken', icon: BarChart3 },
             { id: 'signals', label: 'Signale', icon: Zap },
-            { id: 'users', label: 'Nutzer', icon: Users }
+            { id: 'users', label: 'Telegram Nutzer', icon: Users },
+            { id: 'website-users', label: 'Website Nutzer', icon: Globe },
+            { id: 'registrations', label: 'Registrierungen', icon: Plus },
+            { id: 'payments', label: 'Zahlungen', icon: CreditCard },
+            { id: 'email', label: 'E-Mail', icon: Send }
           ].map(tab => (
             <button
               key={tab.id}
@@ -902,10 +985,298 @@ export const AdminDashboard = () => {
                         {tgUser.alerts_enabled ? 'Aktiv' : 'Inaktiv'}
                       </span>
                     </div>
+                    {/* Admin Actions */}
+                    <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-800">
+                      <select
+                        value={tgUser.subscription_level || 'free'}
+                        onChange={(e) => updateUserSubscription(tgUser.telegram_id, e.target.value, true)}
+                        className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs text-white"
+                      >
+                        <option value="free">FREE</option>
+                        <option value="pro">PRO</option>
+                        <option value="elite">ELITE</option>
+                      </select>
+                      <button
+                        onClick={() => deleteUser(tgUser.telegram_id, true)}
+                        className="text-red-400 hover:text-red-300 p-1"
+                        title="Löschen"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Website Users Tab */}
+        {activeTab === 'website-users' && (
+          <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
+            <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+              <Globe className="w-5 h-5 text-cyan-500" />
+              Website Nutzer ({websiteUsers.length})
+            </h2>
+            
+            {websiteUsers.length === 0 ? (
+              <p className="text-gray-500 text-center py-12">Noch keine Website-Nutzer</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left text-gray-400 text-sm border-b border-gray-800">
+                      <th className="pb-3">E-Mail</th>
+                      <th className="pb-3">Plan</th>
+                      <th className="pb-3">Registriert</th>
+                      <th className="pb-3">Aktionen</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {websiteUsers.map((u) => (
+                      <tr key={u.id} className="border-b border-gray-800/50">
+                        <td className="py-3 text-white">{u.email}</td>
+                        <td className="py-3">
+                          <select
+                            value={u.subscription || 'free'}
+                            onChange={(e) => updateUserSubscription(u.id, e.target.value, false)}
+                            className={`px-2 py-1 rounded text-xs ${
+                              u.subscription === 'elite' ? 'bg-purple-500/20 text-purple-400' :
+                              u.subscription === 'pro' ? 'bg-cyan-500/20 text-cyan-400' :
+                              'bg-gray-700 text-gray-300'
+                            }`}
+                          >
+                            <option value="free">FREE</option>
+                            <option value="pro">PRO</option>
+                            <option value="elite">ELITE</option>
+                          </select>
+                        </td>
+                        <td className="py-3 text-gray-400 text-sm">
+                          {u.created_at ? new Date(u.created_at).toLocaleDateString('de-DE') : 'N/A'}
+                        </td>
+                        <td className="py-3">
+                          <button
+                            onClick={() => deleteUser(u.id, false)}
+                            className="text-red-400 hover:text-red-300 p-1"
+                            title="Löschen"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Early Access Registrations Tab */}
+        {activeTab === 'registrations' && (
+          <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
+            <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+              <Plus className="w-5 h-5 text-cyan-500" />
+              Early Access Registrierungen ({earlyAccessUsers.length})
+            </h2>
+            
+            {earlyAccessUsers.length === 0 ? (
+              <p className="text-gray-500 text-center py-12">Noch keine Registrierungen</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="text-left text-gray-400 text-sm border-b border-gray-800">
+                      <th className="pb-3">E-Mail</th>
+                      <th className="pb-3">Plan-Interesse</th>
+                      <th className="pb-3">Verifiziert</th>
+                      <th className="pb-3">Datum</th>
+                      <th className="pb-3">Aktionen</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {earlyAccessUsers.map((reg, index) => (
+                      <tr key={index} className="border-b border-gray-800/50">
+                        <td className="py-3 text-white">{reg.email}</td>
+                        <td className="py-3">
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            reg.plan_interest === 'elite' ? 'bg-purple-500/20 text-purple-400' :
+                            reg.plan_interest === 'pro' ? 'bg-cyan-500/20 text-cyan-400' :
+                            'bg-gray-700 text-gray-300'
+                          }`}>
+                            {(reg.plan_interest || 'free').toUpperCase()}
+                          </span>
+                        </td>
+                        <td className="py-3">
+                          {reg.email_verified ? (
+                            <CheckCircle className="w-4 h-4 text-green-400" />
+                          ) : (
+                            <XCircle className="w-4 h-4 text-red-400" />
+                          )}
+                        </td>
+                        <td className="py-3 text-gray-400 text-sm">
+                          {reg.timestamp ? new Date(reg.timestamp).toLocaleDateString('de-DE') : 'N/A'}
+                        </td>
+                        <td className="py-3">
+                          <button
+                            onClick={() => deleteEarlyAccess(reg.email)}
+                            className="text-red-400 hover:text-red-300 p-1"
+                            title="Löschen"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Payments Tab */}
+        {activeTab === 'payments' && (
+          <div className="space-y-6">
+            {/* Payment Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
+                <p className="text-gray-400 text-sm mb-1">Gesamtumsatz</p>
+                <p className="text-3xl font-bold text-green-400">€{paymentStats.total_revenue?.toFixed(2) || '0.00'}</p>
+              </div>
+              <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
+                <p className="text-gray-400 text-sm mb-1">Erfolgreiche Zahlungen</p>
+                <p className="text-3xl font-bold text-white">{paymentStats.successful_payments || 0}</p>
+              </div>
+              <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
+                <p className="text-gray-400 text-sm mb-1">Fehlgeschlagen</p>
+                <p className="text-3xl font-bold text-red-400">{paymentStats.failed_payments || 0}</p>
+              </div>
+            </div>
+
+            {/* Payment List */}
+            <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
+              <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+                <CreditCard className="w-5 h-5 text-cyan-500" />
+                Zahlungshistorie
+              </h2>
+              
+              {payments.length === 0 ? (
+                <p className="text-gray-500 text-center py-12">Noch keine Zahlungen</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="text-left text-gray-400 text-sm border-b border-gray-800">
+                        <th className="pb-3">Datum</th>
+                        <th className="pb-3">E-Mail</th>
+                        <th className="pb-3">Plan</th>
+                        <th className="pb-3">Betrag</th>
+                        <th className="pb-3">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {payments.map((payment) => (
+                        <tr key={payment.id} className="border-b border-gray-800/50">
+                          <td className="py-3 text-gray-400 text-sm">
+                            {new Date(payment.created).toLocaleDateString('de-DE')}
+                          </td>
+                          <td className="py-3 text-white">{payment.customer_email}</td>
+                          <td className="py-3">
+                            <span className="px-2 py-1 bg-cyan-500/20 text-cyan-400 rounded text-xs">
+                              {payment.plan?.toUpperCase() || 'N/A'}
+                            </span>
+                          </td>
+                          <td className="py-3 text-green-400 font-medium">
+                            €{payment.amount?.toFixed(2)}
+                          </td>
+                          <td className="py-3">
+                            <span className={`px-2 py-1 rounded text-xs ${
+                              payment.status === 'succeeded' ? 'bg-green-500/20 text-green-400' :
+                              payment.status === 'pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                              'bg-red-500/20 text-red-400'
+                            }`}>
+                              {payment.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Email Tab */}
+        {activeTab === 'email' && (
+          <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
+            <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+              <Mail className="w-5 h-5 text-cyan-500" />
+              E-Mail an Nutzer senden
+            </h2>
+            
+            <div className="space-y-4 max-w-2xl">
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Empfänger</label>
+                <select
+                  value={emailForm.recipients}
+                  onChange={(e) => setEmailForm({...emailForm, recipients: e.target.value})}
+                  className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-cyan-500 focus:outline-none"
+                >
+                  <option value="all">Alle registrierten Nutzer</option>
+                  <option value="pro">Nur PRO Nutzer</option>
+                  <option value="elite">Nur ELITE Nutzer</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Betreff</label>
+                <Input
+                  value={emailForm.subject}
+                  onChange={(e) => setEmailForm({...emailForm, subject: e.target.value})}
+                  placeholder="z.B. Wichtige Neuigkeiten von BETRADARMUS"
+                  className="bg-[#0a0a0a] border-gray-700 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-2">Nachricht</label>
+                <textarea
+                  value={emailForm.message}
+                  onChange={(e) => setEmailForm({...emailForm, message: e.target.value})}
+                  placeholder="Deine Nachricht an die Nutzer..."
+                  rows={8}
+                  className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-cyan-500 focus:outline-none resize-none"
+                />
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <Button
+                  onClick={sendEmailToUsers}
+                  disabled={sendingEmail || !emailForm.subject || !emailForm.message}
+                  className="bg-gradient-to-r from-cyan-500 to-blue-600"
+                >
+                  {sendingEmail ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Sende...
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 mr-2" />
+                      E-Mail senden
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              <p className="text-gray-500 text-sm mt-4">
+                Hinweis: E-Mails werden an alle Nutzer gesendet, die sich auf der Website registriert haben.
+                Stelle sicher, dass deine Nachricht professionell und relevant ist.
+              </p>
+            </div>
           </div>
         )}
 

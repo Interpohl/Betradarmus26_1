@@ -1619,6 +1619,220 @@ async def broadcast_message(message: str, user: dict = Depends(require_auth)):
     
     return {"success": True, "queued": len(users), "message": f"Nachricht an {len(users)} Nutzer in Warteschlange"}
 
+# ==================== ADMIN: EARLY ACCESS / REGISTRATIONS ====================
+
+@api_router.get("/admin/early-access")
+async def get_early_access_registrations(limit: int = 100, skip: int = 0, user: dict = Depends(require_auth)):
+    """Get all Early Access registrations (admin only)"""
+    if user.get('subscription') != 'elite':
+        raise HTTPException(status_code=403, detail="Nur für ELITE-Nutzer")
+    
+    registrations = await db.early_access.find({}, {"_id": 0}).sort("timestamp", -1).skip(skip).limit(limit).to_list(length=limit)
+    total = await db.early_access.count_documents({})
+    return {"registrations": registrations, "total": total}
+
+@api_router.delete("/admin/early-access/{email}")
+async def delete_early_access(email: str, user: dict = Depends(require_auth)):
+    """Delete an Early Access registration (admin only)"""
+    if user.get('subscription') != 'elite':
+        raise HTTPException(status_code=403, detail="Nur für ELITE-Nutzer")
+    
+    result = await db.early_access.delete_one({"email": email})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Registrierung nicht gefunden")
+    return {"success": True, "message": "Registrierung gelöscht"}
+
+# ==================== ADMIN: USER MANAGEMENT ====================
+
+@api_router.get("/admin/users")
+async def get_all_users(limit: int = 100, skip: int = 0, user: dict = Depends(require_auth)):
+    """Get all registered website users (admin only)"""
+    if user.get('subscription') != 'elite':
+        raise HTTPException(status_code=403, detail="Nur für ELITE-Nutzer")
+    
+    users = await db.users.find({}, {"_id": 0, "password": 0}).sort("created_at", -1).skip(skip).limit(limit).to_list(length=limit)
+    total = await db.users.count_documents({})
+    return {"users": users, "total": total}
+
+@api_router.put("/admin/users/{user_id}/subscription")
+async def update_user_subscription(user_id: str, subscription: str, admin: dict = Depends(require_auth)):
+    """Update user subscription level (admin only)"""
+    if admin.get('subscription') != 'elite':
+        raise HTTPException(status_code=403, detail="Nur für ELITE-Nutzer")
+    
+    if subscription not in ['free', 'pro', 'elite']:
+        raise HTTPException(status_code=400, detail="Ungültiger Plan")
+    
+    result = await db.users.update_one(
+        {"id": user_id},
+        {"$set": {"subscription": subscription, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Nutzer nicht gefunden")
+    
+    return {"success": True, "message": f"Plan auf {subscription.upper()} geändert"}
+
+@api_router.put("/admin/telegram-users/{telegram_id}/subscription")
+async def update_telegram_user_subscription(telegram_id: str, subscription: str, admin: dict = Depends(require_auth)):
+    """Update Telegram user subscription level (admin only)"""
+    if admin.get('subscription') != 'elite':
+        raise HTTPException(status_code=403, detail="Nur für ELITE-Nutzer")
+    
+    if subscription not in ['free', 'pro', 'elite']:
+        raise HTTPException(status_code=400, detail="Ungültiger Plan")
+    
+    result = await db.telegram_users.update_one(
+        {"telegram_id": telegram_id},
+        {"$set": {"subscription_level": subscription, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Telegram-Nutzer nicht gefunden")
+    
+    return {"success": True, "message": f"Plan auf {subscription.upper()} geändert"}
+
+@api_router.delete("/admin/users/{user_id}")
+async def delete_user(user_id: str, admin: dict = Depends(require_auth)):
+    """Delete a user (admin only)"""
+    if admin.get('subscription') != 'elite':
+        raise HTTPException(status_code=403, detail="Nur für ELITE-Nutzer")
+    
+    # Don't allow deleting yourself
+    if admin.get('id') == user_id:
+        raise HTTPException(status_code=400, detail="Du kannst dich nicht selbst löschen")
+    
+    result = await db.users.delete_one({"id": user_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Nutzer nicht gefunden")
+    
+    return {"success": True, "message": "Nutzer gelöscht"}
+
+@api_router.delete("/admin/telegram-users/{telegram_id}")
+async def delete_telegram_user(telegram_id: str, admin: dict = Depends(require_auth)):
+    """Delete a Telegram user (admin only)"""
+    if admin.get('subscription') != 'elite':
+        raise HTTPException(status_code=403, detail="Nur für ELITE-Nutzer")
+    
+    result = await db.telegram_users.delete_one({"telegram_id": telegram_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Telegram-Nutzer nicht gefunden")
+    
+    return {"success": True, "message": "Telegram-Nutzer gelöscht"}
+
+# ==================== ADMIN: PAYMENTS / STRIPE ====================
+
+@api_router.get("/admin/payments")
+async def get_payment_history(limit: int = 50, skip: int = 0, user: dict = Depends(require_auth)):
+    """Get payment history from Stripe (admin only)"""
+    if user.get('subscription') != 'elite':
+        raise HTTPException(status_code=403, detail="Nur für ELITE-Nutzer")
+    
+    if not stripe.api_key:
+        raise HTTPException(status_code=503, detail="Stripe nicht konfiguriert")
+    
+    try:
+        # Get payments from Stripe
+        payments = stripe.PaymentIntent.list(limit=limit)
+        
+        payment_list = []
+        for payment in payments.data:
+            payment_list.append({
+                "id": payment.id,
+                "amount": payment.amount / 100,  # Convert from cents
+                "currency": payment.currency.upper(),
+                "status": payment.status,
+                "customer_email": payment.receipt_email or payment.metadata.get("user_email", "N/A"),
+                "plan": payment.metadata.get("plan", "N/A"),
+                "created": datetime.fromtimestamp(payment.created).isoformat()
+            })
+        
+        return {"payments": payment_list, "total": len(payment_list)}
+    except stripe.error.StripeError as e:
+        logger.error(f"Stripe error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/admin/payments/stats")
+async def get_payment_stats(user: dict = Depends(require_auth)):
+    """Get payment statistics (admin only)"""
+    if user.get('subscription') != 'elite':
+        raise HTTPException(status_code=403, detail="Nur für ELITE-Nutzer")
+    
+    if not stripe.api_key:
+        return {"total_revenue": 0, "successful_payments": 0, "failed_payments": 0}
+    
+    try:
+        # Get successful payments
+        successful = stripe.PaymentIntent.list(limit=100)
+        
+        total_revenue = sum(p.amount for p in successful.data if p.status == 'succeeded') / 100
+        successful_count = len([p for p in successful.data if p.status == 'succeeded'])
+        failed_count = len([p for p in successful.data if p.status in ['failed', 'canceled']])
+        
+        return {
+            "total_revenue": total_revenue,
+            "currency": "EUR",
+            "successful_payments": successful_count,
+            "failed_payments": failed_count
+        }
+    except stripe.error.StripeError as e:
+        logger.error(f"Stripe stats error: {e}")
+        return {"total_revenue": 0, "successful_payments": 0, "failed_payments": 0}
+
+# ==================== ADMIN: EMAIL TO USERS ====================
+
+@api_router.post("/admin/email/send")
+async def send_email_to_users(
+    subject: str,
+    message: str,
+    recipients: List[str] = None,  # None = all users
+    user: dict = Depends(require_auth)
+):
+    """Send email to users (admin only)"""
+    if user.get('subscription') != 'elite':
+        raise HTTPException(status_code=403, detail="Nur für ELITE-Nutzer")
+    
+    from email_service import send_email
+    
+    if not recipients:
+        # Get all users with email
+        users = await db.users.find({"email": {"$exists": True}}, {"email": 1}).to_list(length=1000)
+        recipients = [u["email"] for u in users]
+    
+    sent = 0
+    failed = 0
+    
+    for email in recipients:
+        try:
+            html_content = f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #0a0a0a; color: white;">
+                <div style="text-align: center; margin-bottom: 30px;">
+                    <h1 style="color: #39FF14; margin: 0;">BETRADARMUS</h1>
+                </div>
+                <div style="background-color: #121212; padding: 20px; border-radius: 10px; border: 1px solid #333;">
+                    <h2 style="color: white; margin-top: 0;">{subject}</h2>
+                    <div style="color: #ccc; line-height: 1.6;">
+                        {message.replace(chr(10), '<br>')}
+                    </div>
+                </div>
+                <div style="text-align: center; margin-top: 30px; color: #666; font-size: 12px;">
+                    <p>© 2024 BETRADARMUS - Alle Rechte vorbehalten</p>
+                    <p>Du erhältst diese E-Mail, weil du bei BETRADARMUS registriert bist.</p>
+                </div>
+            </div>
+            """
+            
+            success = await send_email(email, subject, html_content)
+            if success:
+                sent += 1
+            else:
+                failed += 1
+        except Exception as e:
+            logger.error(f"Email send error to {email}: {e}")
+            failed += 1
+    
+    return {"success": True, "sent": sent, "failed": failed, "total": len(recipients)}
+
 @api_router.post("/telegram/link")
 async def link_telegram_account(telegram_username: str, user: dict = Depends(require_auth)):
     """Link a web account to a Telegram account"""
