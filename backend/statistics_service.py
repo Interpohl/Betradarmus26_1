@@ -382,22 +382,18 @@ class StatisticsService:
             logger.warning("FOOTBALL_DATA_API_KEY not set")
             return []
         
-        # Calculate yesterday's date
-        yesterday = (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%d")
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        
-        # Competitions: BL1=Bundesliga, PL=Premier League, PD=La Liga, SA=Serie A, CL=Champions League
-        competitions = "BL1,PL,PD,SA,CL"
+        # Calculate date range (last 3 days to get more matches)
+        date_from = (datetime.now(timezone.utc) - timedelta(days=3)).strftime("%Y-%m-%d")
+        date_to = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         
         url = f"{FOOTBALL_DATA_BASE_URL}/matches"
         headers = {
             "X-Auth-Token": FOOTBALL_DATA_API_KEY
         }
         params = {
-            "dateFrom": yesterday,
-            "dateTo": today,
-            "status": "FINISHED",
-            "competitions": competitions
+            "dateFrom": date_from,
+            "dateTo": date_to,
+            "status": "FINISHED"
         }
         
         markets = [
@@ -415,7 +411,13 @@ class StatisticsService:
                 matches = data.get("matches", [])
                 logger.info(f"Fetched {len(matches)} completed matches from Football-Data.org")
                 
+                if not matches:
+                    return []
+                
                 tips = []
+                # Sort by date descending (newest first)
+                matches.sort(key=lambda x: x.get('utcDate', ''), reverse=True)
+                
                 for match in matches[:limit]:
                     home_team = match.get("homeTeam", {}).get("name", "Team A")
                     away_team = match.get("awayTeam", {}).get("name", "Team B")
