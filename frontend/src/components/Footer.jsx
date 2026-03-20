@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Activity, Facebook, Instagram } from 'lucide-react';
+import { Activity, Facebook, Instagram, MessageCircle } from 'lucide-react';
 
 // Custom TikTok Icon (not in lucide)
 const TikTokIcon = () => (
@@ -106,7 +106,18 @@ export const Footer = () => {
             <h4 className="font-heading text-sm font-semibold uppercase tracking-wider text-white mb-4">
               Folge uns
             </h4>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
+              {/* Telegram Community - Prominent */}
+              <a 
+                href="https://t.me/+Pb8X_nXzKu41N2Yy" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="w-10 h-10 flex items-center justify-center bg-[#0088CC]/20 border border-[#0088CC]/50 rounded-sm hover:bg-[#0088CC]/30 hover:border-[#0088CC] transition-all group"
+                data-testid="footer-telegram"
+                title="Telegram Community Gruppe"
+              >
+                <MessageCircle size={18} className="text-[#0088CC] group-hover:text-[#00A8E8]" />
+              </a>
               <a 
                 href="https://facebook.com/betradarmus" 
                 target="_blank" 
@@ -144,6 +155,17 @@ export const Footer = () => {
                 <span className="text-[#A1A1AA] group-hover:text-[#9146FF]"><TwitchIcon /></span>
               </a>
             </div>
+            {/* Telegram Community CTA */}
+            <a 
+              href="https://t.me/+Pb8X_nXzKu41N2Yy" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="mt-4 inline-flex items-center gap-2 text-sm text-[#0088CC] hover:text-[#00A8E8] transition-colors"
+              data-testid="footer-telegram-link"
+            >
+              <MessageCircle size={14} />
+              Telegram Community beitreten
+            </a>
           </div>
         </div>
 

@@ -267,9 +267,19 @@ export const Landing = () => {
                   <MessageCircle className="w-6 h-6 text-[#00C2FF]" />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2">Telegram verbinden</h3>
-                <p className="text-[#A1A1AA] text-sm">
+                <p className="text-[#A1A1AA] text-sm mb-3">
                   Verbinde deinen Telegram Account mit unserem Bot @Betradarmus_bot.
                 </p>
+                <a 
+                  href="https://t.me/+Pb8X_nXzKu41N2Yy" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm text-[#00C2FF] hover:text-[#00D4FF] transition-colors"
+                  data-testid="how-it-works-telegram-link"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  Community Gruppe beitreten
+                </a>
               </div>
               <div className="hidden md:block absolute -right-4 top-1/2 -translate-y-1/2 z-10">
                 <ArrowRight className="w-8 h-8 text-[#00C2FF]/30" />

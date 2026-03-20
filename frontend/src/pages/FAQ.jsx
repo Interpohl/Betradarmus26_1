@@ -68,7 +68,7 @@ const faqData = [
       },
       {
         q: "Gibt es eine Community-Gruppe?",
-        a: "Ja, FREE-Nutzer werden automatisch zu unserer Community-Gruppe eingeladen. Dort kannst du dich mit anderen Nutzern austauschen und erhältst zusätzliche Insights."
+        a: "Ja! Unsere kostenlose Telegram Community-Gruppe ist für alle offen. Tritt jetzt bei: https://t.me/+Pb8X_nXzKu41N2Yy - Dort kannst du dich mit anderen Nutzern austauschen und erhältst zusätzliche Insights."
       }
     ]
   },
@@ -230,8 +230,33 @@ export const FAQ = () => {
           ))}
         </div>
 
+        {/* Telegram Community CTA */}
+        <div className="mt-12 p-6 bg-[#0088CC]/10 border border-[#0088CC]/30 rounded-xl">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-[#0088CC]/20 rounded-full flex items-center justify-center">
+                <MessageCircle className="w-6 h-6 text-[#0088CC]" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">Telegram Community</h3>
+                <p className="text-[#A1A1AA] text-sm">Trete unserer kostenlosen Community bei!</p>
+              </div>
+            </div>
+            <a
+              href="https://t.me/+Pb8X_nXzKu41N2Yy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#0088CC] text-white font-bold rounded-lg hover:bg-[#0099DD] transition-colors"
+              data-testid="faq-telegram-community-btn"
+            >
+              <MessageCircle className="w-4 h-4" />
+              Jetzt beitreten
+            </a>
+          </div>
+        </div>
+
         {/* Contact CTA */}
-        <div className="mt-12 text-center p-8 bg-gradient-to-r from-[#39FF14]/10 to-[#00C2FF]/10 border border-white/10 rounded-xl">
+        <div className="mt-6 text-center p-8 bg-gradient-to-r from-[#39FF14]/10 to-[#00C2FF]/10 border border-white/10 rounded-xl">
           <h3 className="text-xl font-bold text-white mb-2">
             Noch Fragen?
           </h3>

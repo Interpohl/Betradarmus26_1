@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Mail, Lock, User, Loader2, Eye, EyeOff } from 'lucide-react';
+import { X, Mail, Lock, User, Loader2, Eye, EyeOff, MessageCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
@@ -189,6 +189,20 @@ export const AuthModal = ({ isOpen, onClose, initialMode = 'login' }) => {
             </>
           )}
         </p>
+
+        {/* Telegram Community Link */}
+        <div className="mt-6 pt-6 border-t border-white/10">
+          <a
+            href="https://t.me/+Pb8X_nXzKu41N2Yy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 text-sm text-[#0088CC] hover:text-[#00A8E8] transition-colors"
+            data-testid="auth-telegram-community-link"
+          >
+            <MessageCircle size={16} />
+            Tritt unserer kostenlosen Telegram Community bei
+          </a>
+        </div>
       </div>
     </div>
   );
