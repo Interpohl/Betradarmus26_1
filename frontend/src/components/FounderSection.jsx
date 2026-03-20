@@ -38,7 +38,7 @@ export const FounderSection = () => {
             </h2>
             
             <p className="text-[#A1A1AA] mb-6 leading-relaxed">
-              Mit über <strong className="text-white">15 Jahren Erfahrung</strong> in der Sportanalyse und 
+              Mit über <strong className="text-white">30 Jahren Erfahrung</strong> in der Sportanalyse und 
               einem Background in Data Science habe ich BETRADARMUS gegründet, um datenbasierte 
               Entscheidungen für jeden zugänglich zu machen.
             </p>
@@ -54,7 +54,7 @@ export const FounderSection = () => {
               <div className="text-center p-3 bg-[#121212] border border-white/10 rounded-lg">
                 <div className="flex items-center justify-center mb-1">
                   <TrendingUp className="w-4 h-4 text-[#39FF14] mr-1" />
-                  <span className="text-xl font-bold text-[#39FF14]">15+</span>
+                  <span className="text-xl font-bold text-[#39FF14]">30+</span>
                 </div>
                 <p className="text-xs text-[#A1A1AA]">Jahre Erfahrung</p>
               </div>
