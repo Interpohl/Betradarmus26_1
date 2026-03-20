@@ -20,7 +20,10 @@ import {
   Crown,
   Zap,
   Globe,
-  Calendar
+  Calendar,
+  Play,
+  Square,
+  Cpu
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -63,6 +66,8 @@ export const AdminDashboard = () => {
     explanation: ''
   });
   const [submitting, setSubmitting] = useState(false);
+  const [generatorStatus, setGeneratorStatus] = useState({ running: false });
+  const [generatingSignals, setGeneratingSignals] = useState(false);
 
   useEffect(() => {
     if (isElite) {
@@ -73,10 +78,11 @@ export const AdminDashboard = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [statusRes, signalsRes, usersRes] = await Promise.all([
+      const [statusRes, signalsRes, usersRes, generatorRes] = await Promise.all([
         axios.get(`${API}/telegram/status`),
         axios.get(`${API}/signals?limit=50`),
-        axios.get(`${API}/telegram/users?limit=200`)
+        axios.get(`${API}/telegram/users?limit=200`),
+        axios.get(`${API}/signals/generator/status`).catch(() => ({ data: { running: false } }))
       ]);
       
       setTelegramStatus(statusRes.data);
@@ -121,6 +127,8 @@ export const AdminDashboard = () => {
         dailyActivity: []
       });
       
+      setGeneratorStatus(generatorRes.data);
+      
     } catch (error) {
       console.error('Failed to fetch data:', error);
       toast.error('Fehler beim Laden der Daten');
@@ -153,6 +161,35 @@ export const AdminDashboard = () => {
     }
     
     setSubmitting(false);
+  };
+
+  const generateSignalsNow = async () => {
+    setGeneratingSignals(true);
+    try {
+      const res = await axios.post(`${API}/signals/generate`);
+      toast.success(`${res.data.signals_generated} Signale generiert!`);
+      fetchData();
+    } catch (error) {
+      toast.error('Fehler bei der Signal-Generierung');
+    }
+    setGeneratingSignals(false);
+  };
+
+  const toggleSignalGenerator = async () => {
+    try {
+      if (generatorStatus.running) {
+        await axios.post(`${API}/signals/generator/stop`);
+        toast.success('Signal Generator gestoppt');
+      } else {
+        await axios.post(`${API}/signals/generator/start`);
+        toast.success('Signal Generator gestartet');
+      }
+      // Refresh status
+      const res = await axios.get(`${API}/signals/generator/status`);
+      setGeneratorStatus(res.data);
+    } catch (error) {
+      toast.error('Fehler beim Steuern des Generators');
+    }
   };
 
   if (!isElite) {
@@ -215,6 +252,7 @@ export const AdminDashboard = () => {
         <div className="flex gap-2 mb-6 border-b border-gray-800 pb-4 overflow-x-auto">
           {[
             { id: 'overview', label: 'Übersicht', icon: Activity },
+            { id: 'generator', label: 'KI Generator', icon: Cpu },
             { id: 'statistics', label: 'Statistiken', icon: BarChart3 },
             { id: 'signals', label: 'Signale', icon: Zap },
             { id: 'users', label: 'Nutzer', icon: Users }
@@ -414,6 +452,140 @@ export const AdminDashboard = () => {
               </div>
             </div>
           </>
+        )}
+
+        {/* KI Generator Tab */}
+        {activeTab === 'generator' && (
+          <div className="space-y-6">
+            {/* Generator Status */}
+            <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                  <Cpu className="w-5 h-5 text-cyan-500" />
+                  KI Signal Generator
+                </h2>
+                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${
+                  generatorStatus.running 
+                    ? 'bg-green-500/20 text-green-400' 
+                    : 'bg-gray-700 text-gray-400'
+                }`}>
+                  <div className={`w-2 h-2 rounded-full ${
+                    generatorStatus.running ? 'bg-green-400 animate-pulse' : 'bg-gray-500'
+                  }`}></div>
+                  {generatorStatus.running ? 'Läuft' : 'Gestoppt'}
+                </div>
+              </div>
+
+              <p className="text-gray-400 mb-6">
+                Der KI Signal Generator analysiert automatisch alle 15 Minuten die verfügbaren Spiele 
+                und generiert Signale basierend auf statistischen Analysen.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="bg-[#0a0a0a] border border-gray-800 rounded-lg p-4">
+                  <p className="text-gray-400 text-sm mb-1">Analyse-Intervall</p>
+                  <p className="text-white text-xl font-bold">15 Minuten</p>
+                </div>
+                <div className="bg-[#0a0a0a] border border-gray-800 rounded-lg p-4">
+                  <p className="text-gray-400 text-sm mb-1">Min. Confidence</p>
+                  <p className="text-white text-xl font-bold">65%</p>
+                </div>
+                <div className="bg-[#0a0a0a] border border-gray-800 rounded-lg p-4">
+                  <p className="text-gray-400 text-sm mb-1">Märkte</p>
+                  <p className="text-white text-xl font-bold">Over/Under, BTTS, 1X2</p>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <Button
+                  onClick={toggleSignalGenerator}
+                  className={generatorStatus.running 
+                    ? 'bg-red-600 hover:bg-red-700' 
+                    : 'bg-green-600 hover:bg-green-700'
+                  }
+                >
+                  {generatorStatus.running ? (
+                    <>
+                      <Square className="w-4 h-4 mr-2" />
+                      Generator stoppen
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-4 h-4 mr-2" />
+                      Generator starten
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={generateSignalsNow}
+                  disabled={generatingSignals}
+                  variant="outline"
+                  className="border-cyan-600 text-cyan-400 hover:bg-cyan-600/20"
+                >
+                  {generatingSignals ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Generiere...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4 mr-2" />
+                      Jetzt analysieren
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            {/* How It Works */}
+            <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
+              <h2 className="text-xl font-semibold text-white mb-6">So funktioniert die KI-Analyse</h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                {[
+                  { step: 1, title: 'Daten sammeln', desc: 'Spiele von Football-Data.org' },
+                  { step: 2, title: 'Teams analysieren', desc: 'Form, H2H, Heim/Auswärts' },
+                  { step: 3, title: 'Märkte bewerten', desc: 'Goals, BTTS, Winner' },
+                  { step: 4, title: 'Confidence berechnen', desc: 'Statistisches Modell' },
+                  { step: 5, title: 'Signal senden', desc: 'Wenn Confidence ≥ 65%' }
+                ].map(item => (
+                  <div key={item.step} className="relative">
+                    <div className="bg-[#0a0a0a] border border-gray-800 rounded-lg p-4 text-center">
+                      <div className="w-8 h-8 bg-cyan-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <span className="text-cyan-400 font-bold">{item.step}</span>
+                      </div>
+                      <p className="text-white font-medium text-sm mb-1">{item.title}</p>
+                      <p className="text-gray-500 text-xs">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Elite Channel Info */}
+            <div className="bg-gradient-to-r from-cyan-900/30 to-blue-900/30 border border-cyan-700/50 rounded-xl p-6">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-cyan-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Crown className="w-6 h-6 text-cyan-400" />
+                </div>
+                <div>
+                  <h3 className="text-white font-semibold mb-2">Elite Signal-Kanal</h3>
+                  <p className="text-gray-400 text-sm mb-4">
+                    Alle automatisch generierten Signale werden direkt in den Elite-Kanal gepostet.
+                    Stelle sicher, dass der Bot als Admin im Kanal ist.
+                  </p>
+                  <a 
+                    href="https://t.me/+SODfqorGIt8khC_9" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-cyan-400 hover:text-cyan-300 text-sm flex items-center gap-1"
+                  >
+                    Zum Elite-Kanal →
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Statistics Tab */}

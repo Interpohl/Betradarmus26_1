@@ -1446,12 +1446,16 @@ async def get_subscription_plans():
 
 from telegram_service import TelegramBotService, init_telegram_service, get_telegram_service, AVAILABLE_LEAGUES, SUBSCRIPTION_LIMITS
 from statistics_service import StatisticsService, init_statistics_service, get_statistics_service
+from signal_generator import SignalGenerator, init_signal_generator, get_signal_generator
 
 # Telegram service instance
 telegram_service: Optional[TelegramBotService] = None
 
 # Statistics service instance  
 statistics_service: Optional[StatisticsService] = None
+
+# Signal generator instance
+signal_generator: Optional[SignalGenerator] = None
 
 # Signal Models
 class SignalCreate(BaseModel):
@@ -1692,6 +1696,70 @@ async def record_tip(tip_data: dict, user: dict = Depends(require_auth)):
     tip_id = await statistics_service.record_tip(tip_data)
     return {"success": True, "tip_id": tip_id}
 
+# ==================== SIGNAL GENERATOR API ROUTES ====================
+
+@api_router.post("/signals/generate")
+async def generate_signals_now(user: dict = Depends(require_auth)):
+    """Manually trigger signal generation (ELITE only)"""
+    if user.get('subscription') != 'elite':
+        raise HTTPException(status_code=403, detail="Nur für ELITE-Nutzer")
+    
+    if not signal_generator:
+        raise HTTPException(status_code=503, detail="Signal Generator nicht verfügbar")
+    
+    try:
+        signals = await signal_generator.analyze_and_generate()
+        return {
+            "success": True,
+            "signals_generated": len(signals),
+            "signals": [
+                {
+                    "match": s.get("match"),
+                    "market": s.get("market"),
+                    "confidence": s.get("confidence")
+                }
+                for s in signals
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Signal generation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/signals/generator/start")
+async def start_signal_generator(user: dict = Depends(require_auth)):
+    """Start automatic signal generation (ELITE only)"""
+    if user.get('subscription') != 'elite':
+        raise HTTPException(status_code=403, detail="Nur für ELITE-Nutzer")
+    
+    if not signal_generator:
+        raise HTTPException(status_code=503, detail="Signal Generator nicht verfügbar")
+    
+    await signal_generator.start()
+    return {"success": True, "message": "Signal Generator gestartet"}
+
+@api_router.post("/signals/generator/stop")
+async def stop_signal_generator(user: dict = Depends(require_auth)):
+    """Stop automatic signal generation (ELITE only)"""
+    if user.get('subscription') != 'elite':
+        raise HTTPException(status_code=403, detail="Nur für ELITE-Nutzer")
+    
+    if not signal_generator:
+        raise HTTPException(status_code=503, detail="Signal Generator nicht verfügbar")
+    
+    await signal_generator.stop()
+    return {"success": True, "message": "Signal Generator gestoppt"}
+
+@api_router.get("/signals/generator/status")
+async def get_signal_generator_status(user: dict = Depends(require_auth)):
+    """Get signal generator status"""
+    if not signal_generator:
+        return {"running": False, "message": "Signal Generator nicht initialisiert"}
+    
+    return {
+        "running": signal_generator._running,
+        "message": "Signal Generator läuft" if signal_generator._running else "Signal Generator gestoppt"
+    }
+
 # Include the router in the main app
 app.include_router(api_router)
 
@@ -1706,7 +1774,7 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup_event():
     """Initialize services on startup"""
-    global telegram_service, statistics_service
+    global telegram_service, statistics_service, signal_generator
     
     # Initialize Statistics Service
     try:
@@ -1720,6 +1788,19 @@ async def startup_event():
             telegram_service = await init_telegram_service(TELEGRAM_BOT_TOKEN, db)
             await telegram_service.start_polling()
             logger.info("Telegram Bot started successfully")
+            
+            # Initialize Signal Generator with Telegram service
+            try:
+                signal_generator = await init_signal_generator(db, telegram_service)
+                # Don't auto-start - can be enabled via environment variable
+                if os.environ.get('ENABLE_AUTO_SIGNALS', 'false').lower() == 'true':
+                    await signal_generator.start()
+                    logger.info("Signal Generator started successfully")
+                else:
+                    logger.info("Signal Generator initialized (manual mode)")
+            except Exception as e:
+                logger.error(f"Failed to start Signal Generator: {e}")
+                
         except Exception as e:
             logger.error(f"Failed to start Telegram Bot: {e}")
     elif TELEGRAM_BOT_TOKEN and not ENABLE_TELEGRAM_BOT:
@@ -1730,7 +1811,11 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
-    global telegram_service
+    global telegram_service, signal_generator
+    
+    if signal_generator:
+        await signal_generator.stop()
+        logger.info("Signal Generator stopped")
     
     if telegram_service:
         await telegram_service.stop()
