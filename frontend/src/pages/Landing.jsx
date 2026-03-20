@@ -11,6 +11,7 @@ import { LiveDemo } from '../components/LiveDemo';
 import { LiveCounter } from '../components/LiveCounter';
 import { ComparisonSection } from '../components/ComparisonSection';
 import { TelegramPreview } from '../components/TelegramPreview';
+import { FounderSection } from '../components/FounderSection';
 import { Statistics } from '../components/Statistics';
 import { EarlyAccessForm } from '../components/EarlyAccessForm';
 import { PricingCard } from '../components/PricingCard';
@@ -404,6 +405,9 @@ export const Landing = () => {
 
       {/* Telegram Preview Section */}
       <TelegramPreview />
+
+      {/* Founder Section - Der Seher */}
+      <FounderSection />
 
       {/* AI Model Transparency Section - NEW */}
       <section className="py-16 md:py-20 bg-[#121212]/50 relative overflow-hidden" data-testid="ai-model-section">
