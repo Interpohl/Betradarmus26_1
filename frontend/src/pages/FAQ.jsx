@@ -127,6 +127,14 @@ const faqData = [
       {
         q: "Kann ich mein Konto löschen?",
         a: "Ja, du kannst jederzeit die vollständige Löschung deines Kontos und aller zugehörigen Daten anfordern. Kontaktiere uns dafür über das Kontaktformular oder per E-Mail."
+      },
+      {
+        q: "Gibt es eine Altersbeschränkung?",
+        a: "Ja, die Nutzung von BETRADARMUS ist erst ab 18 Jahren erlaubt. Glücksspiel kann süchtig machen. Bitte spiele verantwortungsvoll und nur mit Geld, dessen Verlust du dir leisten kannst."
+      },
+      {
+        q: "Wo finde ich Hilfe bei Spielsucht?",
+        a: "Wenn du oder jemand in deinem Umfeld Probleme mit Spielsucht hat, wende dich an die BZgA-Hotline: 0800 1 37 27 00 (kostenlos und anonym). Weitere Hilfe findest du unter spielen-mit-verantwortung.de. Glücksspiel kann süchtig machen - spiele verantwortungsvoll!"
       }
     ]
   },

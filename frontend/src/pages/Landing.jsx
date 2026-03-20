@@ -836,6 +836,35 @@ export const Landing = () => {
                     <strong className="text-white">BETRADARMUS ist eine reine Analyseplattform.</strong> Wir bieten keine Wetten an und vermitteln auch keine Wetten. 
                     Alle bereitgestellten Informationen dienen ausschließlich zu Analyse-, Bildungs- und Informationszwecken.
                   </p>
+                  
+                  {/* 18+ und Spielsucht Hinweis */}
+                  <div className="bg-[#FF3B30]/10 border border-[#FF3B30]/30 rounded-lg p-4 my-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 bg-[#FF3B30] rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-white font-bold text-sm">18+</span>
+                      </div>
+                      <div>
+                        <p className="text-[#FF3B30] font-semibold mb-1">
+                          Glücksspiel erst ab 18 Jahren!
+                        </p>
+                        <p className="text-white text-sm">
+                          Glücksspiel kann süchtig machen. Spiele verantwortungsvoll und nur mit Geld, dessen Verlust du verkraften kannst.
+                        </p>
+                        <p className="text-[#A1A1AA] text-xs mt-2">
+                          Hilfe bei Spielsucht:{' '}
+                          <a href="https://www.spielen-mit-verantwortung.de" target="_blank" rel="noopener noreferrer" className="text-[#FF3B30] hover:underline">
+                            spielen-mit-verantwortung.de
+                          </a>
+                          {' | '}
+                          <a href="tel:0800-1372700" className="text-[#FF3B30] hover:underline">
+                            BZgA-Hotline: 0800 1 37 27 00
+                          </a>
+                          {' '}(kostenlos)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Bankroll Hinweis */}
                   <div className="bg-[#FFD700]/10 border border-[#FFD700]/30 rounded-lg p-4 my-4">
                     <p className="text-[#FFD700] font-semibold mb-1">

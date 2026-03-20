@@ -170,13 +170,33 @@ export const Footer = () => {
         </div>
 
         {/* Bottom Bar */}
-        <div className="mt-12 pt-8 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-[#A1A1AA]">
-            © {currentYear} Betradarmus. Alle Rechte vorbehalten.
-          </p>
-          <p className="text-xs text-[#A1A1AA] text-center md:text-right max-w-lg">
-            Betradarmus ist eine datenbasierte Analyseplattform. Es werden keine Wetten angeboten oder vermittelt.
-          </p>
+        <div className="mt-12 pt-8 border-t border-white/5">
+          {/* 18+ Badge Row */}
+          <div className="flex flex-wrap items-center justify-center gap-4 mb-6">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-[#FF3B30]/10 border border-[#FF3B30]/30 rounded-full">
+              <div className="w-6 h-6 bg-[#FF3B30] rounded-full flex items-center justify-center">
+                <span className="text-white font-bold text-xs">18+</span>
+              </div>
+              <span className="text-[#FF3B30] text-xs font-medium">Glücksspiel erst ab 18</span>
+            </div>
+            <a 
+              href="https://www.spielen-mit-verantwortung.de" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-xs text-[#A1A1AA] hover:text-white transition-colors"
+            >
+              Spielsucht? Hilfe unter 0800 1 37 27 00
+            </a>
+          </div>
+          
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="text-xs text-[#A1A1AA]">
+              © {currentYear} Betradarmus. Alle Rechte vorbehalten.
+            </p>
+            <p className="text-xs text-[#A1A1AA] text-center md:text-right max-w-lg">
+              Betradarmus ist eine datenbasierte Analyseplattform. Es werden keine Wetten angeboten oder vermittelt.
+            </p>
+          </div>
         </div>
       </div>
     </footer>
