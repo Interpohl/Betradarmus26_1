@@ -142,36 +142,66 @@ export const Landing = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
             {/* Left Column - Text */}
             <div className="lg:col-span-5 space-y-6">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#39FF14]/10 border border-[#39FF14]/20 rounded-sm animate-fade-in-up">
-                <div className="live-dot" />
-                <span className="font-mono text-xs text-[#39FF14] uppercase tracking-wider">Live Analysis Active</span>
+              {/* USP Badge - Eye-catching */}
+              <div className="flex flex-wrap gap-2 animate-fade-in-up">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#39FF14]/10 border border-[#39FF14]/20 rounded-sm">
+                  <div className="live-dot" />
+                  <span className="font-mono text-xs text-[#39FF14] uppercase tracking-wider">Live</span>
+                </div>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#00C2FF]/10 border border-[#00C2FF]/20 rounded-sm">
+                  <span className="font-mono text-xs text-[#00C2FF] uppercase tracking-wider">71% Trefferquote</span>
+                </div>
               </div>
               
               <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-bold uppercase tracking-tighter text-white leading-[0.95] animate-fade-in-up animation-delay-100">
-                Erkenne Live-Marktbewegungen, bevor sie verschwinden.
+                KI-Signale mit <span className="text-[#39FF14]">71% Trefferquote</span> - direkt aufs Handy.
               </h1>
               
               <p className="text-base md:text-lg text-[#A1A1AA] leading-relaxed animate-fade-in-up animation-delay-200">
-                Betradarmus analysiert Live-Fußballmärkte in Echtzeit mit KI-gestützter Risiko- und Wahrscheinlichkeitsbewertung.
+                Unsere KI analysiert Live-Fußballmärkte und sendet dir profitable Signale per Telegram. Transparent, schnell, nachweisbar.
               </p>
+
+              {/* USP Stats Row */}
+              <div className="grid grid-cols-3 gap-4 py-4 animate-fade-in-up animation-delay-250">
+                <div className="text-center">
+                  <div className="font-mono text-2xl md:text-3xl font-bold text-[#39FF14]">71%</div>
+                  <div className="text-xs text-[#A1A1AA] uppercase tracking-wide">Win Rate</div>
+                </div>
+                <div className="text-center border-x border-white/10">
+                  <div className="font-mono text-2xl md:text-3xl font-bold text-[#00C2FF]">+42%</div>
+                  <div className="text-xs text-[#A1A1AA] uppercase tracking-wide">ROI</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-mono text-2xl md:text-3xl font-bold text-white">150+</div>
+                  <div className="text-xs text-[#A1A1AA] uppercase tracking-wide">Tipps</div>
+                </div>
+              </div>
               
-              <div className="flex flex-col sm:flex-row gap-4 pt-4 animate-fade-in-up animation-delay-300">
+              <div className="flex flex-col sm:flex-row gap-4 animate-fade-in-up animation-delay-300">
                 <button 
-                  onClick={() => document.getElementById('live-demo')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="h-12 px-6 bg-[#39FF14] text-black font-bold uppercase tracking-wide text-sm rounded-sm hover:bg-[#2ebb11] hover:shadow-[0_0_20px_rgba(57,255,20,0.4)] transition-all flex items-center justify-center gap-2"
-                  data-testid="hero-demo-btn"
+                  onClick={() => {
+                    setPendingPlan('free');
+                    setShowAuthModal(true);
+                  }}
+                  className="h-14 px-8 bg-[#39FF14] text-black font-bold uppercase tracking-wide text-sm rounded-sm hover:bg-[#2ebb11] hover:shadow-[0_0_30px_rgba(57,255,20,0.5)] transition-all flex items-center justify-center gap-2"
+                  data-testid="hero-cta-btn"
                 >
-                  Live-Demo ansehen
+                  Kostenlos starten
                   <ChevronRight size={18} />
                 </button>
                 <button 
-                  onClick={() => document.getElementById('early-access')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="h-12 px-6 bg-white/5 border border-white/10 text-white font-bold uppercase tracking-wide text-sm rounded-sm hover:bg-white/10 hover:border-white/20 transition-all"
-                  data-testid="hero-access-btn"
+                  onClick={() => document.getElementById('statistics')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="h-14 px-6 bg-white/5 border border-white/10 text-white font-bold uppercase tracking-wide text-sm rounded-sm hover:bg-white/10 hover:border-white/20 transition-all"
+                  data-testid="hero-stats-btn"
                 >
-                  Frühen Zugang sichern
+                  Statistiken ansehen
                 </button>
               </div>
+
+              {/* Trust Indicator */}
+              <p className="text-xs text-[#A1A1AA] animate-fade-in-up animation-delay-400">
+                Alle Statistiken verifiziert via The Odds API. Keine versteckten Zahlen.
+              </p>
             </div>
 
             {/* Right Column - Dashboard */}
