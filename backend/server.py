@@ -320,7 +320,7 @@ async def create_checkout(input: CheckoutRequest, request: Request, user: dict =
         cancel_url = f"{input.origin_url}/pricing"
         
         session = stripe.checkout.Session.create(
-            payment_method_types=['card'],
+            payment_method_types=['card', 'paypal', 'klarna'],
             line_items=[{
                 'price_data': {
                     'currency': 'eur',
@@ -335,6 +335,8 @@ async def create_checkout(input: CheckoutRequest, request: Request, user: dict =
             mode='payment',
             success_url=success_url,
             cancel_url=cancel_url,
+            customer_email=user['email'],
+            billing_address_collection='required',  # Klarna benötigt Adresse
             metadata={
                 "user_id": user['id'],
                 "user_email": user['email'],
