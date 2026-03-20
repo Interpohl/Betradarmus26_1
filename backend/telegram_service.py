@@ -35,14 +35,15 @@ AVAILABLE_LEAGUES = [
     "2. Bundesliga"
 ]
 
-# Telegram Group Links
+# Telegram Group/Channel Links
 TELEGRAM_FREE_GROUP = "https://t.me/+Pb8X_nXzKu41N2Yy"
+TELEGRAM_ELITE_CHANNEL = os.environ.get("TELEGRAM_ELITE_CHANNEL", "")  # Private channel invite link
 
 # Subscription level limits
 SUBSCRIPTION_LIMITS = {
-    "free": {"max_leagues": 2, "min_confidence": 0.75, "signals_per_day": 5},
-    "pro": {"max_leagues": 5, "min_confidence": 0.60, "signals_per_day": 50},
-    "elite": {"max_leagues": 8, "min_confidence": 0.50, "signals_per_day": -1}  # -1 = unlimited
+    "free": {"max_leagues": 2, "min_confidence": 0.75, "signals_per_day": 5, "channel": TELEGRAM_FREE_GROUP},
+    "pro": {"max_leagues": 5, "min_confidence": 0.60, "signals_per_day": 50, "channel": None},
+    "elite": {"max_leagues": 8, "min_confidence": 0.50, "signals_per_day": -1, "channel": TELEGRAM_ELITE_CHANNEL}  # -1 = unlimited
 }
 
 
@@ -90,6 +91,7 @@ class TelegramBotService:
         self.application.add_handler(CommandHandler("unsubscribe", self.cmd_unsubscribe))
         self.application.add_handler(CommandHandler("status", self.cmd_status))
         self.application.add_handler(CommandHandler("help", self.cmd_help))
+        self.application.add_handler(CommandHandler("elite", self.cmd_elite))
         self.application.add_handler(CallbackQueryHandler(self.handle_callback))
         
         # Initialize the application
@@ -305,6 +307,14 @@ Wähle eine Option zum Ändern:
         signals_limit = limits["signals_per_day"]
         signals_text = f"{signals_today}/{signals_limit}" if signals_limit > 0 else f"{signals_today}/∞"
         
+        # Add channel info for subscription level
+        channel_text = ""
+        channel_link = limits.get("channel", "")
+        if subscription == "elite" and TELEGRAM_ELITE_CHANNEL:
+            channel_text = f"\n\n🏆 *Elite-Kanal:*\nNutze /elite für den Kanal-Link"
+        elif subscription == "free":
+            channel_text = f"\n\n👥 *FREE Community:*\n[Hier beitreten]({TELEGRAM_FREE_GROUP})"
+        
         status_text = f"""
 📊 *BETRADARMUS Status*
 
@@ -324,7 +334,7 @@ Wähle eine Option zum Ändern:
 *Plan-Limits ({subscription.upper()}):*
 ├ Max. Ligen: {limits['max_leagues']}
 ├ Min. Confidence: {int(limits['min_confidence'] * 100)}%
-└ Signale/Tag: {"Unbegrenzt" if signals_limit < 0 else signals_limit}
+└ Signale/Tag: {"Unbegrenzt" if signals_limit < 0 else signals_limit}{channel_text}
 
 💡 Upgrade unter betradarmus.de
 """
@@ -342,6 +352,7 @@ Wähle eine Option zum Ändern:
 /subscribe - Ligen abonnieren
 /unsubscribe - Ligen abbestellen
 /status - Aktuellen Status anzeigen
+/elite - Elite-Kanal beitreten (nur ELITE)
 /help - Diese Hilfe anzeigen
 
 *Was sind Signale?*
@@ -352,14 +363,67 @@ Unsere KI analysiert Live-Fußballmärkte und erkennt Ineffizienzen. Wenn eine G
 • Risk Score
 
 *Subscription Levels:*
-• FREE: 2 Ligen, 5 Signale/Tag
+• FREE: 2 Ligen, 5 Signale/Tag, Community Gruppe
 • PRO: 5 Ligen, 50 Signale/Tag
-• ELITE: 8 Ligen, Unbegrenzt
+• ELITE: 8 Ligen, Unbegrenzt, VIP Signal-Kanal
 
 Upgrade: betradarmus.de
 Support: support@betradarmus.de
 """
         await update.message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
+    
+    async def cmd_elite(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /elite command - Send Elite channel invite link"""
+        telegram_id = str(update.effective_user.id)
+        user = await self.db.telegram_users.find_one({"telegram_id": telegram_id})
+        
+        if not user:
+            await update.message.reply_text(
+                "❌ Du bist noch nicht registriert. Nutze /start zuerst."
+            )
+            return
+        
+        subscription = user.get("subscription_level", "free")
+        
+        if subscription != "elite":
+            await update.message.reply_text(
+                f"⚠️ *Elite-Kanal nur für ELITE-Mitglieder*\n\n"
+                f"Dein aktueller Plan: {subscription.upper()}\n\n"
+                f"Mit dem ELITE-Plan erhältst du:\n"
+                f"• 🚀 Unbegrenzte Signale\n"
+                f"• 📺 Exklusiver VIP Signal-Kanal\n"
+                f"• ⚡ Alle 8 Top-Ligen\n"
+                f"• 🎯 Niedrigste Confidence-Schwelle\n"
+                f"• 💬 Priority Support\n\n"
+                f"👉 Upgrade jetzt unter: betradarmus.de",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+        
+        # User is ELITE - send channel link
+        if TELEGRAM_ELITE_CHANNEL:
+            await update.message.reply_text(
+                f"🏆 *Willkommen im ELITE-Kanal!*\n\n"
+                f"Als ELITE-Mitglied hast du Zugang zu unserem\n"
+                f"exklusiven VIP Signal-Kanal.\n\n"
+                f"📺 *Elite Signal-Kanal:*\n"
+                f"[Hier klicken zum Beitreten]({TELEGRAM_ELITE_CHANNEL})\n\n"
+                f"Im Kanal erhältst du:\n"
+                f"• Alle Signale in Echtzeit\n"
+                f"• Detaillierte Analysen\n"
+                f"• Exklusive Pre-Match Insights\n\n"
+                f"⚠️ Teile diesen Link nicht mit anderen!",
+                parse_mode=ParseMode.MARKDOWN,
+                disable_web_page_preview=True
+            )
+        else:
+            await update.message.reply_text(
+                f"🏆 *Elite-Mitglied*\n\n"
+                f"Der Elite-Kanal wird gerade eingerichtet.\n"
+                f"Du wirst benachrichtigt, sobald er verfügbar ist!\n\n"
+                f"Bei Fragen: support@betradarmus.de",
+                parse_mode=ParseMode.MARKDOWN
+            )
         
     # ==================== CALLBACK HANDLERS ====================
     
