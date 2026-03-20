@@ -47,6 +47,10 @@ const faqData = [
       {
         q: "Wie hoch ist eure Trefferquote?",
         a: "Unsere aktuelle Trefferquote liegt bei über 70% (verifiziert durch automatische Auswertung via The Odds API). Alle Statistiken sind transparent auf unserer Homepage einsehbar - keine versteckten Zahlen."
+      },
+      {
+        q: "Wie viel sollte ich pro Wette setzen?",
+        a: "Wir empfehlen ein striktes Bankroll-Management: Setze maximal 10% deines Gesamtkapitals auf eine einzelne Wette. So bleibst du auch bei einer Verlustserie handlungsfähig und kannst langfristig profitieren. Verantwortungsvolles Spielen ist der Schlüssel zum Erfolg!"
       }
     ]
   },

@@ -836,6 +836,16 @@ export const Landing = () => {
                     <strong className="text-white">BETRADARMUS ist eine reine Analyseplattform.</strong> Wir bieten keine Wetten an und vermitteln auch keine Wetten. 
                     Alle bereitgestellten Informationen dienen ausschließlich zu Analyse-, Bildungs- und Informationszwecken.
                   </p>
+                  {/* Bankroll Hinweis */}
+                  <div className="bg-[#FFD700]/10 border border-[#FFD700]/30 rounded-lg p-4 my-4">
+                    <p className="text-[#FFD700] font-semibold mb-1">
+                      Bankroll-Management Empfehlung:
+                    </p>
+                    <p className="text-white">
+                      Setze nie mehr als <strong className="text-[#FFD700]">10% deines Gesamtkapitals</strong> auf eine einzelne Wette. 
+                      Verantwortungsvolles Spielen ist der Schlüssel zu langfristigem Erfolg.
+                    </p>
+                  </div>
                   <p>
                     Die von unseren KI-Modellen generierten Wahrscheinlichkeiten und Signale basieren auf historischen Daten und statistischen Methoden. 
                     <strong className="text-white"> Vergangene Performance ist kein Indikator für zukünftige Ergebnisse.</strong>
