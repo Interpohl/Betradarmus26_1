@@ -26,16 +26,18 @@ An AI-powered live sports analysis platform for football, analyzing live markets
 │   ├── server.py              # Main FastAPI application
 │   ├── telegram_service.py    # Telegram Bot Service
 │   ├── email_service.py       # SendGrid Email Service
-│   ├── statistics_service.py  # Statistics & Tip Tracking Service (NEW)
+│   ├── statistics_service.py  # Statistics & Tip Tracking Service
 │   ├── requirements.txt
 │   ├── Dockerfile
 │   └── .env
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
-│   │   │   └── Statistics.jsx     # Statistics Component (NEW)
+│   │   │   └── Statistics.jsx     # Statistics Component
 │   │   └── pages/
-│   │       └── AdminDashboard.jsx
+│   │       ├── AdminDashboard.jsx
+│   │       ├── FAQ.jsx            # FAQ Page (NEW)
+│   │       └── Landing.jsx        # Enhanced with new sections
 │   ├── package.json
 │   └── Dockerfile
 ├── docker-compose.yml
@@ -201,6 +203,42 @@ SENDER_NAME=BETRADARMUS
 ```
 
 ---
+
+## Completed (2026-03-20)
+
+1. ✅ **Hero Section USP Redesign** - Packendere Darstellung mit konkreten Zahlen
+   - Headline: "KI-Signale mit 71% Trefferquote - direkt aufs Handy"
+   - Stats-Row: 71% Win Rate | +42% ROI | 150+ Tipps
+   - Trust-Hinweis: "Verifiziert via The Odds API"
+
+2. ✅ **"So funktioniert's" Sektion** - 3-Schritte-Prozess
+   - Registrieren → Telegram verbinden → Signale erhalten
+
+3. ✅ **Testimonials Sektion** - Nutzerstimmen mit Sternebewertungen
+   - 3 Testimonials (PRO Nutzer + FREE Nutzer)
+
+4. ✅ **KI-Erklärung Sektion** - "Wie unsere KI funktioniert"
+   - Machine Learning Modelle, Echtzeit-Datenfeeds, Tägliches Retraining, Backtesting
+   - Model Pipeline Visualisierung (5 Schritte)
+
+5. ✅ **Free Trial Highlight** - FREE vs PRO Vergleich
+   - Side-by-side Vergleich mit Feature-Liste
+   - "BELIEBT" Badge für PRO
+
+6. ✅ **Partner-Logos Sektion** - "Daten & Technologie von"
+   - The Odds API, Livescore, Stripe, Telegram
+
+7. ✅ **Legal Disclaimer Erweitert** - Professioneller Warnhinweis
+   - Analyse-Plattform Hinweis
+   - "Vergangene Performance ist kein Indikator"
+   - Links zu Datenschutz, AGB, E-Mail
+
+8. ✅ **FAQ-Seite** - Neue /faq Route
+   - 7 Kategorien: Allgemein, Signale, Telegram, Preise, Statistiken, Sicherheit, Support
+   - Accordion-Design mit Icons
+
+9. ✅ **Zahlungsmethoden erweitert** - Kreditkarte, PayPal, Klarna
+   - Backend angepasst für payment_method_types
 
 ## Completed (2026-03-19)
 
