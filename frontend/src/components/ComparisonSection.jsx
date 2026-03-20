@@ -43,9 +43,9 @@ export const ComparisonSection = () => {
       <div className="max-w-6xl mx-auto px-4 md:px-8 relative z-10">
         {/* Header */}
         <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#39FF14]/10 border border-[#39FF14]/20 rounded-full mb-6">
-            <Zap className="w-4 h-4 text-[#39FF14]" />
-            <span className="text-[#39FF14] text-sm font-medium">Der Unterschied</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#FFD700]/10 border border-[#FFD700]/20 rounded-full mb-6">
+            <Zap className="w-4 h-4 text-[#FFD700]" />
+            <span className="text-[#FFD700] text-sm font-medium">Gewinnen statt zocken</span>
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
             BETRADARMUS vs. Bauchgefühl

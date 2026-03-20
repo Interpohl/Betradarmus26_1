@@ -155,10 +155,13 @@ export const Landing = () => {
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#00C2FF]/10 border border-[#00C2FF]/20 rounded-sm">
                   <span className="font-mono text-xs text-[#00C2FF] uppercase tracking-wider">71% Trefferquote</span>
                 </div>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#FFD700]/10 border border-[#FFD700]/20 rounded-sm">
+                  <span className="font-mono text-xs text-[#FFD700] uppercase tracking-wider">Gewinnen statt zocken</span>
+                </div>
               </div>
               
               <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-bold uppercase tracking-tighter text-white leading-[0.95] animate-fade-in-up animation-delay-100">
-                KI-Signale mit <span className="text-[#39FF14]">71% Trefferquote</span> - direkt aufs Handy.
+                <span className="text-[#FFD700]">Gewinnen statt zocken.</span> KI-Signale mit <span className="text-[#39FF14]">71% Trefferquote</span>.
               </h1>
               
               <p className="text-base md:text-lg text-[#A1A1AA] leading-relaxed animate-fade-in-up animation-delay-200">
