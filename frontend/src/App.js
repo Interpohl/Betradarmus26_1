@@ -19,6 +19,7 @@ import { Kontakt } from "./pages/Kontakt";
 import { PaymentSuccess } from "./pages/PaymentSuccess";
 import { AdminDashboard } from "./pages/AdminDashboard";
 import { VerifyEmail } from "./pages/VerifyEmail";
+import { FAQ } from "./pages/FAQ";
 
 // Scroll to top on route change
 const ScrollToTop = () => {
@@ -43,6 +44,7 @@ function App() {
               <Route path="/" element={<Landing />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/verify" element={<VerifyEmail />} />
+              <Route path="/faq" element={<FAQ />} />
               <Route path="/impressum" element={<Impressum />} />
               <Route path="/agb" element={<AGB />} />
               <Route path="/datenschutz" element={<Datenschutz />} />

@@ -74,6 +74,11 @@ export const Footer = () => {
             </h4>
             <ul className="space-y-3">
               <li>
+                <Link to="/faq" className="footer-link text-sm" data-testid="footer-faq">
+                  FAQ
+                </Link>
+              </li>
+              <li>
                 <Link to="/impressum" className="footer-link text-sm" data-testid="footer-impressum">
                   Impressum
                 </Link>
