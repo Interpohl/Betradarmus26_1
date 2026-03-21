@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { ChevronDown, HelpCircle, Zap, CreditCard, Shield, MessageCircle, BarChart3, Users } from 'lucide-react';
 
 const faqData = [
@@ -213,7 +214,14 @@ const FAQCategory = ({ category, icon: Icon, questions }) => {
 
 export const FAQ = () => {
   return (
-    <div className="min-h-screen bg-[#0a0a0a] pt-24 pb-16" data-testid="faq-page">
+    <>
+      <Helmet>
+        <title>FAQ - Häufige Fragen zu Sportwetten Tipps | BETRADARMUS</title>
+        <meta name="description" content="Antworten auf häufige Fragen zu BETRADARMUS: Wie funktioniert KI-Analyse? Wie hoch ist die Trefferquote? Was kostet der Service? Jetzt informieren!" />
+        <meta name="keywords" content="Sportwetten FAQ, Wett Tipps Fragen, KI Sportwetten Hilfe, BETRADARMUS Support, Fußball Tipps Erklärung" />
+        <link rel="canonical" href="https://betradarmus.de/faq" />
+      </Helmet>
+      <div className="min-h-screen bg-[#0a0a0a] pt-24 pb-16" data-testid="faq-page">
       <div className="max-w-4xl mx-auto px-4 md:px-8">
         {/* Header */}
         <div className="text-center mb-12">
@@ -295,6 +303,7 @@ export const FAQ = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

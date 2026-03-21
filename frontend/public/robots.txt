@@ -1,4 +1,14 @@
+# BETRADARMUS Robots.txt
+# https://betradarmus.de
+
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /verify
+Disallow: /payment/
 
+# Sitemaps
 Sitemap: https://betradarmus.de/sitemap.xml
+
+# Crawl-delay für höfliches Crawling
+Crawl-delay: 1
