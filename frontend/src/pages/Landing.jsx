@@ -1,22 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, lazy, Suspense } from 'react';
 import { 
   Activity, Zap, Shield, BarChart3, Brain, Filter, Clock, 
   Server, Cpu, Globe, TrendingUp, ChevronRight, Users, Target, LineChart,
   MessageCircle, CheckCircle, Star, ArrowRight, Sparkles, Lock, AlertTriangle
 } from 'lucide-react';
-import { LiveDashboard } from '../components/LiveDashboard';
-import { LiveDashboardReal } from '../components/LiveDashboardReal';
-import { LiveTicker } from '../components/LiveTicker';
-import { LiveDemo } from '../components/LiveDemo';
+
+// Critical components - load immediately
 import { LiveCounter } from '../components/LiveCounter';
-import { ComparisonSection } from '../components/ComparisonSection';
-import { TelegramPreview } from '../components/TelegramPreview';
-import { FounderSection } from '../components/FounderSection';
-import { Statistics } from '../components/Statistics';
-import { EarlyAccessForm } from '../components/EarlyAccessForm';
-import { PricingCard } from '../components/PricingCard';
 import { AuthModal } from '../components/AuthModal';
 import { useAuth } from '../context/AuthContext';
+
+// Heavy components - lazy load
+const LiveDashboard = lazy(() => import('../components/LiveDashboard').then(m => ({ default: m.LiveDashboard })));
+const LiveDashboardReal = lazy(() => import('../components/LiveDashboardReal').then(m => ({ default: m.LiveDashboardReal })));
+const LiveTicker = lazy(() => import('../components/LiveTicker').then(m => ({ default: m.LiveTicker })));
+const LiveDemo = lazy(() => import('../components/LiveDemo').then(m => ({ default: m.LiveDemo })));
+const ComparisonSection = lazy(() => import('../components/ComparisonSection').then(m => ({ default: m.ComparisonSection })));
+const TelegramPreview = lazy(() => import('../components/TelegramPreview').then(m => ({ default: m.TelegramPreview })));
+const FounderSection = lazy(() => import('../components/FounderSection').then(m => ({ default: m.FounderSection })));
+const Statistics = lazy(() => import('../components/Statistics').then(m => ({ default: m.Statistics })));
+const EarlyAccessForm = lazy(() => import('../components/EarlyAccessForm').then(m => ({ default: m.EarlyAccessForm })));
+const PricingCard = lazy(() => import('../components/PricingCard').then(m => ({ default: m.PricingCard })));
+
+// Loading placeholder for lazy components
+const SectionLoader = () => (
+  <div className="w-full py-12 flex items-center justify-center">
+    <div className="w-8 h-8 border-2 border-[#39FF14]/20 border-t-[#39FF14] rounded-full animate-spin" />
+  </div>
+);
 
 const features = [
   {
@@ -217,11 +228,13 @@ export const Landing = () => {
 
             {/* Right Column - Dashboard */}
             <div className="lg:col-span-7 animate-fade-in-up animation-delay-400">
-              {isAuthenticated ? (
-                <LiveDashboardReal onUpgradeClick={scrollToPricing} />
-              ) : (
-                <LiveDashboard />
-              )}
+              <Suspense fallback={<SectionLoader />}>
+                {isAuthenticated ? (
+                  <LiveDashboardReal onUpgradeClick={scrollToPricing} />
+                ) : (
+                  <LiveDashboard />
+                )}
+              </Suspense>
             </div>
           </div>
         </div>
@@ -231,7 +244,9 @@ export const Landing = () => {
       <LiveCounter />
 
       {/* Live Ticker */}
-      <LiveTicker />
+      <Suspense fallback={<SectionLoader />}>
+        <LiveTicker />
+      </Suspense>
 
       {/* How It Works Section - NEW */}
       <section className="py-16 md:py-20 bg-[#0a0a0a] relative overflow-hidden" data-testid="how-it-works-section">
@@ -333,10 +348,14 @@ export const Landing = () => {
       </section>
 
       {/* Live Demo Section */}
-      <LiveDemo />
+      <Suspense fallback={<SectionLoader />}>
+        <LiveDemo />
+      </Suspense>
 
       {/* Statistics Section */}
-      <Statistics />
+      <Suspense fallback={<SectionLoader />}>
+        <Statistics />
+      </Suspense>
 
       {/* Testimonials Section - NEW */}
       <section className="py-16 md:py-20 bg-[#0a0a0a] relative" data-testid="testimonials-section">
@@ -401,13 +420,19 @@ export const Landing = () => {
       </section>
 
       {/* Comparison Section - BETRADARMUS vs Bauchgefühl */}
-      <ComparisonSection />
+      <Suspense fallback={<SectionLoader />}>
+        <ComparisonSection />
+      </Suspense>
 
       {/* Telegram Preview Section */}
-      <TelegramPreview />
+      <Suspense fallback={<SectionLoader />}>
+        <TelegramPreview />
+      </Suspense>
 
       {/* Founder Section - Der Seher */}
-      <FounderSection />
+      <Suspense fallback={<SectionLoader />}>
+        <FounderSection />
+      </Suspense>
 
       {/* AI Model Transparency Section - NEW */}
       <section className="py-16 md:py-20 bg-[#121212]/50 relative overflow-hidden" data-testid="ai-model-section">
@@ -790,9 +815,11 @@ export const Landing = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto">
-            <PricingCard plan="free" onSelect={handlePlanSelect} onAuthRequired={handleAuthRequired} />
-            <PricingCard plan="pro" onSelect={handlePlanSelect} onAuthRequired={handleAuthRequired} />
-            <PricingCard plan="elite" onSelect={handlePlanSelect} onAuthRequired={handleAuthRequired} />
+            <Suspense fallback={<SectionLoader />}>
+              <PricingCard plan="free" onSelect={handlePlanSelect} onAuthRequired={handleAuthRequired} />
+              <PricingCard plan="pro" onSelect={handlePlanSelect} onAuthRequired={handleAuthRequired} />
+              <PricingCard plan="elite" onSelect={handlePlanSelect} onAuthRequired={handleAuthRequired} />
+            </Suspense>
           </div>
         </div>
       </section>
@@ -817,7 +844,9 @@ export const Landing = () => {
             </p>
 
             <div className="flex justify-center">
-              <EarlyAccessForm planInterest={selectedPlan || 'free'} />
+              <Suspense fallback={<SectionLoader />}>
+                <EarlyAccessForm planInterest={selectedPlan || 'free'} />
+              </Suspense>
             </div>
           </div>
         </div>

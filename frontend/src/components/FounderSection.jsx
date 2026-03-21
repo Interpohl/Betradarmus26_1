@@ -21,6 +21,8 @@ export const FounderSection = () => {
                   src="https://customer-assets.emergentagent.com/job_6fa2eb84-b932-4fcd-9a28-2db9d2605718/artifacts/axvgsbt7_Betradarmus%20%282%29.png"
                   alt="BETRADARMUS Seher - Gründer"
                   className="w-full h-full object-cover object-center scale-110"
+                  loading="lazy"
+                  decoding="async"
                 />
               </div>
             </div>
