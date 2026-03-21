@@ -10,6 +10,9 @@ import { AuthProvider } from "./context/AuthContext";
 import { Navbar } from "./components/Navbar";
 import { Footer } from "./components/Footer";
 
+// Critical page - load immediately
+import { Landing } from "./pages/Landing";
+
 // Loading Spinner for Suspense
 const PageLoader = () => (
   <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
@@ -20,8 +23,7 @@ const PageLoader = () => (
   </div>
 );
 
-// Pages - Lazy loaded for code splitting
-const Landing = lazy(() => import("./pages/Landing").then(m => ({ default: m.Landing })));
+// Secondary pages - Lazy loaded (rarely visited)
 const Impressum = lazy(() => import("./pages/Impressum").then(m => ({ default: m.Impressum })));
 const AGB = lazy(() => import("./pages/AGB").then(m => ({ default: m.AGB })));
 const Datenschutz = lazy(() => import("./pages/Datenschutz").then(m => ({ default: m.Datenschutz })));
@@ -50,19 +52,17 @@ function App() {
           <ScrollToTop />
           <Navbar />
           <main>
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route path="/" element={<Landing />} />
-                <Route path="/admin" element={<AdminDashboard />} />
-                <Route path="/verify" element={<VerifyEmail />} />
-                <Route path="/faq" element={<FAQ />} />
-                <Route path="/impressum" element={<Impressum />} />
-                <Route path="/agb" element={<AGB />} />
-                <Route path="/datenschutz" element={<Datenschutz />} />
-                <Route path="/kontakt" element={<Kontakt />} />
-                <Route path="/payment/success" element={<PaymentSuccess />} />
-              </Routes>
-            </Suspense>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/admin" element={<Suspense fallback={<PageLoader />}><AdminDashboard /></Suspense>} />
+              <Route path="/verify" element={<Suspense fallback={<PageLoader />}><VerifyEmail /></Suspense>} />
+              <Route path="/faq" element={<Suspense fallback={<PageLoader />}><FAQ /></Suspense>} />
+              <Route path="/impressum" element={<Suspense fallback={<PageLoader />}><Impressum /></Suspense>} />
+              <Route path="/agb" element={<Suspense fallback={<PageLoader />}><AGB /></Suspense>} />
+              <Route path="/datenschutz" element={<Suspense fallback={<PageLoader />}><Datenschutz /></Suspense>} />
+              <Route path="/kontakt" element={<Suspense fallback={<PageLoader />}><Kontakt /></Suspense>} />
+              <Route path="/payment/success" element={<Suspense fallback={<PageLoader />}><PaymentSuccess /></Suspense>} />
+            </Routes>
           </main>
           <Footer />
           <Toaster 
