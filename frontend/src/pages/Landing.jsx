@@ -21,6 +21,7 @@ const TelegramPreview = lazy(() => import('../components/TelegramPreview').then(
 const FounderSection = lazy(() => import('../components/FounderSection').then(m => ({ default: m.FounderSection })));
 const Statistics = lazy(() => import('../components/Statistics').then(m => ({ default: m.Statistics })));
 const EarlyAccessForm = lazy(() => import('../components/EarlyAccessForm').then(m => ({ default: m.EarlyAccessForm })));
+const KostolanyQuote = lazy(() => import('../components/KostolanyQuote').then(m => ({ default: m.KostolanyQuote })));
 
 // Simple loading placeholder
 const SectionLoader = () => (
@@ -351,6 +352,11 @@ export const Landing = () => {
       {/* Statistics Section */}
       <Suspense fallback={<SectionLoader />}>
         <Statistics />
+      </Suspense>
+
+      {/* Kostolany Quote Section */}
+      <Suspense fallback={<SectionLoader />}>
+        <KostolanyQuote />
       </Suspense>
 
       {/* Testimonials Section - NEW */}
