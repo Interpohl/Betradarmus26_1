@@ -1458,6 +1458,11 @@ statistics_service: Optional[StatisticsService] = None
 signal_generator: Optional[SignalGenerator] = None
 
 # Signal Models
+class ChannelSelection(BaseModel):
+    elite: bool = True
+    free: bool = False
+    community: bool = False
+
 class SignalCreate(BaseModel):
     sport: str = "football"
     league: str
@@ -1466,6 +1471,7 @@ class SignalCreate(BaseModel):
     confidence: float = Field(ge=0, le=1)
     risk_score: int = Field(ge=0, le=100)
     explanation: str = "Market deviation detected"
+    channels: Optional[ChannelSelection] = None
 
 class SignalResponse(BaseModel):
     success: bool
@@ -1505,6 +1511,15 @@ async def create_signal(signal: SignalCreate, user: dict = Depends(require_auth)
     
     distribution_results = {"sent": 0, "filtered": 0, "failed": 0}
     
+    # Prepare channel selection
+    channels = None
+    if signal.channels:
+        channels = {
+            "elite": signal.channels.elite,
+            "free": signal.channels.free,
+            "community": signal.channels.community
+        }
+    
     if telegram_service:
         try:
             distribution_results = await telegram_service.distribute_signal({
@@ -1515,7 +1530,7 @@ async def create_signal(signal: SignalCreate, user: dict = Depends(require_auth)
                 "risk_score": signal.risk_score,
                 "explanation": signal.explanation,
                 "timestamp": datetime.now(timezone.utc).strftime('%H:%M')
-            })
+            }, channels=channels)
             
             await db.signals.update_one(
                 {"id": signal_doc["id"]},
@@ -1524,11 +1539,18 @@ async def create_signal(signal: SignalCreate, user: dict = Depends(require_auth)
         except Exception as e:
             logger.error(f"Signal distribution error: {e}")
     
+    # Build response message
+    channels_sent = distribution_results.get("channels_sent", [])
+    if channels_sent:
+        message = f"Signal erstellt und gesendet an: {', '.join(channels_sent)}"
+    else:
+        message = f"Signal erstellt und an {distribution_results['sent']} Nutzer verteilt"
+    
     return SignalResponse(
         success=True,
         signal_id=signal_doc["id"],
         distribution=distribution_results,
-        message=f"Signal erstellt und an {distribution_results['sent']} Nutzer verteilt"
+        message=message
     )
 
 @api_router.get("/signals")

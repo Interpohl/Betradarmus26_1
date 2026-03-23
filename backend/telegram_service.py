@@ -41,7 +41,28 @@ AVAILABLE_LEAGUES = [
 # Telegram Group/Channel Links
 TELEGRAM_FREE_GROUP = "https://t.me/+Pb8X_nXzKu41N2Yy"
 TELEGRAM_ELITE_CHANNEL = os.environ.get("TELEGRAM_ELITE_CHANNEL", "")  # Private channel invite link
-TELEGRAM_ELITE_CHANNEL_ID = int(os.environ.get("TELEGRAM_ELITE_CHANNEL_ID", "-1001222696874"))  # Elite channel chat ID for direct posting
+TELEGRAM_ELITE_CHANNEL_ID = int(os.environ.get("TELEGRAM_ELITE_CHANNEL_ID", "-1001222696874"))  # Elite channel chat ID
+TELEGRAM_FREE_GROUP_ID = int(os.environ.get("TELEGRAM_FREE_GROUP_ID", "0"))  # Free group chat ID - needs to be set
+TELEGRAM_COMMUNITY_CHANNEL_ID = int(os.environ.get("TELEGRAM_COMMUNITY_CHANNEL_ID", "0"))  # Community channel chat ID - needs to be set
+
+# All available channels for signal distribution
+TELEGRAM_CHANNELS = {
+    "elite": {
+        "id": TELEGRAM_ELITE_CHANNEL_ID,
+        "name": "Elite-Signale",
+        "enabled": TELEGRAM_ELITE_CHANNEL_ID != 0
+    },
+    "free": {
+        "id": TELEGRAM_FREE_GROUP_ID,
+        "name": "Free-Gruppe", 
+        "enabled": TELEGRAM_FREE_GROUP_ID != 0
+    },
+    "community": {
+        "id": TELEGRAM_COMMUNITY_CHANNEL_ID,
+        "name": "Community-Kanal",
+        "enabled": TELEGRAM_COMMUNITY_CHANNEL_ID != 0
+    }
+}
 
 # Signal Logo for Telegram messages
 SIGNAL_LOGO_URL = "https://static.prod-images.emergentagent.com/jobs/6730f064-f598-46a7-94e6-3fd4db78c461/images/ab487ae8f08093b2e2929301ff200cfb4ffb115de44ca166bfe85c0c68cee0df.png"
@@ -690,9 +711,13 @@ Bei Fragen: support@betradarmus.de
         
     # ==================== SIGNAL DISTRIBUTION ====================
     
-    async def distribute_signal(self, signal: Dict[str, Any]) -> Dict[str, int]:
-        """Distribute a signal to the Elite channel and matching individual users"""
-        results = {"sent": 0, "filtered": 0, "failed": 0, "channel_sent": False}
+    async def distribute_signal(self, signal: Dict[str, Any], channels: Dict[str, bool] = None) -> Dict[str, int]:
+        """Distribute a signal to selected channels and matching individual users"""
+        results = {"sent": 0, "filtered": 0, "failed": 0, "channels_sent": []}
+        
+        # Default to elite channel if no channels specified
+        if channels is None:
+            channels = {"elite": True, "free": False, "community": False}
         
         # Format the signal message (for caption)
         message = self._format_signal_message(signal)
@@ -705,41 +730,57 @@ Bei Fragen: support@betradarmus.de
             logger.error(f"Failed to generate signal image: {e}")
             signal_image = None
         
-        # FIRST: Send directly to Elite Channel with generated image
-        try:
-            if signal_image:
-                await self.bot.send_photo(
-                    chat_id=TELEGRAM_ELITE_CHANNEL_ID,
-                    photo=signal_image,
-                    caption=f"⚡ <b>BETRADARMUS SIGNAL</b>\n\n{signal.get('match', 'N/A')}\n🏆 {signal.get('league', 'N/A')}\n\n⚠️ <i>Keine Wettempfehlung</i>\n🌐 betradarmus.de",
-                    parse_mode=ParseMode.HTML
-                )
-            else:
-                # Fallback to text with logo
-                await self.bot.send_photo(
-                    chat_id=TELEGRAM_ELITE_CHANNEL_ID,
-                    photo=SIGNAL_LOGO_URL,
-                    caption=message,
-                    parse_mode=ParseMode.HTML
-                )
-            results["channel_sent"] = True
-            results["sent"] += 1
-            logger.info(f"Signal sent to Elite Channel {TELEGRAM_ELITE_CHANNEL_ID}")
-        except Exception as e:
-            logger.error(f"Failed to send signal to Elite Channel: {e}")
-            # Fallback to text-only message
+        # Short caption for image
+        caption = f"⚡ <b>BETRADARMUS SIGNAL</b>\n\n{signal.get('match', 'N/A')}\n🏆 {signal.get('league', 'N/A')}\n\n⚠️ <i>Keine Wettempfehlung</i>\n🌐 betradarmus.de"
+        
+        # Send to each selected channel
+        for channel_key, should_send in channels.items():
+            if not should_send:
+                continue
+                
+            channel_config = TELEGRAM_CHANNELS.get(channel_key)
+            if not channel_config or not channel_config["enabled"] or channel_config["id"] == 0:
+                logger.warning(f"Channel {channel_key} not configured or disabled")
+                continue
+            
+            channel_id = channel_config["id"]
+            channel_name = channel_config["name"]
+            
             try:
-                await self.bot.send_message(
-                    chat_id=TELEGRAM_ELITE_CHANNEL_ID,
-                    text=message,
-                    parse_mode=ParseMode.HTML
-                )
-                results["channel_sent"] = True
+                # Regenerate image for each channel (BytesIO needs reset)
+                if signal_image:
+                    signal_image.seek(0)
+                    await self.bot.send_photo(
+                        chat_id=channel_id,
+                        photo=signal_image,
+                        caption=caption,
+                        parse_mode=ParseMode.HTML
+                    )
+                else:
+                    await self.bot.send_photo(
+                        chat_id=channel_id,
+                        photo=SIGNAL_LOGO_URL,
+                        caption=message,
+                        parse_mode=ParseMode.HTML
+                    )
                 results["sent"] += 1
-                logger.info(f"Signal sent to Elite Channel (text fallback) {TELEGRAM_ELITE_CHANNEL_ID}")
-            except Exception as e2:
-                logger.error(f"Failed to send text signal to Elite Channel: {e2}")
-                results["failed"] += 1
+                results["channels_sent"].append(channel_name)
+                logger.info(f"Signal sent to {channel_name} ({channel_id})")
+            except Exception as e:
+                logger.error(f"Failed to send signal to {channel_name}: {e}")
+                # Fallback to text-only
+                try:
+                    await self.bot.send_message(
+                        chat_id=channel_id,
+                        text=message,
+                        parse_mode=ParseMode.HTML
+                    )
+                    results["sent"] += 1
+                    results["channels_sent"].append(f"{channel_name} (Text)")
+                    logger.info(f"Signal sent to {channel_name} (text fallback)")
+                except Exception as e2:
+                    logger.error(f"Failed to send text signal to {channel_name}: {e2}")
+                    results["failed"] += 1
         
         # SECOND: Send to individual registered users (if any)
         query = {
