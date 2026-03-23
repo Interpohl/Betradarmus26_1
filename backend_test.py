@@ -9,7 +9,7 @@ from datetime import datetime
 import json
 
 class BetradarmusAPITester:
-    def __init__(self, base_url="https://live-sports-ai-3.preview.emergentagent.com"):
+    def __init__(self, base_url="https://betfair-predictions.preview.emergentagent.com"):
         self.base_url = base_url
         self.api_url = f"{base_url}/api"
         self.tests_run = 0
@@ -287,7 +287,7 @@ class BetradarmusAPITester:
             
         checkout_data = {
             "plan": "pro",
-            "origin_url": "https://live-sports-ai-3.preview.emergentagent.com"
+            "origin_url": "https://betfair-predictions.preview.emergentagent.com"
         }
         
         headers = {"Authorization": f"Bearer {self.token}"}
