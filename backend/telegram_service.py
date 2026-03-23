@@ -38,6 +38,7 @@ AVAILABLE_LEAGUES = [
 # Telegram Group/Channel Links
 TELEGRAM_FREE_GROUP = "https://t.me/+Pb8X_nXzKu41N2Yy"
 TELEGRAM_ELITE_CHANNEL = os.environ.get("TELEGRAM_ELITE_CHANNEL", "")  # Private channel invite link
+TELEGRAM_ELITE_CHANNEL_ID = int(os.environ.get("TELEGRAM_ELITE_CHANNEL_ID", "-1001222696874"))  # Elite channel chat ID for direct posting
 
 # Subscription level limits
 SUBSCRIPTION_LIMITS = {
@@ -684,10 +685,27 @@ Bei Fragen: support@betradarmus.de
     # ==================== SIGNAL DISTRIBUTION ====================
     
     async def distribute_signal(self, signal: Dict[str, Any]) -> Dict[str, int]:
-        """Distribute a signal to matching users"""
-        results = {"sent": 0, "filtered": 0, "failed": 0}
+        """Distribute a signal to the Elite channel and matching individual users"""
+        results = {"sent": 0, "filtered": 0, "failed": 0, "channel_sent": False}
         
-        # Find matching users
+        # Format the signal message
+        message = self._format_signal_message(signal)
+        
+        # FIRST: Send directly to Elite Channel
+        try:
+            await self.bot.send_message(
+                chat_id=TELEGRAM_ELITE_CHANNEL_ID,
+                text=message,
+                parse_mode=ParseMode.HTML
+            )
+            results["channel_sent"] = True
+            results["sent"] += 1
+            logger.info(f"Signal sent to Elite Channel {TELEGRAM_ELITE_CHANNEL_ID}")
+        except Exception as e:
+            logger.error(f"Failed to send signal to Elite Channel: {e}")
+            results["failed"] += 1
+        
+        # SECOND: Send to individual registered users (if any)
         query = {
             "alerts_enabled": True,
         }
@@ -721,8 +739,7 @@ Bei Fragen: support@betradarmus.de
                 results["filtered"] += 1
                 continue
                 
-            # Format and queue the message
-            message = self._format_signal_message(signal)
+            # Queue message for individual user
             await self.signal_queue.add(user["telegram_id"], message)
             
             # Update signals count
