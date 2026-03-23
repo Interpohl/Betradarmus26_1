@@ -43,7 +43,8 @@ const LEAGUES = [
   "Ligue 1",
   "Champions League",
   "Europa League",
-  "2. Bundesliga"
+  "2. Bundesliga",
+  "-- Andere Liga --"
 ];
 
 export const AdminDashboard = () => {
@@ -64,6 +65,7 @@ export const AdminDashboard = () => {
   // Signal form
   const [signalForm, setSignalForm] = useState({
     league: 'Bundesliga',
+    customLeague: '',
     match: '',
     market: '',
     confidence: 0.75,
@@ -160,13 +162,25 @@ export const AdminDashboard = () => {
     setSubmitting(true);
     
     try {
-      const response = await axios.post(`${API}/signals`, signalForm);
+      // Use custom league if "Andere Liga" is selected
+      const finalLeague = signalForm.league === '-- Andere Liga --' 
+        ? signalForm.customLeague 
+        : signalForm.league;
+      
+      const signalData = {
+        ...signalForm,
+        league: finalLeague
+      };
+      delete signalData.customLeague;
+      
+      const response = await axios.post(`${API}/signals`, signalData);
       
       if (response.data.success) {
         toast.success(response.data.message);
         setShowCreateSignal(false);
         setSignalForm({
           league: 'Bundesliga',
+          customLeague: '',
           match: '',
           market: '',
           confidence: 0.75,
@@ -1295,13 +1309,26 @@ export const AdminDashboard = () => {
                   <label className="block text-sm text-gray-400 mb-2">Liga</label>
                   <select
                     value={signalForm.league}
-                    onChange={(e) => setSignalForm({...signalForm, league: e.target.value})}
+                    onChange={(e) => setSignalForm({...signalForm, league: e.target.value, customLeague: e.target.value === '-- Andere Liga --' ? signalForm.customLeague : ''})}
                     className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-cyan-500 focus:outline-none"
                   >
                     {LEAGUES.map((league) => (
                       <option key={league} value={league}>{league}</option>
                     ))}
                   </select>
+                  
+                  {/* Custom League Input */}
+                  {signalForm.league === '-- Andere Liga --' && (
+                    <div className="mt-3">
+                      <Input
+                        value={signalForm.customLeague}
+                        onChange={(e) => setSignalForm({...signalForm, customLeague: e.target.value})}
+                        placeholder="Liga-Name eingeben (z.B. Eredivisie, MLS, Süper Lig)"
+                        className="bg-[#0a0a0a] border-gray-700 text-white"
+                        required
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {/* Match */}
