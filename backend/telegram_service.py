@@ -756,43 +756,63 @@ Bei Fragen: support@betradarmus.de
         return results
         
     def _format_signal_message(self, signal: Dict[str, Any]) -> str:
-        """Format a signal into a Telegram message"""
+        """Format a signal into a premium Telegram message"""
         confidence = signal.get("confidence", 0)
         risk_score = signal.get("risk_score", 0)
         
-        # Confidence emoji
+        # Confidence emoji and text
         if confidence >= 0.80:
             conf_emoji = "🟢"
+            conf_text = "SEHR HOCH"
         elif confidence >= 0.70:
             conf_emoji = "🟡"
+            conf_text = "HOCH"
+        elif confidence >= 0.60:
+            conf_emoji = "🟠"
+            conf_text = "MITTEL"
         else:
             conf_emoji = "🔴"
+            conf_text = "NIEDRIG"
             
-        # Risk emoji
+        # Risk emoji and text
         if risk_score <= 30:
             risk_emoji = "🟢"
+            risk_text = "LOW"
         elif risk_score <= 60:
             risk_emoji = "🟡"
+            risk_text = "MEDIUM"
         else:
             risk_emoji = "🔴"
-            
-        message = f"""
-⚡ *BETRADARMUS LIVE SIGNAL*
+            risk_text = "HIGH"
+        
+        # Get match and league
+        match = signal.get('match', 'N/A')
+        league = signal.get('league', 'N/A')
+        market = signal.get('market', 'N/A')
+        explanation = signal.get('explanation', 'Market analysis detected value opportunity.')
+        timestamp = signal.get('timestamp', datetime.now(timezone.utc).strftime('%H:%M'))
+        
+        # Premium formatted message
+        message = f"""━━━━━━━━━━━━━━━━━━━━━━
+⚡ <b>BETRADARMUS SIGNAL</b> ⚡
+━━━━━━━━━━━━━━━━━━━━━━
 
-🏟️ *Spiel:* {signal.get('match', 'N/A')}
-🏆 *Liga:* {signal.get('league', 'N/A')}
+🏟️ <b>{match}</b>
+🏆 {league}
 
-📊 *Markt:* {signal.get('market', 'N/A')}
-{conf_emoji} *Confidence:* {int(confidence * 100)}%
-{risk_emoji} *Risk Score:* {risk_score}
+┌─────────────────────
+│ 📊 <b>Markt:</b> {market}
+│ {conf_emoji} <b>Confidence:</b> {int(confidence * 100)}% ({conf_text})
+│ {risk_emoji} <b>Risk:</b> {risk_text} ({risk_score}%)
+└─────────────────────
 
-📝 *Analyse:*
-{signal.get('explanation', 'Market deviation detected.')}
+📝 <b>Analyse:</b>
+<i>{explanation}</i>
 
-🕐 *Zeit:* {signal.get('timestamp', datetime.now(timezone.utc).strftime('%H:%M'))}
-
-_Keine Wettempfehlung - Nur zu Analysezwecken_
-"""
+⏰ {timestamp} | #Signal #{league.replace(' ', '')}
+━━━━━━━━━━━━━━━━━━━━━━
+⚠️ <i>Keine Wettempfehlung - Nur zu Analysezwecken</i>
+🌐 betradarmus.de"""
         return message
         
     async def _process_queue(self):
