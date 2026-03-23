@@ -73,8 +73,8 @@ export const AdminDashboard = () => {
     explanation: '',
     channels: {
       elite: true,
-      free: false,
-      community: false
+      pro: false,
+      free: false
     }
   });
   const [submitting, setSubmitting] = useState(false);
@@ -166,7 +166,7 @@ export const AdminDashboard = () => {
     e.preventDefault();
     
     // Validate at least one channel selected
-    if (!signalForm.channels.elite && !signalForm.channels.free && !signalForm.channels.community) {
+    if (!signalForm.channels.elite && !signalForm.channels.pro && !signalForm.channels.free) {
       toast.error('Bitte wähle mindestens einen Kanal aus');
       return;
     }
@@ -200,8 +200,8 @@ export const AdminDashboard = () => {
           explanation: '',
           channels: {
             elite: true,
-            free: false,
-            community: false
+            pro: false,
+            free: false
           }
         });
         fetchData();
@@ -1434,12 +1434,30 @@ export const AdminDashboard = () => {
                       />
                       <div className="flex-1">
                         <span className="text-white font-medium">Elite-Signale</span>
-                        <span className="text-xs text-[#39FF14] ml-2">Premium</span>
+                        <span className="text-xs text-[#39FF14] ml-2">ELITE</span>
                       </div>
-                      <span className="text-gray-500 text-sm">58 Abonnenten</span>
+                      <span className="text-gray-500 text-sm">Premium</span>
                     </label>
                     
-                    {/* Free Group */}
+                    {/* PRO Channel */}
+                    <label className="flex items-center gap-3 p-3 bg-[#0a0a0a] border border-gray-700 rounded-lg cursor-pointer hover:border-purple-500 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={signalForm.channels.pro}
+                        onChange={(e) => setSignalForm({
+                          ...signalForm,
+                          channels: {...signalForm.channels, pro: e.target.checked}
+                        })}
+                        className="w-5 h-5 accent-purple-500 rounded"
+                      />
+                      <div className="flex-1">
+                        <span className="text-white font-medium">PRO-Signale</span>
+                        <span className="text-xs text-purple-500 ml-2">PRO</span>
+                      </div>
+                      <span className="text-gray-500 text-sm">Pro-Nutzer</span>
+                    </label>
+                    
+                    {/* Free Channel */}
                     <label className="flex items-center gap-3 p-3 bg-[#0a0a0a] border border-gray-700 rounded-lg cursor-pointer hover:border-cyan-500 transition-colors">
                       <input
                         type="checkbox"
@@ -1451,28 +1469,10 @@ export const AdminDashboard = () => {
                         className="w-5 h-5 accent-cyan-500 rounded"
                       />
                       <div className="flex-1">
-                        <span className="text-white font-medium">Free-Gruppe</span>
-                        <span className="text-xs text-cyan-500 ml-2">Kostenlos</span>
+                        <span className="text-white font-medium">Free-Signale</span>
+                        <span className="text-xs text-cyan-500 ml-2">FREE</span>
                       </div>
-                      <span className="text-gray-500 text-sm">Community</span>
-                    </label>
-                    
-                    {/* Community Channel */}
-                    <label className="flex items-center gap-3 p-3 bg-[#0a0a0a] border border-gray-700 rounded-lg cursor-pointer hover:border-purple-500 transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={signalForm.channels.community}
-                        onChange={(e) => setSignalForm({
-                          ...signalForm,
-                          channels: {...signalForm.channels, community: e.target.checked}
-                        })}
-                        className="w-5 h-5 accent-purple-500 rounded"
-                      />
-                      <div className="flex-1">
-                        <span className="text-white font-medium">Community-Kanal</span>
-                        <span className="text-xs text-purple-500 ml-2">Alle</span>
-                      </div>
-                      <span className="text-gray-500 text-sm">Öffentlich</span>
+                      <span className="text-gray-500 text-sm">Kostenlos</span>
                     </label>
                   </div>
                   <p className="text-xs text-gray-500 mt-2">Wähle mindestens einen Kanal aus</p>

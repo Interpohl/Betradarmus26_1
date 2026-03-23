@@ -1460,8 +1460,8 @@ signal_generator: Optional[SignalGenerator] = None
 # Signal Models
 class ChannelSelection(BaseModel):
     elite: bool = True
+    pro: bool = False
     free: bool = False
-    community: bool = False
 
 class SignalCreate(BaseModel):
     sport: str = "football"
@@ -1516,8 +1516,8 @@ async def create_signal(signal: SignalCreate, user: dict = Depends(require_auth)
     if signal.channels:
         channels = {
             "elite": signal.channels.elite,
-            "free": signal.channels.free,
-            "community": signal.channels.community
+            "pro": signal.channels.pro,
+            "free": signal.channels.free
         }
     
     if telegram_service:

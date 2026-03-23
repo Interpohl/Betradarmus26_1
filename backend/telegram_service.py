@@ -42,8 +42,8 @@ AVAILABLE_LEAGUES = [
 TELEGRAM_FREE_GROUP = "https://t.me/+Pb8X_nXzKu41N2Yy"
 TELEGRAM_ELITE_CHANNEL = os.environ.get("TELEGRAM_ELITE_CHANNEL", "")  # Private channel invite link
 TELEGRAM_ELITE_CHANNEL_ID = int(os.environ.get("TELEGRAM_ELITE_CHANNEL_ID", "-1001222696874"))  # Elite channel chat ID
-TELEGRAM_FREE_GROUP_ID = int(os.environ.get("TELEGRAM_FREE_GROUP_ID", "0"))  # Free group chat ID - needs to be set
-TELEGRAM_COMMUNITY_CHANNEL_ID = int(os.environ.get("TELEGRAM_COMMUNITY_CHANNEL_ID", "0"))  # Community channel chat ID - needs to be set
+TELEGRAM_PRO_CHANNEL_ID = int(os.environ.get("TELEGRAM_PRO_CHANNEL_ID", "0"))  # PRO channel chat ID - needs to be set
+TELEGRAM_FREE_CHANNEL_ID = int(os.environ.get("TELEGRAM_FREE_CHANNEL_ID", "0"))  # Free channel chat ID - needs to be set
 
 # All available channels for signal distribution
 TELEGRAM_CHANNELS = {
@@ -52,15 +52,15 @@ TELEGRAM_CHANNELS = {
         "name": "Elite-Signale",
         "enabled": TELEGRAM_ELITE_CHANNEL_ID != 0
     },
-    "free": {
-        "id": TELEGRAM_FREE_GROUP_ID,
-        "name": "Free-Gruppe", 
-        "enabled": TELEGRAM_FREE_GROUP_ID != 0
+    "pro": {
+        "id": TELEGRAM_PRO_CHANNEL_ID,
+        "name": "PRO-Signale", 
+        "enabled": TELEGRAM_PRO_CHANNEL_ID != 0
     },
-    "community": {
-        "id": TELEGRAM_COMMUNITY_CHANNEL_ID,
-        "name": "Community-Kanal",
-        "enabled": TELEGRAM_COMMUNITY_CHANNEL_ID != 0
+    "free": {
+        "id": TELEGRAM_FREE_CHANNEL_ID,
+        "name": "Free-Signale",
+        "enabled": TELEGRAM_FREE_CHANNEL_ID != 0
     }
 }
 
