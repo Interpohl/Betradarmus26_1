@@ -1,0 +1,225 @@
+"""
+BETRADARMUS Signal Image Generator
+Creates professional signal cards for Telegram
+"""
+
+import io
+from PIL import Image, ImageDraw, ImageFont
+from datetime import datetime, timezone
+import requests
+from typing import Dict, Any, Optional
+import logging
+
+logger = logging.getLogger(__name__)
+
+# Colors
+COLORS = {
+    'background': '#0a0a0a',
+    'card_bg': '#1a2634',
+    'card_border': '#2a3a4a',
+    'market_bg': '#0d1a26',
+    'green': '#39FF14',
+    'yellow': '#FFD700',
+    'red': '#FF4444',
+    'white': '#FFFFFF',
+    'gray': '#8899AA',
+    'cyan': '#00D4FF'
+}
+
+def hex_to_rgb(hex_color: str) -> tuple:
+    """Convert hex color to RGB tuple"""
+    hex_color = hex_color.lstrip('#')
+    return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+
+def get_confidence_color(confidence: float) -> str:
+    """Get color based on confidence level"""
+    if confidence >= 0.80:
+        return COLORS['green']
+    elif confidence >= 0.70:
+        return COLORS['yellow']
+    else:
+        return COLORS['red']
+
+def get_risk_color(risk_score: int) -> str:
+    """Get color based on risk score"""
+    if risk_score <= 30:
+        return COLORS['green']
+    elif risk_score <= 60:
+        return COLORS['yellow']
+    else:
+        return COLORS['red']
+
+def create_signal_image(signal: Dict[str, Any]) -> io.BytesIO:
+    """
+    Create a professional signal card image
+    
+    Args:
+        signal: Dictionary containing match, league, market, confidence, risk_score, timestamp
+    
+    Returns:
+        BytesIO object containing the PNG image
+    """
+    
+    # Image dimensions
+    width = 800
+    height = 500
+    padding = 40
+    card_padding = 30
+    
+    # Create image with dark background
+    img = Image.new('RGB', (width, height), hex_to_rgb(COLORS['background']))
+    draw = ImageDraw.Draw(img)
+    
+    # Try to load fonts (use default if not available)
+    try:
+        font_bold_large = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 32)
+        font_bold_medium = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 26)
+        font_bold_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 20)
+        font_regular = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 18)
+        font_small = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 16)
+        font_large_number = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 42)
+    except:
+        font_bold_large = ImageFont.load_default()
+        font_bold_medium = ImageFont.load_default()
+        font_bold_small = ImageFont.load_default()
+        font_regular = ImageFont.load_default()
+        font_small = ImageFont.load_default()
+        font_large_number = ImageFont.load_default()
+    
+    # Extract signal data
+    match = signal.get('match', 'Team A vs Team B')
+    league = signal.get('league', 'League')
+    market = signal.get('market', 'Market')
+    confidence = signal.get('confidence', 0.75)
+    risk_score = signal.get('risk_score', 30)
+    timestamp = signal.get('timestamp', datetime.now(timezone.utc).strftime('%H:%M'))
+    
+    # Card dimensions
+    card_x = padding
+    card_y = padding
+    card_width = width - (padding * 2)
+    card_height = height - (padding * 2)
+    card_radius = 20
+    
+    # Draw main card background with rounded corners
+    draw.rounded_rectangle(
+        [card_x, card_y, card_x + card_width, card_y + card_height],
+        radius=card_radius,
+        fill=hex_to_rgb(COLORS['card_bg']),
+        outline=hex_to_rgb(COLORS['card_border']),
+        width=2
+    )
+    
+    # Content starting position
+    content_x = card_x + card_padding
+    content_y = card_y + card_padding
+    
+    # Draw "LIVE SIGNAL" header with lightning bolt
+    lightning = "⚡"
+    header_text = "LIVE SIGNAL"
+    draw.text((content_x, content_y), lightning, fill=hex_to_rgb(COLORS['green']), font=font_bold_medium)
+    draw.text((content_x + 40, content_y), header_text, fill=hex_to_rgb(COLORS['green']), font=font_bold_medium)
+    
+    content_y += 50
+    
+    # Draw match name
+    draw.text((content_x, content_y), match, fill=hex_to_rgb(COLORS['white']), font=font_bold_large)
+    content_y += 45
+    
+    # Draw league
+    draw.text((content_x, content_y), league, fill=hex_to_rgb(COLORS['gray']), font=font_regular)
+    content_y += 40
+    
+    # Draw market box
+    market_box_x = content_x
+    market_box_y = content_y
+    market_box_width = card_width - (card_padding * 2)
+    market_box_height = 50
+    
+    draw.rounded_rectangle(
+        [market_box_x, market_box_y, market_box_x + market_box_width, market_box_y + market_box_height],
+        radius=10,
+        fill=hex_to_rgb(COLORS['market_bg'])
+    )
+    
+    # Draw market text centered in box
+    market_bbox = draw.textbbox((0, 0), market, font=font_bold_small)
+    market_text_width = market_bbox[2] - market_bbox[0]
+    market_text_x = market_box_x + 20
+    market_text_y = market_box_y + (market_box_height - (market_bbox[3] - market_bbox[1])) // 2
+    draw.text((market_text_x, market_text_y), market, fill=hex_to_rgb(COLORS['green']), font=font_bold_small)
+    
+    content_y += market_box_height + 30
+    
+    # Draw Confidence and Risk Score section
+    section_width = (card_width - (card_padding * 2)) // 2
+    
+    # Confidence label
+    draw.text((content_x, content_y), "Confidence", fill=hex_to_rgb(COLORS['gray']), font=font_regular)
+    # Risk Score label
+    draw.text((content_x + section_width, content_y), "Risk Score", fill=hex_to_rgb(COLORS['gray']), font=font_regular)
+    
+    content_y += 30
+    
+    # Confidence value
+    conf_text = f"{int(confidence * 100)}%"
+    conf_color = get_confidence_color(confidence)
+    draw.text((content_x, content_y), conf_text, fill=hex_to_rgb(conf_color), font=font_large_number)
+    
+    # Risk Score value
+    risk_text = str(risk_score)
+    risk_color = get_risk_color(risk_score)
+    draw.text((content_x + section_width, content_y), risk_text, fill=hex_to_rgb(risk_color), font=font_large_number)
+    
+    content_y += 60
+    
+    # Draw timestamp at bottom left
+    draw.text((content_x, content_y), timestamp, fill=hex_to_rgb(COLORS['gray']), font=font_small)
+    
+    # Draw checkmark at bottom right
+    checkmark = "✓✓"
+    checkmark_bbox = draw.textbbox((0, 0), checkmark, font=font_small)
+    checkmark_x = card_x + card_width - card_padding - (checkmark_bbox[2] - checkmark_bbox[0])
+    draw.text((checkmark_x, content_y), checkmark, fill=hex_to_rgb(COLORS['cyan']), font=font_small)
+    
+    # Draw BETRADARMUS branding at very bottom
+    brand_text = "betradarmus.de"
+    brand_bbox = draw.textbbox((0, 0), brand_text, font=font_small)
+    brand_x = (width - (brand_bbox[2] - brand_bbox[0])) // 2
+    brand_y = height - padding + 5
+    draw.text((brand_x, brand_y), brand_text, fill=hex_to_rgb(COLORS['gray']), font=font_small)
+    
+    # Save to BytesIO
+    img_bytes = io.BytesIO()
+    img.save(img_bytes, format='PNG', quality=95)
+    img_bytes.seek(0)
+    
+    return img_bytes
+
+
+def create_signal_image_with_logo(signal: Dict[str, Any], logo_url: Optional[str] = None) -> io.BytesIO:
+    """
+    Create a signal card with optional logo overlay
+    """
+    # For now, just use the basic version
+    return create_signal_image(signal)
+
+
+# Test function
+if __name__ == "__main__":
+    test_signal = {
+        "match": "Bayern München vs Dortmund",
+        "league": "Bundesliga",
+        "market": "Over 2.5 Goals",
+        "confidence": 0.82,
+        "risk_score": 25,
+        "timestamp": "14:32"
+    }
+    
+    img_bytes = create_signal_image(test_signal)
+    
+    # Save test image
+    with open("/tmp/test_signal.png", "wb") as f:
+        f.write(img_bytes.read())
+    
+    print("Test image saved to /tmp/test_signal.png")

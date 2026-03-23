@@ -21,6 +21,9 @@ from telegram.ext import (
 )
 from telegram.constants import ParseMode
 
+# Import signal image generator
+from signal_image_generator import create_signal_image
+
 logger = logging.getLogger(__name__)
 
 # Available leagues for subscription
@@ -691,17 +694,34 @@ Bei Fragen: support@betradarmus.de
         """Distribute a signal to the Elite channel and matching individual users"""
         results = {"sent": 0, "filtered": 0, "failed": 0, "channel_sent": False}
         
-        # Format the signal message
+        # Format the signal message (for caption)
         message = self._format_signal_message(signal)
         
-        # FIRST: Send directly to Elite Channel with Logo
+        # Generate signal card image
         try:
-            await self.bot.send_photo(
-                chat_id=TELEGRAM_ELITE_CHANNEL_ID,
-                photo=SIGNAL_LOGO_URL,
-                caption=message,
-                parse_mode=ParseMode.HTML
-            )
+            signal_image = create_signal_image(signal)
+            logger.info("Signal image generated successfully")
+        except Exception as e:
+            logger.error(f"Failed to generate signal image: {e}")
+            signal_image = None
+        
+        # FIRST: Send directly to Elite Channel with generated image
+        try:
+            if signal_image:
+                await self.bot.send_photo(
+                    chat_id=TELEGRAM_ELITE_CHANNEL_ID,
+                    photo=signal_image,
+                    caption=f"⚡ <b>BETRADARMUS SIGNAL</b>\n\n{signal.get('match', 'N/A')}\n🏆 {signal.get('league', 'N/A')}\n\n⚠️ <i>Keine Wettempfehlung</i>\n🌐 betradarmus.de",
+                    parse_mode=ParseMode.HTML
+                )
+            else:
+                # Fallback to text with logo
+                await self.bot.send_photo(
+                    chat_id=TELEGRAM_ELITE_CHANNEL_ID,
+                    photo=SIGNAL_LOGO_URL,
+                    caption=message,
+                    parse_mode=ParseMode.HTML
+                )
             results["channel_sent"] = True
             results["sent"] += 1
             logger.info(f"Signal sent to Elite Channel {TELEGRAM_ELITE_CHANNEL_ID}")
