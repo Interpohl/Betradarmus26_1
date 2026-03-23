@@ -51,7 +51,7 @@ def get_risk_color(risk_score: int) -> str:
 
 def create_signal_image(signal: Dict[str, Any]) -> io.BytesIO:
     """
-    Create a professional signal card image
+    Create a professional signal card image - matching the reference design exactly
     
     Args:
         signal: Dictionary containing match, league, market, confidence, risk_score, timestamp
@@ -60,25 +60,25 @@ def create_signal_image(signal: Dict[str, Any]) -> io.BytesIO:
         BytesIO object containing the PNG image
     """
     
-    # Image dimensions - EXTRA LARGE for maximum readability
-    width = 1200
-    height = 750
-    padding = 50
-    card_padding = 50
+    # Image dimensions - compact like reference
+    width = 700
+    height = 550
+    padding = 0
+    card_padding = 30
     
     # Create image with dark background
-    img = Image.new('RGB', (width, height), hex_to_rgb(COLORS['background']))
+    img = Image.new('RGB', (width, height), hex_to_rgb('#0a0a0a'))
     draw = ImageDraw.Draw(img)
     
-    # Try to load fonts - EXTRA LARGE sizes
+    # Load fonts - MAXIMUM SIZE relative to card
     try:
-        font_header = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 42)
+        font_header = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 38)
         font_match = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 52)
         font_league = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 32)
-        font_market = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 38)
-        font_label = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 32)
-        font_number = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 85)
-        font_footer = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 28)
+        font_market = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 42)
+        font_label = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 30)
+        font_number = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 72)
+        font_footer = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 28)
     except Exception:
         font_header = ImageFont.load_default()
         font_match = ImageFont.load_default()
@@ -96,99 +96,83 @@ def create_signal_image(signal: Dict[str, Any]) -> io.BytesIO:
     risk_score = signal.get('risk_score', 30)
     timestamp = signal.get('timestamp', datetime.now(timezone.utc).strftime('%H:%M'))
     
-    # Card dimensions
-    card_x = padding
-    card_y = padding
-    card_width = width - (padding * 2)
-    card_height = height - (padding * 2)
-    card_radius = 30
+    # Draw main card - full width, rounded corners
+    card_x = 15
+    card_y = 15
+    card_width = width - 30
+    card_height = height - 60
     
-    # Draw main card background with rounded corners and green border
     draw.rounded_rectangle(
         [card_x, card_y, card_x + card_width, card_y + card_height],
-        radius=card_radius,
-        fill=hex_to_rgb(COLORS['card_bg']),
-        outline=hex_to_rgb(COLORS['green']),
-        width=4
-    )
-    
-    # Content starting position
-    content_x = card_x + card_padding
-    content_y = card_y + card_padding
-    
-    # Draw "LIVE SIGNAL" header
-    header_text = "⚡ LIVE SIGNAL"
-    draw.text((content_x, content_y), header_text, fill=hex_to_rgb(COLORS['green']), font=font_header)
-    
-    content_y += 70
-    
-    # Draw match name - EXTRA LARGE
-    draw.text((content_x, content_y), match, fill=hex_to_rgb(COLORS['white']), font=font_match)
-    content_y += 70
-    
-    # Draw league
-    draw.text((content_x, content_y), league, fill=hex_to_rgb(COLORS['gray']), font=font_league)
-    content_y += 55
-    
-    # Draw market box
-    market_box_x = content_x
-    market_box_y = content_y
-    market_box_width = card_width - (card_padding * 2)
-    market_box_height = 80
-    
-    draw.rounded_rectangle(
-        [market_box_x, market_box_y, market_box_x + market_box_width, market_box_y + market_box_height],
-        radius=15,
-        fill=hex_to_rgb(COLORS['market_bg']),
-        outline=hex_to_rgb(COLORS['card_border']),
+        radius=25,
+        fill=hex_to_rgb('#111111'),
+        outline=hex_to_rgb('#222222'),
         width=2
     )
     
-    # Draw market text in box - centered vertically
-    market_text_y = market_box_y + (market_box_height - 38) // 2
-    draw.text((market_box_x + 30, market_text_y), market, fill=hex_to_rgb(COLORS['green']), font=font_market)
+    # Content position
+    content_x = card_x + card_padding
+    content_y = card_y + 25
     
-    content_y += market_box_height + 45
+    # ⚡ LIVE SIGNAL header - bright green
+    draw.text((content_x, content_y), "⚡", fill=hex_to_rgb(COLORS['green']), font=font_header)
+    draw.text((content_x + 42, content_y), "LIVE SIGNAL", fill=hex_to_rgb(COLORS['green']), font=font_header)
+    content_y += 55
     
-    # Draw Confidence and Risk Score section
-    section_width = (card_width - (card_padding * 2)) // 2
+    # Match name - WHITE, BOLD, LARGE
+    draw.text((content_x, content_y), match, fill=hex_to_rgb('#FFFFFF'), font=font_match)
+    content_y += 55
     
-    # Confidence label
-    draw.text((content_x, content_y), "Confidence", fill=hex_to_rgb(COLORS['gray']), font=font_label)
-    # Risk Score label
-    draw.text((content_x + section_width, content_y), "Risk Score", fill=hex_to_rgb(COLORS['gray']), font=font_label)
+    # League - gray
+    draw.text((content_x, content_y), league, fill=hex_to_rgb('#71717A'), font=font_league)
+    content_y += 45
     
-    content_y += 50
+    # Market box - very dark
+    market_box_width = card_width - (card_padding * 2)
+    market_box_height = 55
     
-    # Confidence value - HUGE
+    draw.rounded_rectangle(
+        [content_x, content_y, content_x + market_box_width, content_y + market_box_height],
+        radius=8,
+        fill=hex_to_rgb('#080808')
+    )
+    
+    # Market text - GREEN
+    market_y = content_y + (market_box_height - 36) // 2
+    draw.text((content_x + 18, market_y), market, fill=hex_to_rgb(COLORS['green']), font=font_market)
+    content_y += market_box_height + 25
+    
+    # Confidence & Risk Score labels
+    section_width = market_box_width // 2
+    draw.text((content_x, content_y), "Confidence", fill=hex_to_rgb('#71717A'), font=font_label)
+    draw.text((content_x + section_width, content_y), "Risk Score", fill=hex_to_rgb('#71717A'), font=font_label)
+    content_y += 35
+    
+    # BIG NUMBERS
     conf_text = f"{int(confidence * 100)}%"
     conf_color = get_confidence_color(confidence)
     draw.text((content_x, content_y), conf_text, fill=hex_to_rgb(conf_color), font=font_number)
     
-    # Risk Score value - HUGE
     risk_text = str(risk_score)
     risk_color = get_risk_color(risk_score)
     draw.text((content_x + section_width, content_y), risk_text, fill=hex_to_rgb(risk_color), font=font_number)
+    content_y += 75
     
-    content_y += 110
+    # Footer - timestamp & checkmarks
+    draw.text((content_x, content_y), timestamp, fill=hex_to_rgb('#71717A'), font=font_footer)
     
-    # Draw timestamp at bottom left
-    draw.text((content_x, content_y), f"⏰ {timestamp}", fill=hex_to_rgb(COLORS['gray']), font=font_footer)
-    
-    # Draw checkmark at bottom right
     checkmark = "✓✓"
-    checkmark_bbox = draw.textbbox((0, 0), checkmark, font=font_footer)
-    checkmark_x = card_x + card_width - card_padding - (checkmark_bbox[2] - checkmark_bbox[0])
-    draw.text((checkmark_x, content_y), checkmark, fill=hex_to_rgb(COLORS['cyan']), font=font_footer)
+    check_bbox = draw.textbbox((0, 0), checkmark, font=font_footer)
+    check_x = content_x + market_box_width - (check_bbox[2] - check_bbox[0])
+    draw.text((check_x, content_y), checkmark, fill=hex_to_rgb('#00D4FF'), font=font_footer)
     
-    # Draw BETRADARMUS branding at very bottom center
-    brand_text = "BETRADARMUS.DE"
-    brand_bbox = draw.textbbox((0, 0), brand_text, font=font_footer)
+    # BETRADARMUS.DE at bottom
+    brand = "BETRADARMUS.DE"
+    brand_bbox = draw.textbbox((0, 0), brand, font=font_footer)
     brand_x = (width - (brand_bbox[2] - brand_bbox[0])) // 2
-    brand_y = height - padding + 10
-    draw.text((brand_x, brand_y), brand_text, fill=hex_to_rgb(COLORS['green']), font=font_footer)
+    draw.text((brand_x, height - 35), brand, fill=hex_to_rgb(COLORS['green']), font=font_footer)
     
-    # Save to BytesIO
+    # Save
     img_bytes = io.BytesIO()
     img.save(img_bytes, format='PNG', quality=95)
     img_bytes.seek(0)
