@@ -40,6 +40,9 @@ TELEGRAM_FREE_GROUP = "https://t.me/+Pb8X_nXzKu41N2Yy"
 TELEGRAM_ELITE_CHANNEL = os.environ.get("TELEGRAM_ELITE_CHANNEL", "")  # Private channel invite link
 TELEGRAM_ELITE_CHANNEL_ID = int(os.environ.get("TELEGRAM_ELITE_CHANNEL_ID", "-1001222696874"))  # Elite channel chat ID for direct posting
 
+# Signal Logo for Telegram messages
+SIGNAL_LOGO_URL = "https://static.prod-images.emergentagent.com/jobs/6730f064-f598-46a7-94e6-3fd4db78c461/images/ab487ae8f08093b2e2929301ff200cfb4ffb115de44ca166bfe85c0c68cee0df.png"
+
 # Subscription level limits
 SUBSCRIPTION_LIMITS = {
     "free": {"max_leagues": 2, "min_confidence": 0.75, "signals_per_day": 5, "channel": TELEGRAM_FREE_GROUP},
@@ -691,11 +694,12 @@ Bei Fragen: support@betradarmus.de
         # Format the signal message
         message = self._format_signal_message(signal)
         
-        # FIRST: Send directly to Elite Channel
+        # FIRST: Send directly to Elite Channel with Logo
         try:
-            await self.bot.send_message(
+            await self.bot.send_photo(
                 chat_id=TELEGRAM_ELITE_CHANNEL_ID,
-                text=message,
+                photo=SIGNAL_LOGO_URL,
+                caption=message,
                 parse_mode=ParseMode.HTML
             )
             results["channel_sent"] = True
@@ -703,7 +707,19 @@ Bei Fragen: support@betradarmus.de
             logger.info(f"Signal sent to Elite Channel {TELEGRAM_ELITE_CHANNEL_ID}")
         except Exception as e:
             logger.error(f"Failed to send signal to Elite Channel: {e}")
-            results["failed"] += 1
+            # Fallback to text-only message
+            try:
+                await self.bot.send_message(
+                    chat_id=TELEGRAM_ELITE_CHANNEL_ID,
+                    text=message,
+                    parse_mode=ParseMode.HTML
+                )
+                results["channel_sent"] = True
+                results["sent"] += 1
+                logger.info(f"Signal sent to Elite Channel (text fallback) {TELEGRAM_ELITE_CHANNEL_ID}")
+            except Exception as e2:
+                logger.error(f"Failed to send text signal to Elite Channel: {e2}")
+                results["failed"] += 1
         
         # SECOND: Send to individual registered users (if any)
         query = {
