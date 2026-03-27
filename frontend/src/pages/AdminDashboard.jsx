@@ -28,7 +28,10 @@ import {
   Mail,
   Trash2,
   Edit,
-  Eye
+  Eye,
+  Search,
+  DollarSign,
+  TrendingDown
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -82,6 +85,17 @@ export const AdminDashboard = () => {
   const [paymentStats, setPaymentStats] = useState({ total_revenue: 0, successful_payments: 0 });
   const [emailForm, setEmailForm] = useState({ subject: '', message: '', recipients: 'all' });
   const [sendingEmail, setSendingEmail] = useState(false);
+  
+  // Polymarket state
+  const [polymarketEvents, setPolymarketEvents] = useState([]);
+  const [polymarketLoading, setPolymarketLoading] = useState(false);
+  const [polymarketSearch, setPolymarketSearch] = useState('');
+  const [polymarketSearchResults, setPolymarketSearchResults] = useState([]);
+  const [valueCalculator, setValueCalculator] = useState({
+    polymarket_price: 0.65,
+    bookmaker_odds: 1.80
+  });
+  const [valueResult, setValueResult] = useState(null);
 
   useEffect(() => {
     if (isElite) {
@@ -227,6 +241,52 @@ export const AdminDashboard = () => {
     setGeneratingSignals(false);
   };
 
+  // Polymarket functions
+  const fetchPolymarketEvents = async () => {
+    setPolymarketLoading(true);
+    try {
+      const res = await axios.get(`${API}/polymarket/events?limit=10`);
+      if (res.data.success) {
+        setPolymarketEvents(res.data.events);
+      }
+    } catch (error) {
+      console.error('Polymarket fetch error:', error);
+      toast.error('Fehler beim Laden der Polymarket-Daten');
+    }
+    setPolymarketLoading(false);
+  };
+
+  const searchPolymarket = async () => {
+    if (!polymarketSearch.trim()) return;
+    setPolymarketLoading(true);
+    try {
+      const res = await axios.get(`${API}/polymarket/search?q=${encodeURIComponent(polymarketSearch)}&limit=10`);
+      if (res.data.success) {
+        setPolymarketSearchResults(res.data.markets);
+      }
+    } catch (error) {
+      toast.error('Polymarket-Suche fehlgeschlagen');
+    }
+    setPolymarketLoading(false);
+  };
+
+  const calculateValue = async () => {
+    try {
+      const res = await axios.post(`${API}/polymarket/analyze-value`, valueCalculator);
+      if (res.data.success) {
+        setValueResult(res.data.analysis);
+      }
+    } catch (error) {
+      toast.error('Value-Berechnung fehlgeschlagen');
+    }
+  };
+
+  const formatCurrency = (value) => {
+    if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
+    if (value >= 1000) return `$${(value / 1000).toFixed(0)}K`;
+    return `$${value}`;
+  };
+
   const toggleSignalGenerator = async () => {
     try {
       if (generatorStatus.running) {
@@ -367,6 +427,7 @@ export const AdminDashboard = () => {
             { id: 'overview', label: 'Übersicht', icon: Activity },
             { id: 'generator', label: 'KI Generator', icon: Cpu },
             { id: 'signals', label: 'Signale', icon: Zap },
+            { id: 'polymarket', label: 'Polymarket', icon: TrendingUp },
             { id: 'users', label: 'Telegram Nutzer', icon: Users },
             { id: 'website-users', label: 'Website Nutzer', icon: Globe },
             { id: 'registrations', label: 'Registrierungen', icon: Plus },
@@ -888,6 +949,195 @@ export const AdminDashboard = () => {
                     <span className="text-gray-300">ELITE</span>
                     <span className="text-white font-bold ml-auto">{statistics.subscriptionBreakdown.elite}</span>
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Polymarket Tab */}
+        {activeTab === 'polymarket' && (
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-[#39FF14]" />
+                  Polymarket Prediction Markets
+                </h2>
+                <Button 
+                  onClick={fetchPolymarketEvents}
+                  disabled={polymarketLoading}
+                  className="bg-gradient-to-r from-[#39FF14] to-green-600 text-black"
+                  size="sm"
+                >
+                  {polymarketLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                  <span className="ml-2">Aktualisieren</span>
+                </Button>
+              </div>
+              <p className="text-gray-400 text-sm">
+                Live-Daten von Polymarket - Crowd Wisdom für Value-Signale
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Trending Events */}
+              <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-cyan-500" />
+                  Top Events (nach Volumen)
+                </h3>
+                
+                {polymarketEvents.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Globe className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                    <p className="text-gray-400">Klicke "Aktualisieren" um Events zu laden</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {polymarketEvents.map((event, idx) => (
+                      <div key={idx} className="bg-[#0a0a0a] border border-gray-700 rounded-lg p-4 hover:border-[#39FF14] transition-colors">
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="text-white font-medium text-sm flex-1">{event.title}</h4>
+                          <span className="text-xs text-gray-500 ml-2">{event.markets_count} Märkte</span>
+                        </div>
+                        <div className="flex gap-4 text-xs">
+                          <span className="text-[#39FF14] flex items-center gap-1">
+                            <DollarSign className="w-3 h-3" />
+                            {formatCurrency(event.volume_24h)} / 24h
+                          </span>
+                          <span className="text-cyan-400 flex items-center gap-1">
+                            <Activity className="w-3 h-3" />
+                            {formatCurrency(event.liquidity)} Liq.
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Search & Value Calculator */}
+              <div className="space-y-6">
+                {/* Market Search */}
+                <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <Search className="w-5 h-5 text-cyan-500" />
+                    Markt-Suche
+                  </h3>
+                  <div className="flex gap-2 mb-4">
+                    <Input
+                      value={polymarketSearch}
+                      onChange={(e) => setPolymarketSearch(e.target.value)}
+                      placeholder="z.B. Bayern, Champions League, World Cup..."
+                      className="bg-[#0a0a0a] border-gray-700 text-white"
+                      onKeyPress={(e) => e.key === 'Enter' && searchPolymarket()}
+                    />
+                    <Button 
+                      onClick={searchPolymarket}
+                      disabled={polymarketLoading}
+                      className="bg-cyan-500 hover:bg-cyan-600"
+                    >
+                      <Search className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  
+                  {polymarketSearchResults.length > 0 && (
+                    <div className="space-y-2 max-h-60 overflow-y-auto">
+                      {polymarketSearchResults.map((market, idx) => (
+                        <div key={idx} className="bg-[#0a0a0a] border border-gray-700 rounded-lg p-3">
+                          <p className="text-white text-sm mb-2">{market.question}</p>
+                          <div className="flex gap-4 text-xs">
+                            <span className="text-[#39FF14]">
+                              Preis: {(market.price * 100).toFixed(1)}%
+                            </span>
+                            <span className="text-gray-400">
+                              Quote: {market.price > 0 ? (1 / market.price).toFixed(2) : '-'}
+                            </span>
+                            <span className="text-cyan-400">
+                              Vol: {formatCurrency(market.volume)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Value Calculator */}
+                <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
+                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                    <PieChart className="w-5 h-5 text-[#39FF14]" />
+                    Value-Rechner
+                  </h3>
+                  <p className="text-gray-400 text-xs mb-4">
+                    Vergleiche Polymarket-Preise mit Buchmacher-Quoten
+                  </p>
+                  
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">Polymarket Preis (0-1)</label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        max="0.99"
+                        value={valueCalculator.polymarket_price}
+                        onChange={(e) => setValueCalculator({...valueCalculator, polymarket_price: parseFloat(e.target.value)})}
+                        className="bg-[#0a0a0a] border-gray-700 text-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">Buchmacher Quote</label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="1.01"
+                        value={valueCalculator.bookmaker_odds}
+                        onChange={(e) => setValueCalculator({...valueCalculator, bookmaker_odds: parseFloat(e.target.value)})}
+                        className="bg-[#0a0a0a] border-gray-700 text-white"
+                      />
+                    </div>
+                  </div>
+                  
+                  <Button 
+                    onClick={calculateValue}
+                    className="w-full bg-gradient-to-r from-[#39FF14] to-green-600 text-black font-semibold mb-4"
+                  >
+                    Value berechnen
+                  </Button>
+                  
+                  {valueResult && (
+                    <div className={`border rounded-lg p-4 ${valueResult.has_value ? 'bg-green-900/20 border-green-500/30' : 'bg-red-900/20 border-red-500/30'}`}>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-gray-400 text-sm">Edge:</span>
+                        <span className={`text-xl font-bold ${valueResult.edge_percentage > 0 ? 'text-[#39FF14]' : 'text-red-400'}`}>
+                          {valueResult.edge_percentage > 0 ? '+' : ''}{valueResult.edge_percentage}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-gray-400 text-sm">Signal:</span>
+                        <span className={`text-sm font-medium px-2 py-1 rounded ${
+                          valueResult.signal_strength === 'VERY_STRONG' ? 'bg-green-500/20 text-green-400' :
+                          valueResult.signal_strength === 'STRONG' ? 'bg-cyan-500/20 text-cyan-400' :
+                          valueResult.signal_strength === 'MODERATE' ? 'bg-yellow-500/20 text-yellow-400' :
+                          'bg-gray-500/20 text-gray-400'
+                        }`}>
+                          {valueResult.signal_strength}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs mt-3 pt-3 border-t border-gray-700">
+                        <div>
+                          <span className="text-gray-500">Polymarket:</span>
+                          <span className="text-white ml-2">{valueResult.polymarket_probability}</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Buchmacher:</span>
+                          <span className="text-white ml-2">{valueResult.bookmaker_probability}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
