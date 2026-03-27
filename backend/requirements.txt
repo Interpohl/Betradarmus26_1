@@ -28,3 +28,4 @@ stripe>=8.0.0
 python-telegram-bot==21.0
 sendgrid
 Pillow==12.1.1
+pilmoji==2.0.5

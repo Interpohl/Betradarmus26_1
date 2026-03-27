@@ -5,8 +5,8 @@ Creates professional signal cards for Telegram
 
 import io
 from PIL import Image, ImageDraw, ImageFont
+from pilmoji import Pilmoji
 from datetime import datetime, timezone
-import requests
 from typing import Dict, Any, Optional
 import logging
 
@@ -69,6 +69,9 @@ def create_signal_image(signal: Dict[str, Any]) -> io.BytesIO:
     img = Image.new('RGB', (width, height), hex_to_rgb('#000000'))
     draw = ImageDraw.Draw(img)
     
+    # Use Pilmoji for emoji support
+    pilmoji = Pilmoji(img)
+    
     # Load fonts - LARGE and readable
     try:
         font_header = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 36)
@@ -79,6 +82,8 @@ def create_signal_image(signal: Dict[str, Any]) -> io.BytesIO:
         font_number = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 80)
         font_percent = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 40)
         font_footer = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 24)
+        font_emoji = ImageFont.truetype("/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf", 28)
+        font_emoji_large = ImageFont.truetype("/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf", 36)
     except Exception:
         font_header = ImageFont.load_default()
         font_match = ImageFont.load_default()
@@ -88,6 +93,8 @@ def create_signal_image(signal: Dict[str, Any]) -> io.BytesIO:
         font_number = ImageFont.load_default()
         font_percent = ImageFont.load_default()
         font_footer = ImageFont.load_default()
+        font_emoji = ImageFont.load_default()
+        font_emoji_large = ImageFont.load_default()
     
     # Extract signal data
     match = signal.get('match', 'Team A vs Team B')
@@ -116,16 +123,16 @@ def create_signal_image(signal: Dict[str, Any]) -> io.BytesIO:
     content_x = card_x + 40
     content_y = card_y + 35
     
-    # === HEADER: LIVE SIGNAL ===
-    draw.text((content_x, content_y), "LIVE SIGNAL", fill=hex_to_rgb('#39FF14'), font=font_header)
+    # === HEADER: ⚡ LIVE SIGNAL ===
+    pilmoji.text((content_x, content_y), "⚡ LIVE SIGNAL", fill=hex_to_rgb('#39FF14'), font=font_header)
     content_y += 70
     
     # === MATCH NAME === (Large, white, bold)
     draw.text((content_x, content_y), match, fill=hex_to_rgb('#FFFFFF'), font=font_match)
     content_y += 65
     
-    # === LEAGUE === (Gray)
-    draw.text((content_x, content_y), league, fill=hex_to_rgb('#71717A'), font=font_league)
+    # === LEAGUE === (Gray) with trophy emoji
+    pilmoji.text((content_x, content_y), f"🏆 {league}", fill=hex_to_rgb('#71717A'), font=font_league)
     content_y += 55
     
     # === MARKET BOX ===
@@ -136,13 +143,13 @@ def create_signal_image(signal: Dict[str, Any]) -> io.BytesIO:
         [content_x, content_y, content_x + market_box_width, content_y + market_box_height],
         radius=12,
         fill=hex_to_rgb('#111111'),
-        outline=hex_to_rgb('#222222'),
-        width=1
+        outline=hex_to_rgb('#39FF14'),
+        width=2
     )
     
-    # Market text centered vertically
+    # Market text centered vertically with chart emoji
     market_y = content_y + (market_box_height - 38) // 2
-    draw.text((content_x + 25, market_y), market, fill=hex_to_rgb('#39FF14'), font=font_market)
+    pilmoji.text((content_x + 25, market_y), f"📊 {market}", fill=hex_to_rgb('#39FF14'), font=font_market)
     content_y += market_box_height + 40
     
     # === CONFIDENCE & RISK SCORE ===
@@ -186,13 +193,12 @@ def create_signal_image(signal: Dict[str, Any]) -> io.BytesIO:
     content_y += metric_box_height + 30
     
     # === FOOTER: Timestamp & Checkmarks ===
-    draw.text((content_x, content_y), timestamp, fill=hex_to_rgb('#71717A'), font=font_footer)
+    pilmoji.text((content_x, content_y), f"🕐 {timestamp}", fill=hex_to_rgb('#71717A'), font=font_footer)
     
-    # "VERIFIED" on right instead of checkmarks
-    verified_text = "VERIFIED"
-    verified_bbox = draw.textbbox((0, 0), verified_text, font=font_footer)
-    verified_x = content_x + card_width - 80 - (verified_bbox[2] - verified_bbox[0])
-    draw.text((verified_x, content_y), verified_text, fill=hex_to_rgb('#00D4FF'), font=font_footer)
+    # Double checkmark on right
+    check_text = "✅"
+    check_x = content_x + card_width - 120
+    pilmoji.text((check_x, content_y), check_text, fill=hex_to_rgb('#00D4FF'), font=font_footer)
     
     # === BRANDING at bottom ===
     brand_text = "BETRADARMUS.DE"
