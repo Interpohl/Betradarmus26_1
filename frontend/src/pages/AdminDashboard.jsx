@@ -169,11 +169,17 @@ export const AdminDashboard = () => {
         : signalForm.league;
       
       // Convert selectedChannel to channels object
-      const channels = {
-        elite: signalForm.selectedChannel === 'elite' || signalForm.selectedChannel === 'all',
-        pro: signalForm.selectedChannel === 'pro' || signalForm.selectedChannel === 'all',
-        free: signalForm.selectedChannel === 'free' || signalForm.selectedChannel === 'all'
+      const channelMap = {
+        'elite': { elite: true, pro: false, free: false },
+        'pro': { elite: false, pro: true, free: false },
+        'free': { elite: false, pro: false, free: true },
+        'elite+pro': { elite: true, pro: true, free: false },
+        'elite+free': { elite: true, pro: false, free: true },
+        'pro+free': { elite: false, pro: true, free: true },
+        'all': { elite: true, pro: true, free: true }
       };
+      
+      const channels = channelMap[signalForm.selectedChannel] || { elite: true, pro: false, free: false };
       
       const signalData = {
         league: finalLeague,
@@ -1421,10 +1427,19 @@ export const AdminDashboard = () => {
                     onChange={(e) => setSignalForm({...signalForm, selectedChannel: e.target.value})}
                     className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-cyan-500 focus:outline-none"
                   >
-                    <option value="elite">🟢 Elite-Signale (ELITE)</option>
-                    <option value="pro">🟣 PRO-Signale (PRO)</option>
-                    <option value="free">🔵 Free-Signale (FREE)</option>
-                    <option value="all">📢 Alle Kanäle</option>
+                    <optgroup label="Einzelne Kanäle">
+                      <option value="elite">🟢 Elite-Signale</option>
+                      <option value="pro">🟣 PRO-Signale</option>
+                      <option value="free">🔵 Free-Signale</option>
+                    </optgroup>
+                    <optgroup label="Kombinationen">
+                      <option value="elite+pro">🟢🟣 Elite + PRO</option>
+                      <option value="elite+free">🟢🔵 Elite + Free</option>
+                      <option value="pro+free">🟣🔵 PRO + Free</option>
+                    </optgroup>
+                    <optgroup label="Alle">
+                      <option value="all">📢 Alle Kanäle</option>
+                    </optgroup>
                   </select>
                 </div>
 
