@@ -1,6 +1,6 @@
 """
 BETRADARMUS Market Analyzer - Signal Engine 2.0
-Advanced signal generation based on Betfair market data
+Advanced signal generation based on market data including Polymarket
 """
 import logging
 from datetime import datetime, timezone, timedelta
@@ -8,6 +8,13 @@ from typing import Optional, Dict, List, Any
 from dataclasses import dataclass, field
 from enum import Enum
 import statistics
+
+# Import Polymarket service for prediction market data
+try:
+    from polymarket_service import polymarket_service, PolymarketService
+    POLYMARKET_AVAILABLE = True
+except ImportError:
+    POLYMARKET_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +27,8 @@ class SignalType(Enum):
     VOLATILITY_SPIKE = "volatility_spike"          # D: Ungewöhnlich hohe Bewegung
     CONSENSUS_DIVERGENCE = "consensus_divergence"  # E: Ein Anbieter weicht stark ab
     PERSISTENCE_SIGNAL = "persistence_signal"      # F: Stabile Fehlbewertung
+    POLYMARKET_VALUE = "polymarket_value"          # G: Value vs Polymarket crowd wisdom
+    CROWD_MOMENTUM = "crowd_momentum"              # H: Polymarket price movement
 
 
 class SignalPriority(Enum):
@@ -853,3 +862,141 @@ def get_market_analyzer() -> MarketAnalyzer:
     if _market_analyzer is None:
         _market_analyzer = MarketAnalyzer()
     return _market_analyzer
+
+
+
+# ==================== POLYMARKET INTEGRATION ====================
+
+class PolymarketAnalyzer:
+    """
+    Analyzes Polymarket prediction markets for value signals
+    """
+    
+    def __init__(self):
+        self.service = polymarket_service if POLYMARKET_AVAILABLE else None
+    
+    async def find_value_signals(
+        self, 
+        bookmaker_odds: Dict[str, float],
+        search_terms: List[str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Find value opportunities by comparing Polymarket prices to bookmaker odds
+        
+        Args:
+            bookmaker_odds: Dict of {selection_name: decimal_odds}
+            search_terms: Optional terms to search in Polymarket
+            
+        Returns:
+            List of value signals
+        """
+        if not self.service:
+            logger.warning("Polymarket service not available")
+            return []
+        
+        signals = []
+        
+        # Search for relevant markets
+        for term in (search_terms or list(bookmaker_odds.keys())):
+            markets = await self.service.search_markets(term, limit=10)
+            
+            for market in markets:
+                question = market.get("question", "")
+                prices = market.get("outcomePrices", [])
+                
+                if len(prices) >= 2:
+                    yes_price = float(prices[0])
+                    
+                    # Find matching bookmaker selection
+                    for selection, bookie_odds in bookmaker_odds.items():
+                        if selection.lower() in question.lower():
+                            value_analysis = self.service.find_value(
+                                polymarket_price=yes_price,
+                                bookmaker_odds=bookie_odds
+                            )
+                            
+                            if value_analysis["has_value"]:
+                                signals.append({
+                                    "type": SignalType.POLYMARKET_VALUE,
+                                    "market": market.get("question"),
+                                    "polymarket_price": yes_price,
+                                    "polymarket_probability": value_analysis["polymarket_probability"],
+                                    "bookmaker_odds": bookie_odds,
+                                    "edge_percentage": value_analysis["edge_percentage"],
+                                    "signal_strength": value_analysis["signal_strength"],
+                                    "volume": market.get("volume", 0),
+                                    "liquidity": market.get("liquidity", 0)
+                                })
+        
+        return signals
+    
+    async def get_trending_sports(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """
+        Get trending sports events from Polymarket
+        
+        Returns:
+            List of high-volume sports events
+        """
+        if not self.service:
+            return []
+        
+        events = await self.service.get_sport_events(limit=limit)
+        
+        trending = []
+        for event in events:
+            if event.get("volume24hr", 0) > 10000:  # Min $10k volume
+                trending.append({
+                    "title": event.get("title"),
+                    "volume_24h": event.get("volume24hr", 0),
+                    "liquidity": event.get("liquidity", 0),
+                    "markets": len(event.get("markets", [])),
+                    "slug": event.get("slug")
+                })
+        
+        return sorted(trending, key=lambda x: x["volume_24h"], reverse=True)
+    
+    async def analyze_crowd_sentiment(self, event_slug: str) -> Dict[str, Any]:
+        """
+        Analyze crowd sentiment for a specific event
+        
+        Returns:
+            Sentiment analysis with price movements
+        """
+        if not self.service:
+            return {"error": "Polymarket not available"}
+        
+        event = await self.service.get_event_by_slug(event_slug)
+        if not event:
+            return {"error": "Event not found"}
+        
+        markets = event.get("markets", [])
+        analysis = {
+            "event": event.get("title"),
+            "total_volume": event.get("volume", 0),
+            "volume_24h": event.get("volume24hr", 0),
+            "outcomes": []
+        }
+        
+        for market in markets:
+            prices = market.get("outcomePrices", [])
+            if prices:
+                yes_price = float(prices[0]) if prices else 0
+                analysis["outcomes"].append({
+                    "question": market.get("question"),
+                    "probability": f"{yes_price * 100:.1f}%",
+                    "implied_odds": round(1 / yes_price, 2) if yes_price > 0 else 0,
+                    "price_change_24h": market.get("oneDayPriceChange", 0),
+                    "price_change_7d": market.get("oneWeekPriceChange", 0)
+                })
+        
+        return analysis
+
+
+# Polymarket analyzer singleton
+_polymarket_analyzer: Optional[PolymarketAnalyzer] = None
+
+def get_polymarket_analyzer() -> PolymarketAnalyzer:
+    global _polymarket_analyzer
+    if _polymarket_analyzer is None:
+        _polymarket_analyzer = PolymarketAnalyzer()
+    return _polymarket_analyzer

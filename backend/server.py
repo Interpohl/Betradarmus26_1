@@ -1996,6 +1996,86 @@ async def get_signal_generator_status(user: dict = Depends(require_auth)):
         "message": "Signal Generator läuft" if signal_generator._running else "Signal Generator gestoppt"
     }
 
+# ==================== POLYMARKET API ROUTES ====================
+
+@api_router.get("/polymarket/events")
+async def get_polymarket_events(limit: int = 20, user: dict = Depends(require_auth)):
+    """Get trending events from Polymarket (requires auth)"""
+    try:
+        from polymarket_service import polymarket_service
+        events = await polymarket_service.get_active_events(limit=limit)
+        
+        return {
+            "success": True,
+            "count": len(events),
+            "events": [
+                {
+                    "title": e.get("title"),
+                    "slug": e.get("slug"),
+                    "volume_24h": e.get("volume24hr", 0),
+                    "liquidity": e.get("liquidity", 0),
+                    "markets_count": len(e.get("markets", []))
+                }
+                for e in events
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Polymarket API error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/polymarket/search")
+async def search_polymarket(q: str, limit: int = 10, user: dict = Depends(require_auth)):
+    """Search Polymarket markets"""
+    try:
+        from polymarket_service import polymarket_service
+        markets = await polymarket_service.search_markets(q, limit=limit)
+        
+        return {
+            "success": True,
+            "query": q,
+            "count": len(markets),
+            "markets": [
+                {
+                    "question": m.get("question"),
+                    "price": float(m.get("outcomePrices", [0])[0]) if m.get("outcomePrices") else 0,
+                    "volume": m.get("volume", 0)
+                }
+                for m in markets
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Polymarket search error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/polymarket/analyze-value")
+async def analyze_polymarket_value(
+    data: dict,
+    user: dict = Depends(require_auth)
+):
+    """
+    Analyze value between Polymarket and bookmaker odds
+    
+    Body: {
+        "polymarket_price": 0.65,
+        "bookmaker_odds": 1.80
+    }
+    """
+    try:
+        from polymarket_service import polymarket_service
+        
+        pm_price = data.get("polymarket_price", 0.5)
+        bookie_odds = data.get("bookmaker_odds", 2.0)
+        
+        analysis = polymarket_service.find_value(pm_price, bookie_odds)
+        
+        return {
+            "success": True,
+            "analysis": analysis
+        }
+    except Exception as e:
+        logger.error(f"Polymarket analysis error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Include the router in the main app
 app.include_router(api_router)
 
