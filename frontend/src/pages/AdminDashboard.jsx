@@ -71,11 +71,7 @@ export const AdminDashboard = () => {
     confidence: 0.75,
     risk_score: 30,
     explanation: '',
-    channels: {
-      elite: true,
-      pro: false,
-      free: false
-    }
+    selectedChannel: 'elite'
   });
   const [submitting, setSubmitting] = useState(false);
   const [generatorStatus, setGeneratorStatus] = useState({ running: false });
@@ -164,13 +160,6 @@ export const AdminDashboard = () => {
 
   const handleCreateSignal = async (e) => {
     e.preventDefault();
-    
-    // Validate at least one channel selected
-    if (!signalForm.channels.elite && !signalForm.channels.pro && !signalForm.channels.free) {
-      toast.error('Bitte wähle mindestens einen Kanal aus');
-      return;
-    }
-    
     setSubmitting(true);
     
     try {
@@ -179,11 +168,22 @@ export const AdminDashboard = () => {
         ? signalForm.customLeague 
         : signalForm.league;
       
-      const signalData = {
-        ...signalForm,
-        league: finalLeague
+      // Convert selectedChannel to channels object
+      const channels = {
+        elite: signalForm.selectedChannel === 'elite' || signalForm.selectedChannel === 'all',
+        pro: signalForm.selectedChannel === 'pro' || signalForm.selectedChannel === 'all',
+        free: signalForm.selectedChannel === 'free' || signalForm.selectedChannel === 'all'
       };
-      delete signalData.customLeague;
+      
+      const signalData = {
+        league: finalLeague,
+        match: signalForm.match,
+        market: signalForm.market,
+        confidence: signalForm.confidence,
+        risk_score: signalForm.risk_score,
+        explanation: signalForm.explanation,
+        channels: channels
+      };
       
       const response = await axios.post(`${API}/signals`, signalData);
       
@@ -198,11 +198,7 @@ export const AdminDashboard = () => {
           confidence: 0.75,
           risk_score: 30,
           explanation: '',
-          channels: {
-            elite: true,
-            pro: false,
-            free: false
-          }
+          selectedChannel: 'elite'
         });
         fetchData();
       }
@@ -1417,65 +1413,19 @@ export const AdminDashboard = () => {
                   />
                 </div>
 
-                {/* Channel Selection */}
+                {/* Channel Selection - Dropdown */}
                 <div>
-                  <label className="block text-sm text-gray-400 mb-3">An welche Kanäle senden?</label>
-                  <div className="space-y-3">
-                    {/* Elite Channel */}
-                    <label className="flex items-center gap-3 p-3 bg-[#0a0a0a] border border-gray-700 rounded-lg cursor-pointer hover:border-[#39FF14] transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={signalForm.channels.elite}
-                        onChange={(e) => setSignalForm({
-                          ...signalForm,
-                          channels: {...signalForm.channels, elite: e.target.checked}
-                        })}
-                        className="w-5 h-5 accent-[#39FF14] rounded"
-                      />
-                      <div className="flex-1">
-                        <span className="text-white font-medium">Elite-Signale</span>
-                        <span className="text-xs text-[#39FF14] ml-2">ELITE</span>
-                      </div>
-                      <span className="text-gray-500 text-sm">Premium</span>
-                    </label>
-                    
-                    {/* PRO Channel */}
-                    <label className="flex items-center gap-3 p-3 bg-[#0a0a0a] border border-gray-700 rounded-lg cursor-pointer hover:border-purple-500 transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={signalForm.channels.pro}
-                        onChange={(e) => setSignalForm({
-                          ...signalForm,
-                          channels: {...signalForm.channels, pro: e.target.checked}
-                        })}
-                        className="w-5 h-5 accent-purple-500 rounded"
-                      />
-                      <div className="flex-1">
-                        <span className="text-white font-medium">PRO-Signale</span>
-                        <span className="text-xs text-purple-500 ml-2">PRO</span>
-                      </div>
-                      <span className="text-gray-500 text-sm">Pro-Nutzer</span>
-                    </label>
-                    
-                    {/* Free Channel */}
-                    <label className="flex items-center gap-3 p-3 bg-[#0a0a0a] border border-gray-700 rounded-lg cursor-pointer hover:border-cyan-500 transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={signalForm.channels.free}
-                        onChange={(e) => setSignalForm({
-                          ...signalForm,
-                          channels: {...signalForm.channels, free: e.target.checked}
-                        })}
-                        className="w-5 h-5 accent-cyan-500 rounded"
-                      />
-                      <div className="flex-1">
-                        <span className="text-white font-medium">Free-Signale</span>
-                        <span className="text-xs text-cyan-500 ml-2">FREE</span>
-                      </div>
-                      <span className="text-gray-500 text-sm">Kostenlos</span>
-                    </label>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2">Wähle mindestens einen Kanal aus</p>
+                  <label className="block text-sm text-gray-400 mb-2">An welchen Kanal senden?</label>
+                  <select
+                    value={signalForm.selectedChannel}
+                    onChange={(e) => setSignalForm({...signalForm, selectedChannel: e.target.value})}
+                    className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-cyan-500 focus:outline-none"
+                  >
+                    <option value="elite">🟢 Elite-Signale (ELITE)</option>
+                    <option value="pro">🟣 PRO-Signale (PRO)</option>
+                    <option value="free">🔵 Free-Signale (FREE)</option>
+                    <option value="all">📢 Alle Kanäle</option>
+                  </select>
                 </div>
 
                 {/* Actions */}
