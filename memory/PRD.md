@@ -320,6 +320,18 @@ SENDER_NAME=BETRADARMUS
    - TELEGRAM_FREE_CHANNEL_ID
    - **WICHTIG**: User muss diese IDs in Production .env aktualisieren!
 
+8. ✅ **Welcome-E-Mail bei Registrierung** - Automatische E-Mail nach Registrierung
+   - Personalisierte Begrüßung
+   - FREE-Telegram-Gruppen-Einladungslink
+   - Feature-Übersicht und Statistiken
+   - Bankroll-Warnung (10% Regel)
+
+9. ✅ **Upgrade-E-Mails für PRO/ELITE** - Automatische E-Mail nach Stripe-Upgrade
+   - Willkommen im PRO/ELITE Club
+   - Exklusiver Telegram-Kanal-Einladungslink
+   - Plan-spezifische Features aufgelistet
+   - Priority Support Hinweis
+
 ---
 
 ## 3rd Party Integrations

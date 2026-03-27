@@ -456,15 +456,32 @@ async def stripe_webhook(request: Request):
                     {"$set": {"payment_status": "paid"}}
                 )
                 
-                # Update user subscription
+                # Update user subscription and send upgrade email
             if metadata:
                 user_id = metadata.get("user_id")
                 plan = metadata.get("plan", "pro")
                 if user_id:
+                    # Update subscription in database
                     await db.users.update_one(
                         {"id": user_id},
                         {"$set": {"subscription": plan, "subscription_status": "active"}}
                     )
+                    
+                    # Send upgrade email with Telegram group invite
+                    if plan in ["pro", "elite"]:
+                        try:
+                            user = await db.users.find_one({"id": user_id}, {"_id": 0})
+                            if user:
+                                from email_service import get_email_service
+                                email_service = get_email_service()
+                                await email_service.send_upgrade_email(
+                                    to_email=user.get("email"),
+                                    user_name=user.get("name", ""),
+                                    new_plan=plan
+                                )
+                                logger.info(f"Upgrade email sent to {user.get('email')} for {plan} plan")
+                        except Exception as e:
+                            logger.error(f"Failed to send upgrade email: {e}")
         
         return {"status": "received"}
         

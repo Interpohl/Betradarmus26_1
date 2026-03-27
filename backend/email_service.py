@@ -766,6 +766,341 @@ https://betradarmus.de
 """
         
         return await self.send_email(to_email, subject, html_content, plain_content)
+    
+    async def send_upgrade_email(self, to_email: str, user_name: str, new_plan: str) -> bool:
+        """Send upgrade confirmation email with exclusive Telegram group invite"""
+        
+        # Plan configurations
+        plan_configs = {
+            "pro": {
+                "name": "PRO",
+                "price": "49€/Monat",
+                "color": "#39FF14",
+                "telegram_link": os.environ.get("TELEGRAM_PRO_CHANNEL_LINK", "https://t.me/+HL_1d7-rXh41Y1i"),
+                "features": [
+                    "Voller Live-Zugriff auf alle Signale",
+                    "Risk Score Analyse für jedes Signal",
+                    "Confidence Index mit KI-Bewertung",
+                    "Erweiterte Liga-Filter (20+ Ligen)",
+                    "E-Mail Support innerhalb 24h",
+                    "Exklusive PRO Telegram-Gruppe"
+                ],
+                "emoji": "⚡"
+            },
+            "elite": {
+                "name": "ELITE",
+                "price": "199€/Monat",
+                "color": "#00C2FF",
+                "telegram_link": os.environ.get("TELEGRAM_ELITE_CHANNEL", "https://t.me/+SODfqorGIt8khC_9"),
+                "features": [
+                    "Priorisierte Live-Updates (vor allen anderen)",
+                    "Historische Analyse & Backtesting",
+                    "Erweiterte Insights & Value-Alerts",
+                    "Alle Ligen weltweit (50+)",
+                    "API-Zugang für eigene Analysen",
+                    "Priority Support (Antwort in 2h)",
+                    "Explainable AI Details",
+                    "Exklusive ELITE VIP Telegram-Gruppe"
+                ],
+                "emoji": "👑"
+            }
+        }
+        
+        config = plan_configs.get(new_plan, plan_configs["pro"])
+        display_name = user_name if user_name else "Champion"
+        
+        subject = f"{config['emoji']} Willkommen im {config['name']} Club, {display_name}!"
+        
+        # Build features HTML
+        features_html = ""
+        for feature in config["features"]:
+            features_html += f"""
+                <div class="feature">
+                    <span class="check">✓</span>
+                    <span class="feature-text">{feature}</span>
+                </div>
+            """
+        
+        html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #0a0a0a;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+        }}
+        .container {{
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }}
+        .header {{
+            text-align: center;
+            margin-bottom: 40px;
+        }}
+        .logo-text {{
+            font-size: 28px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #ffffff;
+        }}
+        .content {{
+            background-color: #121212;
+            border: 2px solid {config['color']};
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 24px;
+        }}
+        .badge {{
+            display: inline-block;
+            background: {config['color']};
+            color: #000000;
+            padding: 8px 24px;
+            border-radius: 20px;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 14px;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+        }}
+        h1 {{
+            color: {config['color']};
+            font-size: 28px;
+            margin: 0 0 20px 0;
+        }}
+        p {{
+            color: #a1a1aa;
+            line-height: 1.7;
+            margin: 0 0 16px 0;
+            font-size: 15px;
+        }}
+        .highlight {{
+            color: #ffffff;
+            font-weight: 600;
+        }}
+        .telegram-box {{
+            background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%);
+            border: 2px solid {config['color']};
+            border-radius: 12px;
+            padding: 28px;
+            margin: 28px 0;
+            text-align: center;
+        }}
+        .telegram-icon {{
+            font-size: 56px;
+            margin-bottom: 16px;
+        }}
+        .telegram-title {{
+            color: {config['color']};
+            font-size: 22px;
+            font-weight: bold;
+            margin: 0 0 8px 0;
+        }}
+        .telegram-subtitle {{
+            color: #a1a1aa;
+            font-size: 14px;
+            margin: 0 0 20px 0;
+        }}
+        .telegram-exclusive {{
+            background: {config['color']}22;
+            border: 1px dashed {config['color']};
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 20px;
+        }}
+        .telegram-exclusive-text {{
+            color: {config['color']};
+            font-size: 13px;
+            font-weight: 600;
+            margin: 0;
+        }}
+        .cta-button {{
+            display: inline-block;
+            background-color: {config['color']};
+            color: #000000;
+            padding: 18px 48px;
+            border-radius: 8px;
+            font-weight: bold;
+            text-transform: uppercase;
+            text-decoration: none;
+            font-size: 16px;
+            letter-spacing: 1px;
+        }}
+        .features {{
+            background-color: #0a0a0a;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 24px 0;
+        }}
+        .features-title {{
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 0 0 16px 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }}
+        .feature {{
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid #1a1a1a;
+        }}
+        .feature:last-child {{
+            border-bottom: none;
+        }}
+        .check {{
+            color: {config['color']};
+            font-size: 16px;
+            font-weight: bold;
+        }}
+        .feature-text {{
+            color: #ededed;
+            font-size: 14px;
+        }}
+        .price-box {{
+            text-align: center;
+            padding: 20px;
+            background: #0a0a0a;
+            border-radius: 8px;
+            margin: 20px 0;
+        }}
+        .price {{
+            color: {config['color']};
+            font-size: 36px;
+            font-weight: bold;
+        }}
+        .price-label {{
+            color: #666;
+            font-size: 14px;
+        }}
+        .footer {{
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+            padding: 20px;
+        }}
+        .footer a {{
+            color: {config['color']};
+            text-decoration: none;
+        }}
+        .support-box {{
+            background: #0f0f1a;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 20px 0;
+            text-align: center;
+        }}
+        .support-text {{
+            color: #a1a1aa;
+            font-size: 13px;
+            margin: 0;
+        }}
+        .support-email {{
+            color: {config['color']};
+            text-decoration: none;
+            font-weight: 600;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <span class="logo-text">BETRADARMUS</span>
+        </div>
+        
+        <div class="content">
+            <center>
+                <div class="badge">{config['emoji']} {config['name']} MEMBER</div>
+            </center>
+            
+            <h1>Willkommen im {config['name']} Club!</h1>
+            
+            <p>Herzlichen Glückwunsch, <span class="highlight">{display_name}</span>!</p>
+            
+            <p>Dein Upgrade auf <span class="highlight">{config['name']}</span> war erfolgreich. Du gehörst jetzt zu den Top-Analysten, die auf maximale Performance setzen.</p>
+            
+            <div class="telegram-box">
+                <div class="telegram-icon">{config['emoji']}📱</div>
+                <p class="telegram-title">Deine exklusive {config['name']} Telegram-Gruppe</p>
+                <p class="telegram-subtitle">Hier erhältst du priorisierte Signale und VIP-Support</p>
+                <div class="telegram-exclusive">
+                    <p class="telegram-exclusive-text">🔒 Nur für {config['name']}-Mitglieder zugänglich</p>
+                </div>
+                <a href="{config['telegram_link']}" class="cta-button">Jetzt beitreten</a>
+            </div>
+            
+            <div class="features">
+                <p class="features-title">Deine {config['name']} Vorteile:</p>
+                {features_html}
+            </div>
+            
+            <div class="price-box">
+                <div class="price">{config['price']}</div>
+                <div class="price-label">Dein aktueller Plan</div>
+            </div>
+            
+            <div class="support-box">
+                <p class="support-text">
+                    Fragen? Als {config['name']}-Mitglied hast du Priority Support:<br>
+                    <a href="mailto:info@betradarmus.de" class="support-email">info@betradarmus.de</a>
+                </p>
+            </div>
+            
+            <p style="text-align: center; margin-top: 24px;">
+                <a href="https://betradarmus.de" style="color: {config['color']}; text-decoration: none; font-weight: bold;">→ Zur BETRADARMUS Plattform</a>
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p>© 2025 BETRADARMUS. Alle Rechte vorbehalten.</p>
+            <p>
+                <a href="https://betradarmus.de/impressum">Impressum</a> | 
+                <a href="https://betradarmus.de/datenschutz">Datenschutz</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+        
+        # Build features text
+        features_text = "\n".join([f"✓ {f}" for f in config["features"]])
+        
+        plain_content = f"""
+BETRADARMUS - Willkommen im {config['name']} Club!
+
+Herzlichen Glückwunsch, {display_name}!
+
+Dein Upgrade auf {config['name']} war erfolgreich. Du gehörst jetzt zu den Top-Analysten, die auf maximale Performance setzen.
+
+🔔 DEINE EXKLUSIVE {config['name'].upper()} TELEGRAM-GRUPPE:
+{config['telegram_link']}
+
+Nur für {config['name']}-Mitglieder zugänglich!
+
+Deine {config['name']} Vorteile:
+{features_text}
+
+Dein Plan: {config['price']}
+
+Priority Support: info@betradarmus.de
+
+→ Zur Plattform: https://betradarmus.de
+
+---
+BETRADARMUS
+https://betradarmus.de
+"""
+        
+        return await self.send_email(to_email, subject, html_content, plain_content)
 
 
 # Singleton instance
