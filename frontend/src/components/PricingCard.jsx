@@ -53,10 +53,10 @@ const plans = {
       'Priority Support',
       'Explainable AI Details'
     ],
-    cta: 'Coming Soon',
+    cta: 'Elite Werden',
     highlight: false,
     elite: true,
-    disabled: true
+    disabled: false
   }
 };
 

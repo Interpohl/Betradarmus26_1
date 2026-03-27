@@ -2225,6 +2225,52 @@ async def get_value_alert_stats(user: dict = Depends(require_admin)):
         logger.error(f"Error getting alert stats: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@api_router.get("/odds-api/test")
+async def test_odds_api_connection(user: dict = Depends(require_admin)):
+    """Test The Odds API connectivity and get sample odds"""
+    try:
+        from odds_api_service import odds_api_service
+        
+        # Get Bundesliga odds as test
+        events = await odds_api_service.get_odds_for_sport(
+            sport="soccer_germany_bundesliga",
+            markets="h2h"
+        )
+        
+        # Format response
+        formatted_events = []
+        for event in events[:5]:
+            bookmakers = event.get("bookmakers", [])
+            best_odds = None
+            if bookmakers:
+                for market in bookmakers[0].get("markets", []):
+                    if market.get("key") == "h2h":
+                        best_odds = {o.get("name"): o.get("price") for o in market.get("outcomes", [])}
+            
+            formatted_events.append({
+                "home_team": event.get("home_team"),
+                "away_team": event.get("away_team"),
+                "sport": event.get("sport_title"),
+                "commence_time": event.get("commence_time"),
+                "odds": best_odds
+            })
+        
+        return {
+            "success": True,
+            "events_count": len(events),
+            "sample_events": formatted_events,
+            "remaining_credits": odds_api_service.remaining_credits
+        }
+    except Exception as e:
+        logger.error(f"Odds API test error: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+
 # Include the router in the main app
 app.include_router(api_router)
 

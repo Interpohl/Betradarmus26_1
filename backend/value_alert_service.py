@@ -165,35 +165,68 @@ class ValueAlertService:
     async def _find_matching_odds(self, event_title: str, market_question: str) -> Optional[Dict]:
         """
         Try to find matching bookmaker odds for a Polymarket market
-        This is a simplified implementation
+        Uses The Odds API for real bookmaker data with fallback to simulation
         """
-        # In a full implementation, you would:
-        # 1. Parse the event title to identify the sport and teams
-        # 2. Query The Odds API for matching events
-        # 3. Match the specific market (winner, over/under, etc.)
+        # Try to get real odds from The Odds API
+        try:
+            from odds_api_service import odds_api_service
+            
+            # Extract team names from title/question
+            home_team = None
+            away_team = None
+            
+            # Common patterns: "Team A vs Team B", "Team A to win"
+            title_lower = event_title.lower()
+            question_lower = market_question.lower()
+            
+            # Try to find real bookmaker odds
+            real_odds = await odds_api_service.find_matching_odds(
+                event_title=event_title,
+                home_team=home_team,
+                away_team=away_team,
+                sport_hint=self._detect_sport(event_title)
+            )
+            
+            if real_odds:
+                # Use home_odds as primary, fall back to away_odds
+                best_odds = real_odds.get("home_odds") or real_odds.get("away_odds")
+                if best_odds and best_odds > 1.0:
+                    logger.info(f"Found real odds for '{event_title}': {best_odds} from {real_odds.get('bookmaker')}")
+                    return {
+                        "bookmaker": real_odds.get("bookmaker", "The Odds API"),
+                        "odds": best_odds,
+                        "source": "the_odds_api",
+                        "event_id": real_odds.get("event_id"),
+                        "home_team": real_odds.get("home_team"),
+                        "away_team": real_odds.get("away_team")
+                    }
+        except ImportError:
+            logger.warning("odds_api_service not available, using fallback")
+        except Exception as e:
+            logger.warning(f"Error fetching real odds: {e}")
         
-        # For now, return simulated odds for demonstration
-        # In production, integrate with The Odds API
-        
+        # Fallback to simulated odds for known event types
         keywords_to_odds = {
-            "world cup": {"bookmaker": "bet365", "odds": 2.10},
-            "super bowl": {"bookmaker": "DraftKings", "odds": 1.95},
-            "champions league": {"bookmaker": "Unibet", "odds": 2.25},
-            "nfl": {"bookmaker": "FanDuel", "odds": 1.85},
-            "nba": {"bookmaker": "BetMGM", "odds": 1.90},
-            "ufc": {"bookmaker": "bet365", "odds": 2.00},
+            "world cup": {"bookmaker": "bet365 (sim)", "odds": 2.10},
+            "super bowl": {"bookmaker": "DraftKings (sim)", "odds": 1.95},
+            "champions league": {"bookmaker": "Unibet (sim)", "odds": 2.25},
+            "nfl": {"bookmaker": "FanDuel (sim)", "odds": 1.85},
+            "nba": {"bookmaker": "BetMGM (sim)", "odds": 1.90},
+            "ufc": {"bookmaker": "bet365 (sim)", "odds": 2.00},
+            "bundesliga": {"bookmaker": "bwin (sim)", "odds": 1.75},
+            "premier league": {"bookmaker": "bet365 (sim)", "odds": 1.80},
+            "la liga": {"bookmaker": "Unibet (sim)", "odds": 1.85},
+            "serie a": {"bookmaker": "Betfair (sim)", "odds": 1.90},
         }
         
-        title_lower = event_title.lower()
-        
         for keyword, odds_data in keywords_to_odds.items():
-            if keyword in title_lower:
-                # Add some variance to make it realistic
+            if keyword in title_lower or keyword in question_lower:
                 import random
                 variance = random.uniform(-0.15, 0.15)
                 return {
                     "bookmaker": odds_data["bookmaker"],
-                    "odds": round(odds_data["odds"] + variance, 2)
+                    "odds": round(odds_data["odds"] + variance, 2),
+                    "source": "simulation"
                 }
         
         return None

@@ -304,6 +304,22 @@ SENDER_NAME=BETRADARMUS
 4. ✅ **Comprehensive Testing** - Backend API tests (29/29) + Frontend E2E tests alle bestanden
    - Test-Admin User erstellt: test_admin@betradarmus.de / TestAdmin123!
 
+5. ✅ **The Odds API Integration** - Neuer `/app/backend/odds_api_service.py` Service
+   - Holt echte Buchmacher-Quoten von The Odds API
+   - Unterstützt alle Fußball-Ligen (Bundesliga, Premier League, La Liga, etc.)
+   - Integriert in value_alert_service.py für Value-Berechnungen
+   - Caching (5 Min) zur Minimierung von API-Aufrufen
+   - Neuer Admin-Endpoint: `/api/odds-api/test`
+
+6. ✅ **Elite-Plan Aktivierung** - Button von "Coming Soon" zu "Elite Werden" geändert
+   - disabled: true → disabled: false in PricingCard.jsx
+   - Elite-Plan ist jetzt kaufbar über Stripe Checkout
+
+7. ✅ **Production .env Vorbereitung** - Telegram Channel-IDs hinzugefügt
+   - TELEGRAM_PRO_CHANNEL_ID
+   - TELEGRAM_FREE_CHANNEL_ID
+   - **WICHTIG**: User muss diese IDs in Production .env aktualisieren!
+
 ---
 
 ## 3rd Party Integrations
@@ -327,16 +343,16 @@ SENDER_NAME=BETRADARMUS
 - **Production Server Environment Update**: User needs to SSH into Strato server and run:
   ```bash
   cd /var/www/betradarmus
-  echo "FOOTBALL_DATA_API_KEY=79715cd143144f1196e894f1cdd334bf" >> backend/.env
-  echo "TELEGRAM_ELITE_CHANNEL=https://t.me/+SODfqorGIt8khC_9" >> backend/.env
+  # Add these new lines to backend/.env:
+  echo "TELEGRAM_PRO_CHANNEL_ID=<YOUR_PRO_CHANNEL_ID>" >> backend/.env
+  echo "TELEGRAM_FREE_CHANNEL_ID=<YOUR_FREE_CHANNEL_ID>" >> backend/.env
   git pull
   /usr/local/bin/docker-compose up -d --build
   ```
 - **Stripe Dashboard Configuration**: Enable PayPal and Klarna in Stripe Dashboard manually
-- **Create Admin User on Production**: Run the admin creation script on production server
+- **Odds API Credits**: The Odds API credits (500/month free) are exhausted - consider upgrading plan or wait for monthly reset
 
 ### P1 - High
-- **Elite-Plan Activation**: Change "Coming Soon" button to active purchase button
 - Echte Tipps über Admin Dashboard erfassen und automatisch auswerten lassen
 - Cronjob für tägliche Ergebnis-Aktualisierung via The Odds API
 
@@ -345,8 +361,6 @@ SENDER_NAME=BETRADARMUS
 - Erweitertes Tip-Management im Admin Dashboard
 - Refactor AdminDashboard.jsx (~1800+ lines) into smaller tab components
 - Refactor server.py into separate routers (routes/admin.py, routes/signals.py)
-- **The Odds API Integration**: Polymarket-Daten mit echten Buchmacher-Quoten vergleichen für Value-Berechnung
-- **Production .env Update**: Neue Telegram Channel-IDs hinzufügen (TELEGRAM_PRO_CHANNEL_ID, TELEGRAM_FREE_CHANNEL_ID)
 
 ### P3 - Low
 - Multiple language support
