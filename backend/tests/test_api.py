@@ -257,3 +257,80 @@ class TestContactAndEarlyAccess:
         assert response.status_code == 200
         data = response.json()
         assert data["success"] == True
+
+
+
+class TestPolymarketEndpoints:
+    """Test Polymarket API endpoints"""
+    
+    def test_get_polymarket_events(self, authenticated_client):
+        """Should get Polymarket events for authenticated users"""
+        response = authenticated_client.get(f"{BASE_URL}/api/polymarket/events?limit=5")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] == True
+        assert "events" in data
+        assert "count" in data
+        
+    def test_polymarket_search(self, authenticated_client):
+        """Should search Polymarket markets"""
+        response = authenticated_client.get(f"{BASE_URL}/api/polymarket/search?q=football&limit=5")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] == True
+        assert "markets" in data
+        
+    def test_polymarket_value_analysis(self, authenticated_client):
+        """Should calculate value between Polymarket and bookmaker odds"""
+        response = authenticated_client.post(f"{BASE_URL}/api/polymarket/analyze-value", json={
+            "polymarket_price": 0.65,
+            "bookmaker_odds": 1.80
+        })
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] == True
+        assert "analysis" in data
+        analysis = data["analysis"]
+        assert "edge_percentage" in analysis
+        assert "signal_strength" in analysis
+        assert analysis["has_value"] == True  # 0.65 * 1.80 = 1.17 > 1, so has value
+
+
+class TestValueAlertsEndpoints:
+    """Test Value Alerts API endpoints (admin only)"""
+    
+    def test_get_value_alerts(self, admin_client):
+        """Should get value alerts for admin users"""
+        response = admin_client.get(f"{BASE_URL}/api/value-alerts?limit=10")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] == True
+        assert "alerts" in data
+        assert "count" in data
+        
+    def test_get_value_alerts_stats(self, admin_client):
+        """Should get value alert statistics"""
+        response = admin_client.get(f"{BASE_URL}/api/value-alerts/stats")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] == True
+        assert "stats" in data
+        stats = data["stats"]
+        assert "min_edge_threshold" in stats
+        assert "min_volume_threshold" in stats
+        assert "active_alerts_count" in stats
+        
+    def test_scan_for_value_alerts(self, admin_client):
+        """Should trigger a value alert scan"""
+        response = admin_client.post(f"{BASE_URL}/api/value-alerts/scan")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] == True
+        assert "count" in data
+        assert "alerts" in data
+        
+    def test_value_alerts_requires_admin(self, regular_client):
+        """Should reject non-admin users from value alerts"""
+        response = regular_client.get(f"{BASE_URL}/api/value-alerts")
+        # Non-elite users should get 403
+        assert response.status_code == 403

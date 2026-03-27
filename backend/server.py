@@ -224,6 +224,13 @@ async def require_auth(credentials: HTTPAuthorizationCredentials = Depends(secur
     
     return user
 
+async def require_admin(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+    """Require ELITE subscription (admin access)"""
+    user = await require_auth(credentials)
+    if user.get('subscription') != 'elite':
+        raise HTTPException(status_code=403, detail="Nur für ELITE-Nutzer (Admin)")
+    return user
+
 # ==================== AUTH ROUTES ====================
 
 @api_router.post("/auth/register", response_model=AuthResponse)

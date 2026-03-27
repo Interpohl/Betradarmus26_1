@@ -221,7 +221,7 @@ class ValueAlertService:
     
     async def _store_alerts(self, alerts: List[ValueAlert]):
         """Store alerts in database"""
-        if not self.db:
+        if self.db is None:
             return
         
         try:
@@ -241,7 +241,7 @@ class ValueAlertService:
         limit: int = 50
     ) -> List[Dict]:
         """Get alerts from database"""
-        if not self.db:
+        if self.db is None:
             return [a.to_dict() for a in self._alerts[:limit]]
         
         try:
@@ -259,7 +259,7 @@ class ValueAlertService:
     
     async def update_alert_status(self, alert_id: str, status: str) -> bool:
         """Update alert status"""
-        if not self.db:
+        if self.db is None:
             return False
         
         try:
@@ -276,7 +276,7 @@ class ValueAlertService:
         """
         Convert a value alert to a trading signal
         """
-        if not self.db:
+        if self.db is None:
             return None
         
         try:
@@ -327,7 +327,7 @@ def get_value_alert_service(db=None) -> ValueAlertService:
     global _value_alert_service
     if _value_alert_service is None:
         _value_alert_service = ValueAlertService(db)
-    elif db and _value_alert_service.db is None:
+    elif db is not None and _value_alert_service.db is None:
         _value_alert_service.db = db
     return _value_alert_service
 
