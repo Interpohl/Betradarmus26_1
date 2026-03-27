@@ -237,7 +237,296 @@ https://betradarmus.de
         
         return await self.send_email(to_email, subject, html_content, plain_content)
     
-    async def send_early_access_confirmation(self, to_email: str, plan_interest: str) -> bool:
+    async def send_welcome_email(self, to_email: str, user_name: str, subscription: str = "free") -> bool:
+        """Send welcome email after registration with Telegram group invite"""
+        
+        # Telegram Group Links based on subscription
+        telegram_links = {
+            "free": {
+                "name": "FREE Community",
+                "link": os.environ.get("TELEGRAM_FREE_CHANNEL_LINK", "https://t.me/+Pb8X_nXzKu41N2Yy"),
+                "color": "#39FF14"
+            },
+            "pro": {
+                "name": "PRO Signals",
+                "link": os.environ.get("TELEGRAM_PRO_CHANNEL_LINK", "https://t.me/+Pb8X_nXzKu41N2Yy"),
+                "color": "#39FF14"
+            },
+            "elite": {
+                "name": "ELITE VIP",
+                "link": os.environ.get("TELEGRAM_ELITE_CHANNEL", "https://t.me/+SODfqorGIt8khC_9"),
+                "color": "#00C2FF"
+            }
+        }
+        
+        group_info = telegram_links.get(subscription, telegram_links["free"])
+        display_name = user_name if user_name else "Sportwetter"
+        
+        subject = f"Willkommen bei BETRADARMUS, {display_name}! 🎯"
+        
+        html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #0a0a0a;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+        }}
+        .container {{
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }}
+        .header {{
+            text-align: center;
+            margin-bottom: 40px;
+        }}
+        .logo-text {{
+            font-size: 28px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: #ffffff;
+        }}
+        .content {{
+            background-color: #121212;
+            border: 1px solid #222;
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 24px;
+        }}
+        h1 {{
+            color: #39FF14;
+            font-size: 26px;
+            margin: 0 0 20px 0;
+        }}
+        p {{
+            color: #a1a1aa;
+            line-height: 1.7;
+            margin: 0 0 16px 0;
+            font-size: 15px;
+        }}
+        .highlight {{
+            color: #ffffff;
+            font-weight: 600;
+        }}
+        .telegram-box {{
+            background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1a 100%);
+            border: 2px solid {group_info['color']};
+            border-radius: 12px;
+            padding: 28px;
+            margin: 28px 0;
+            text-align: center;
+        }}
+        .telegram-icon {{
+            font-size: 48px;
+            margin-bottom: 16px;
+        }}
+        .telegram-title {{
+            color: {group_info['color']};
+            font-size: 20px;
+            font-weight: bold;
+            margin: 0 0 8px 0;
+        }}
+        .telegram-subtitle {{
+            color: #a1a1aa;
+            font-size: 14px;
+            margin: 0 0 20px 0;
+        }}
+        .cta-button {{
+            display: inline-block;
+            background-color: {group_info['color']};
+            color: #000000;
+            padding: 16px 40px;
+            border-radius: 8px;
+            font-weight: bold;
+            text-transform: uppercase;
+            text-decoration: none;
+            font-size: 14px;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }}
+        .benefits {{
+            background-color: #0a0a0a;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 24px 0;
+        }}
+        .benefit {{
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid #1a1a1a;
+        }}
+        .benefit:last-child {{
+            border-bottom: none;
+        }}
+        .check {{
+            color: #39FF14;
+            font-size: 16px;
+            font-weight: bold;
+        }}
+        .benefit-text {{
+            color: #ededed;
+            font-size: 14px;
+        }}
+        .stats-row {{
+            display: flex;
+            justify-content: space-around;
+            margin: 24px 0;
+            padding: 20px;
+            background-color: #0a0a0a;
+            border-radius: 8px;
+        }}
+        .stat {{
+            text-align: center;
+        }}
+        .stat-value {{
+            color: #39FF14;
+            font-size: 28px;
+            font-weight: bold;
+        }}
+        .stat-label {{
+            color: #666;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }}
+        .footer {{
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+            padding: 20px;
+        }}
+        .footer a {{
+            color: #39FF14;
+            text-decoration: none;
+        }}
+        .warning {{
+            background-color: #1a1a0a;
+            border-left: 3px solid #f59e0b;
+            padding: 12px 16px;
+            margin: 20px 0;
+            font-size: 13px;
+            color: #a1a1aa;
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <span class="logo-text">BETRADARMUS</span>
+        </div>
+        
+        <div class="content">
+            <h1>Willkommen, {display_name}! 🎯</h1>
+            
+            <p>Deine Registrierung bei <span class="highlight">BETRADARMUS</span> war erfolgreich!</p>
+            
+            <p>Du bist jetzt Teil einer Community von Sportwettern, die auf <span class="highlight">datenbasierte KI-Analysen</span> statt Bauchgefühl setzen.</p>
+            
+            <div class="telegram-box">
+                <div class="telegram-icon">📱</div>
+                <p class="telegram-title">Tritt jetzt unserer {group_info['name']} Telegram-Gruppe bei!</p>
+                <p class="telegram-subtitle">Erhalte Live-Signale direkt auf dein Handy</p>
+                <a href="{group_info['link']}" class="cta-button">Telegram Gruppe beitreten</a>
+            </div>
+            
+            <div class="benefits">
+                <div class="benefit">
+                    <span class="check">✓</span>
+                    <span class="benefit-text">Live-Signale mit Confidence Score</span>
+                </div>
+                <div class="benefit">
+                    <span class="check">✓</span>
+                    <span class="benefit-text">KI-basierte Spielanalysen</span>
+                </div>
+                <div class="benefit">
+                    <span class="check">✓</span>
+                    <span class="benefit-text">Echtzeit-Benachrichtigungen</span>
+                </div>
+                <div class="benefit">
+                    <span class="check">✓</span>
+                    <span class="benefit-text">Community-Support</span>
+                </div>
+            </div>
+            
+            <div class="stats-row">
+                <div class="stat">
+                    <div class="stat-value">71%</div>
+                    <div class="stat-label">Trefferquote</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">2.847</div>
+                    <div class="stat-label">Signale</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">24/7</div>
+                    <div class="stat-label">Live-Analyse</div>
+                </div>
+            </div>
+            
+            <div class="warning">
+                ⚠️ <strong>Wichtig:</strong> Setze nie mehr als 10% deiner Bankroll auf einen einzelnen Tipp. Sportwetten sind Unterhaltung, kein Einkommen.
+            </div>
+            
+            <p style="text-align: center; margin-top: 24px;">
+                <a href="https://betradarmus.de" style="color: #39FF14; text-decoration: none; font-weight: bold;">→ Zur BETRADARMUS Plattform</a>
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p>© 2025 BETRADARMUS. Alle Rechte vorbehalten.</p>
+            <p>
+                <a href="https://betradarmus.de/impressum">Impressum</a> | 
+                <a href="https://betradarmus.de/datenschutz">Datenschutz</a>
+            </p>
+            <p style="margin-top: 12px; color: #444;">
+                Du erhältst diese E-Mail, weil du dich bei BETRADARMUS registriert hast.
+            </p>
+        </div>
+    </div>
+</body>
+</html>
+"""
+        
+        plain_content = f"""
+BETRADARMUS - Willkommen, {display_name}!
+
+Deine Registrierung bei BETRADARMUS war erfolgreich!
+
+Du bist jetzt Teil einer Community von Sportwettern, die auf datenbasierte KI-Analysen statt Bauchgefühl setzen.
+
+🔔 TRITT JETZT UNSERER TELEGRAM-GRUPPE BEI:
+{group_info['link']}
+
+Was dich erwartet:
+✓ Live-Signale mit Confidence Score
+✓ KI-basierte Spielanalysen
+✓ Echtzeit-Benachrichtigungen
+✓ Community-Support
+
+Unsere Statistiken:
+- 71% Trefferquote
+- 2.847+ Signale
+- 24/7 Live-Analyse
+
+⚠️ Wichtig: Setze nie mehr als 10% deiner Bankroll auf einen einzelnen Tipp.
+
+→ Zur Plattform: https://betradarmus.de
+
+---
+BETRADARMUS
+https://betradarmus.de
+"""
+        
+        return await self.send_email(to_email, subject, html_content, plain_content)
         """Send Early Access confirmation email"""
         
         plan_names = {

@@ -258,9 +258,23 @@ async def register(input: UserRegister):
     # Create token
     token = create_token(user.id, user.email)
     
+    # Send welcome email with Telegram group invite (async, don't block registration)
+    try:
+        from email_service import get_email_service
+        email_service = get_email_service()
+        await email_service.send_welcome_email(
+            to_email=user.email,
+            user_name=user.name,
+            subscription=user.subscription
+        )
+        logger.info(f"Welcome email sent to {user.email}")
+    except Exception as e:
+        # Don't fail registration if email fails
+        logger.error(f"Failed to send welcome email to {user.email}: {e}")
+    
     return AuthResponse(
         success=True,
-        message="Registrierung erfolgreich!",
+        message="Registrierung erfolgreich! Prüfe dein E-Mail-Postfach für den Telegram-Gruppen-Link.",
         token=token,
         user=UserResponse(
             id=user.id,
