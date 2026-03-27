@@ -42,8 +42,8 @@ AVAILABLE_LEAGUES = [
 TELEGRAM_FREE_GROUP = "https://t.me/+Pb8X_nXzKu41N2Yy"
 TELEGRAM_ELITE_CHANNEL = os.environ.get("TELEGRAM_ELITE_CHANNEL", "")  # Private channel invite link
 TELEGRAM_ELITE_CHANNEL_ID = int(os.environ.get("TELEGRAM_ELITE_CHANNEL_ID", "-1001222696874"))  # Elite channel chat ID
-TELEGRAM_PRO_CHANNEL_ID = int(os.environ.get("TELEGRAM_PRO_CHANNEL_ID", "0"))  # PRO channel chat ID - needs to be set
-TELEGRAM_FREE_CHANNEL_ID = int(os.environ.get("TELEGRAM_FREE_CHANNEL_ID", "0"))  # Free channel chat ID - needs to be set
+TELEGRAM_PRO_CHANNEL_ID = int(os.environ.get("TELEGRAM_PRO_CHANNEL_ID", "-1003876827928"))  # PRO channel chat ID
+TELEGRAM_FREE_CHANNEL_ID = int(os.environ.get("TELEGRAM_FREE_CHANNEL_ID", "-1003735448283"))  # Free channel chat ID
 
 # All available channels for signal distribution
 TELEGRAM_CHANNELS = {
