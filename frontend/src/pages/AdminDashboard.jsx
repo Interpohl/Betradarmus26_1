@@ -96,6 +96,12 @@ export const AdminDashboard = () => {
     bookmaker_odds: 1.80
   });
   const [valueResult, setValueResult] = useState(null);
+  
+  // Value Alerts state
+  const [valueAlerts, setValueAlerts] = useState([]);
+  const [alertsLoading, setAlertsLoading] = useState(false);
+  const [scanningAlerts, setScanningAlerts] = useState(false);
+  const [alertStats, setAlertStats] = useState(null);
 
   useEffect(() => {
     if (isElite) {
@@ -287,6 +293,74 @@ export const AdminDashboard = () => {
     return `$${value}`;
   };
 
+  // Value Alerts functions
+  const fetchValueAlerts = async () => {
+    setAlertsLoading(true);
+    try {
+      const res = await axios.get(`${API}/value-alerts?limit=20`);
+      if (res.data.success) {
+        setValueAlerts(res.data.alerts);
+      }
+    } catch (error) {
+      console.error('Error fetching alerts:', error);
+    }
+    setAlertsLoading(false);
+  };
+
+  const scanForAlerts = async () => {
+    setScanningAlerts(true);
+    try {
+      const res = await axios.post(`${API}/value-alerts/scan`);
+      if (res.data.success) {
+        toast.success(`${res.data.count} Value-Alerts gefunden!`);
+        setValueAlerts(res.data.alerts);
+      }
+    } catch (error) {
+      toast.error('Scan fehlgeschlagen');
+    }
+    setScanningAlerts(false);
+  };
+
+  const convertAlertToSignal = async (alertId, sendToChannel = null) => {
+    try {
+      const channels = sendToChannel ? {
+        elite: sendToChannel === 'elite' || sendToChannel === 'all',
+        pro: sendToChannel === 'pro' || sendToChannel === 'all',
+        free: sendToChannel === 'free' || sendToChannel === 'all'
+      } : null;
+      
+      const res = await axios.post(`${API}/value-alerts/${alertId}/convert`, { channels });
+      if (res.data.success) {
+        toast.success(res.data.message);
+        fetchValueAlerts();
+        if (channels) fetchData();
+      }
+    } catch (error) {
+      toast.error('Konvertierung fehlgeschlagen');
+    }
+  };
+
+  const dismissAlert = async (alertId) => {
+    try {
+      await axios.put(`${API}/value-alerts/${alertId}/status`, { status: 'dismissed' });
+      toast.success('Alert verworfen');
+      fetchValueAlerts();
+    } catch (error) {
+      toast.error('Fehler beim Verwerfen');
+    }
+  };
+
+  const getAlertStats = async () => {
+    try {
+      const res = await axios.get(`${API}/value-alerts/stats`);
+      if (res.data.success) {
+        setAlertStats(res.data.stats);
+      }
+    } catch (error) {
+      console.error('Error fetching alert stats:', error);
+    }
+  };
+
   const toggleSignalGenerator = async () => {
     try {
       if (generatorStatus.running) {
@@ -428,6 +502,7 @@ export const AdminDashboard = () => {
             { id: 'generator', label: 'KI Generator', icon: Cpu },
             { id: 'signals', label: 'Signale', icon: Zap },
             { id: 'polymarket', label: 'Polymarket', icon: TrendingUp },
+            { id: 'alerts', label: 'Value Alerts', icon: AlertTriangle },
             { id: 'users', label: 'Telegram Nutzer', icon: Users },
             { id: 'website-users', label: 'Website Nutzer', icon: Globe },
             { id: 'registrations', label: 'Registrierungen', icon: Plus },
@@ -1209,6 +1284,184 @@ export const AdminDashboard = () => {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Value Alerts Tab */}
+        {activeTab === 'alerts' && (
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-yellow-500" />
+                  Value Alerts
+                </h2>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={fetchValueAlerts}
+                    disabled={alertsLoading}
+                    variant="outline"
+                    size="sm"
+                    className="border-gray-700 text-gray-300"
+                  >
+                    {alertsLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                  </Button>
+                  <Button 
+                    onClick={scanForAlerts}
+                    disabled={scanningAlerts}
+                    className="bg-gradient-to-r from-yellow-500 to-orange-500 text-black font-semibold"
+                    size="sm"
+                  >
+                    {scanningAlerts ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                        Scanne...
+                      </>
+                    ) : (
+                      <>
+                        <Search className="w-4 h-4 mr-2" />
+                        Nach Value scannen
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+              <p className="text-gray-400 text-sm">
+                Automatische Erkennung von Value-Opportunities durch Vergleich von Polymarket mit Buchmacher-Quoten
+              </p>
+              
+              {/* Stats */}
+              {alertStats && (
+                <div className="grid grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-800">
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-[#39FF14]">{alertStats.active_alerts_count}</p>
+                    <p className="text-xs text-gray-500">Aktive Alerts</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-cyan-400">{alertStats.min_edge_threshold}%</p>
+                    <p className="text-xs text-gray-500">Min. Edge</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-white">{formatCurrency(alertStats.min_volume_threshold)}</p>
+                    <p className="text-xs text-gray-500">Min. Volumen</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-purple-400">{alertStats.check_interval_seconds}s</p>
+                    <p className="text-xs text-gray-500">Check-Interval</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Alerts List */}
+            <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
+              <h3 className="text-lg font-semibold text-white mb-4">
+                Gefundene Value-Alerts ({valueAlerts.length})
+              </h3>
+              
+              {valueAlerts.length === 0 ? (
+                <div className="text-center py-12">
+                  <AlertTriangle className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+                  <p className="text-gray-400 mb-4">Keine Value-Alerts gefunden</p>
+                  <Button 
+                    onClick={scanForAlerts}
+                    disabled={scanningAlerts}
+                    className="bg-gradient-to-r from-[#39FF14] to-green-600 text-black"
+                  >
+                    <Search className="w-4 h-4 mr-2" />
+                    Jetzt nach Value scannen
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {valueAlerts.map((alert, idx) => (
+                    <div 
+                      key={alert.id || idx} 
+                      className={`bg-[#0a0a0a] border rounded-xl p-5 ${
+                        alert.status === 'dismissed' ? 'border-gray-800 opacity-50' :
+                        alert.edge_percentage >= 15 ? 'border-green-500/50' :
+                        alert.edge_percentage >= 10 ? 'border-yellow-500/50' :
+                        'border-gray-700'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex-1">
+                          <h4 className="text-white font-semibold">{alert.event_title}</h4>
+                          <p className="text-gray-400 text-sm mt-1">{alert.market_question}</p>
+                        </div>
+                        <div className={`px-3 py-1 rounded-full text-sm font-bold ${
+                          alert.signal_strength === 'VERY_STRONG' ? 'bg-green-500/20 text-green-400' :
+                          alert.signal_strength === 'STRONG' ? 'bg-cyan-500/20 text-cyan-400' :
+                          alert.signal_strength === 'MODERATE' ? 'bg-yellow-500/20 text-yellow-400' :
+                          'bg-gray-500/20 text-gray-400'
+                        }`}>
+                          +{alert.edge_percentage?.toFixed(1)}% Edge
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-sm">
+                        <div className="bg-[#111] rounded-lg p-3">
+                          <p className="text-gray-500 text-xs mb-1">Polymarket</p>
+                          <p className="text-[#39FF14] font-semibold">{alert.polymarket_probability}</p>
+                          <p className="text-gray-400 text-xs">= {alert.polymarket_odds} Quote</p>
+                        </div>
+                        <div className="bg-[#111] rounded-lg p-3">
+                          <p className="text-gray-500 text-xs mb-1">{alert.bookmaker_name}</p>
+                          <p className="text-cyan-400 font-semibold">{alert.bookmaker_probability}</p>
+                          <p className="text-gray-400 text-xs">= {alert.bookmaker_odds} Quote</p>
+                        </div>
+                        <div className="bg-[#111] rounded-lg p-3">
+                          <p className="text-gray-500 text-xs mb-1">24h Volumen</p>
+                          <p className="text-white font-semibold">{formatCurrency(alert.volume_24h)}</p>
+                        </div>
+                        <div className="bg-[#111] rounded-lg p-3">
+                          <p className="text-gray-500 text-xs mb-1">Liquidität</p>
+                          <p className="text-white font-semibold">{formatCurrency(alert.liquidity)}</p>
+                        </div>
+                      </div>
+                      
+                      {alert.status !== 'dismissed' && alert.status !== 'converted' && (
+                        <div className="flex gap-2 pt-3 border-t border-gray-800">
+                          <Button
+                            onClick={() => convertAlertToSignal(alert.id, 'elite')}
+                            size="sm"
+                            className="bg-[#39FF14] hover:bg-green-500 text-black font-semibold"
+                          >
+                            <Send className="w-3 h-3 mr-1" />
+                            Elite senden
+                          </Button>
+                          <Button
+                            onClick={() => convertAlertToSignal(alert.id, 'all')}
+                            size="sm"
+                            variant="outline"
+                            className="border-cyan-500 text-cyan-400"
+                          >
+                            <Send className="w-3 h-3 mr-1" />
+                            Alle Kanäle
+                          </Button>
+                          <Button
+                            onClick={() => dismissAlert(alert.id)}
+                            size="sm"
+                            variant="ghost"
+                            className="text-gray-400 hover:text-red-400 ml-auto"
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      )}
+                      
+                      {alert.status === 'converted' && (
+                        <div className="flex items-center gap-2 pt-3 border-t border-gray-800 text-green-400">
+                          <CheckCircle className="w-4 h-4" />
+                          <span className="text-sm">Als Signal versendet</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

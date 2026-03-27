@@ -2076,6 +2076,148 @@ async def analyze_polymarket_value(
         logger.error(f"Polymarket analysis error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# ==================== VALUE ALERT API ROUTES ====================
+
+@api_router.get("/value-alerts")
+async def get_value_alerts(
+    status: str = None,
+    min_edge: float = None,
+    limit: int = 50,
+    user: dict = Depends(require_admin)
+):
+    """Get value alerts (admin only)"""
+    try:
+        from value_alert_service import get_value_alert_service
+        service = get_value_alert_service(db)
+        alerts = await service.get_alerts(status=status, min_edge=min_edge, limit=limit)
+        
+        return {
+            "success": True,
+            "count": len(alerts),
+            "alerts": alerts
+        }
+    except Exception as e:
+        logger.error(f"Error fetching value alerts: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/value-alerts/scan")
+async def scan_for_value_alerts(user: dict = Depends(require_admin)):
+    """Manually trigger a value alert scan (admin only)"""
+    try:
+        from value_alert_service import get_value_alert_service
+        service = get_value_alert_service(db)
+        alerts = await service.scan_for_value()
+        
+        return {
+            "success": True,
+            "message": f"{len(alerts)} Value-Alerts gefunden",
+            "count": len(alerts),
+            "alerts": [a.to_dict() if hasattr(a, 'to_dict') else a for a in alerts[:10]]
+        }
+    except Exception as e:
+        logger.error(f"Error scanning for value: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/value-alerts/{alert_id}/convert")
+async def convert_alert_to_signal(
+    alert_id: str,
+    channels: dict = None,
+    user: dict = Depends(require_admin)
+):
+    """Convert a value alert to a signal and optionally send it"""
+    try:
+        from value_alert_service import get_value_alert_service
+        service = get_value_alert_service(db)
+        
+        signal_data = await service.convert_to_signal(alert_id)
+        if not signal_data:
+            raise HTTPException(status_code=404, detail="Alert nicht gefunden")
+        
+        # If channels specified, create and send signal
+        if channels:
+            signal_data["channels"] = channels
+            
+            # Create signal in database
+            signal_doc = {
+                "id": f"sig_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}",
+                **signal_data,
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "distributed": False
+            }
+            await db.signals.insert_one(signal_doc)
+            
+            # Distribute via Telegram
+            if telegram_service:
+                distribution_results = await telegram_service.distribute_signal({
+                    "match": signal_data["match"],
+                    "league": signal_data["league"],
+                    "market": signal_data["market"],
+                    "confidence": signal_data["confidence"],
+                    "risk_score": signal_data["risk_score"],
+                    "explanation": signal_data["explanation"],
+                    "timestamp": datetime.now(timezone.utc).strftime('%H:%M')
+                }, channels=channels)
+                
+                return {
+                    "success": True,
+                    "message": "Signal erstellt und versendet",
+                    "signal": signal_data,
+                    "distribution": distribution_results
+                }
+        
+        return {
+            "success": True,
+            "message": "Alert in Signal konvertiert",
+            "signal": signal_data
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error converting alert: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.put("/value-alerts/{alert_id}/status")
+async def update_alert_status(
+    alert_id: str,
+    data: dict,
+    user: dict = Depends(require_admin)
+):
+    """Update alert status (viewed, dismissed, etc.)"""
+    try:
+        from value_alert_service import get_value_alert_service
+        service = get_value_alert_service(db)
+        
+        status = data.get("status")
+        if status not in ["new", "viewed", "converted", "dismissed"]:
+            raise HTTPException(status_code=400, detail="Ungültiger Status")
+        
+        success = await service.update_alert_status(alert_id, status)
+        
+        return {
+            "success": success,
+            "message": f"Status auf '{status}' aktualisiert" if success else "Fehler beim Aktualisieren"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating alert status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/value-alerts/stats")
+async def get_value_alert_stats(user: dict = Depends(require_admin)):
+    """Get value alert service statistics"""
+    try:
+        from value_alert_service import get_value_alert_service
+        service = get_value_alert_service(db)
+        
+        return {
+            "success": True,
+            "stats": service.get_stats()
+        }
+    except Exception as e:
+        logger.error(f"Error getting alert stats: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 # Include the router in the main app
 app.include_router(api_router)
 
