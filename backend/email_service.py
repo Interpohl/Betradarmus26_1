@@ -244,7 +244,7 @@ https://betradarmus.de
         telegram_links = {
             "free": {
                 "name": "FREE Community",
-                "link": os.environ.get("TELEGRAM_FREE_CHANNEL_LINK", "https://t.me/+Pb8X_nXzKu41N2Yy"),
+                "link": os.environ.get("TELEGRAM_FREE_CHANNEL_LINK", "https://t.me/betradarmus_free"),
                 "color": "#39FF14"
             },
             "pro": {
