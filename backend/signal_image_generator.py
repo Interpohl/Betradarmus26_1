@@ -166,16 +166,17 @@ def create_signal_image(signal: Dict[str, Any]) -> io.BytesIO:
     # Label
     draw.text((pad + 40, y + 25), "CONFIDENCE", fill=hex_to_rgb('#888888'), font=font_label)
     
-    # Big number
+    # Big number - NEON RED
     conf_value = f"{int(confidence * 100)}"
-    conf_color = get_confidence_color(confidence)
+    neon_red = '#FF0040'  # Neon Red
     
-    # Center the confidence number
+    # Center the confidence number (fixed x position for alignment)
+    center_x = width // 2
     conf_bbox = draw.textbbox((0, 0), conf_value, font=font_number)
     conf_num_width = conf_bbox[2] - conf_bbox[0]
-    conf_x = (width - conf_num_width - 80) // 2
-    draw.text((conf_x, y + 80), conf_value, fill=hex_to_rgb(conf_color), font=font_number)
-    draw.text((conf_x + conf_num_width + 10, y + 140), "%", fill=hex_to_rgb(conf_color), font=font_percent)
+    conf_x = center_x - (conf_num_width // 2) - 40
+    draw.text((conf_x, y + 80), conf_value, fill=hex_to_rgb(neon_red), font=font_number)
+    draw.text((conf_x + conf_num_width + 10, y + 140), "%", fill=hex_to_rgb(neon_red), font=font_percent)
     
     y += conf_box_height + 40
     
@@ -192,17 +193,16 @@ def create_signal_image(signal: Dict[str, Any]) -> io.BytesIO:
     # Label
     draw.text((pad + 40, y + 25), "RISK SCORE", fill=hex_to_rgb('#888888'), font=font_label)
     
-    # Big number
+    # Big number - NEON RED
     risk_value = str(risk_score)
-    risk_color = get_risk_color(risk_score)
     
-    # Center the risk number
+    # Center the risk number (same x position as confidence for alignment)
     risk_bbox = draw.textbbox((0, 0), risk_value, font=font_number)
     risk_num_width = risk_bbox[2] - risk_bbox[0]
-    risk_x = (width - risk_num_width) // 2
-    draw.text((risk_x, y + 80), risk_value, fill=hex_to_rgb(risk_color), font=font_number)
+    risk_x = center_x - (risk_num_width // 2)
+    draw.text((risk_x, y + 80), risk_value, fill=hex_to_rgb(neon_red), font=font_number)
     
-    # Risk level text
+    # Risk level text - also NEON RED
     if risk_score <= 35:
         risk_level = "LOW RISK"
     elif risk_score <= 60:
@@ -212,7 +212,7 @@ def create_signal_image(signal: Dict[str, Any]) -> io.BytesIO:
     
     level_bbox = draw.textbbox((0, 0), risk_level, font=font_label)
     level_x = (width - (level_bbox[2] - level_bbox[0])) // 2
-    draw.text((level_x, y + 220), risk_level, fill=hex_to_rgb(risk_color), font=font_label)
+    draw.text((level_x, y + 220), risk_level, fill=hex_to_rgb(neon_red), font=font_label)
     
     y += risk_box_height + 60
     
