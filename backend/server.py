@@ -2301,6 +2301,135 @@ async def test_odds_api_connection(user: dict = Depends(require_admin)):
         }
 
 
+# ==================== BETBURGER API ROUTES ====================
+
+@api_router.get("/betburger/status")
+async def betburger_status(user: dict = Depends(require_admin)):
+    """Check Betburger API connection status"""
+    try:
+        from betburger_service import get_betburger_service
+        service = get_betburger_service()
+        status = await service.test_connection()
+        return {
+            "success": True,
+            **status
+        }
+    except Exception as e:
+        logger.error(f"Betburger status error: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+@api_router.get("/betburger/live/surebets")
+async def get_betburger_live_surebets(
+    limit: int = 30,
+    user: dict = Depends(require_admin)
+):
+    """Get live surebets (arbitrage opportunities) from Betburger"""
+    try:
+        from betburger_service import get_betburger_service
+        service = get_betburger_service()
+        
+        if not service.is_configured():
+            return {
+                "success": False,
+                "error": "Betburger API not configured. Add BETBURGER_API_TOKEN to .env"
+            }
+        
+        result = await service.get_live_surebets(limit=limit)
+        return {
+            "success": True,
+            **result
+        }
+    except Exception as e:
+        logger.error(f"Betburger live surebets error: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+@api_router.get("/betburger/live/valuebets")
+async def get_betburger_live_valuebets(
+    limit: int = 30,
+    user: dict = Depends(require_admin)
+):
+    """Get live valuebets (+EV opportunities) from Betburger"""
+    try:
+        from betburger_service import get_betburger_service
+        service = get_betburger_service()
+        
+        if not service.is_configured():
+            return {
+                "success": False,
+                "error": "Betburger API not configured. Add BETBURGER_API_TOKEN to .env"
+            }
+        
+        result = await service.get_live_valuebets(limit=limit)
+        return {
+            "success": True,
+            **result
+        }
+    except Exception as e:
+        logger.error(f"Betburger live valuebets error: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+@api_router.get("/betburger/live/all")
+async def get_betburger_all_live(user: dict = Depends(require_admin)):
+    """Get all live opportunities (surebets + valuebets) from Betburger"""
+    try:
+        from betburger_service import get_betburger_service
+        service = get_betburger_service()
+        
+        if not service.is_configured():
+            return {
+                "success": False,
+                "error": "Betburger API not configured. Add BETBURGER_API_TOKEN to .env"
+            }
+        
+        result = await service.get_all_live_opportunities()
+        return {
+            "success": True,
+            **result
+        }
+    except Exception as e:
+        logger.error(f"Betburger all live error: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+@api_router.get("/betburger/football/live")
+async def get_betburger_football_live(user: dict = Depends(require_admin)):
+    """Get live football events with odds from Betburger"""
+    try:
+        from betburger_service import get_betburger_service
+        service = get_betburger_service()
+        
+        if not service.is_configured():
+            return {
+                "success": False,
+                "error": "Betburger API not configured. Add BETBURGER_API_TOKEN to .env"
+            }
+        
+        result = await service.get_football_live_events()
+        return {
+            "success": True,
+            **result
+        }
+    except Exception as e:
+        logger.error(f"Betburger football live error: {e}")
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
+
+
 
 # Include the router in the main app
 app.include_router(api_router)
