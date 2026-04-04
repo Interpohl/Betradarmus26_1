@@ -240,7 +240,7 @@ def create_signal_image(signal: Dict[str, Any]) -> io.BytesIO:
     draw.text((brand_x, height - 220), brand_text, fill=hex_to_rgb('#39FF14'), font=font_brand)
     
     # Disclaimer
-    disclaimer = "Keine Wettempfehlung · Nur zu Analysezwecken"
+    disclaimer = "KI-Signal powered by betradarmus.de"
     disc_bbox = draw.textbbox((0, 0), disclaimer, font=font_disclaimer)
     disc_x = (width - (disc_bbox[2] - disc_bbox[0])) // 2
     draw.text((disc_x, height - 140), disclaimer, fill=hex_to_rgb('#444444'), font=font_disclaimer)
