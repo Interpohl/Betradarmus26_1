@@ -166,17 +166,18 @@ def create_signal_image(signal: Dict[str, Any]) -> io.BytesIO:
     # Label
     draw.text((pad + 40, y + 25), "CONFIDENCE", fill=hex_to_rgb('#888888'), font=font_label)
     
-    # Big number - NEON RED
+    # Big number - NEON GREEN
     conf_value = f"{int(confidence * 100)}"
-    neon_red = '#FF0040'  # Neon Red
+    neon_green = '#39FF14'  # Neon Green
+    neon_red = '#FF0040'    # Neon Red for Risk
     
     # Center the confidence number (fixed x position for alignment)
     center_x = width // 2
     conf_bbox = draw.textbbox((0, 0), conf_value, font=font_number)
     conf_num_width = conf_bbox[2] - conf_bbox[0]
     conf_x = center_x - (conf_num_width // 2) - 40
-    draw.text((conf_x, y + 80), conf_value, fill=hex_to_rgb(neon_red), font=font_number)
-    draw.text((conf_x + conf_num_width + 10, y + 140), "%", fill=hex_to_rgb(neon_red), font=font_percent)
+    draw.text((conf_x, y + 80), conf_value, fill=hex_to_rgb(neon_green), font=font_number)
+    draw.text((conf_x + conf_num_width + 10, y + 140), "%", fill=hex_to_rgb(neon_green), font=font_percent)
     
     y += conf_box_height + 40
     
