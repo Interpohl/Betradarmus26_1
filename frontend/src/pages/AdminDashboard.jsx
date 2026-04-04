@@ -74,6 +74,7 @@ export const AdminDashboard = () => {
     confidence: 0.75,
     risk_score: 30,
     explanation: '',
+    analysisPreset: '',
     selectedChannel: 'elite'
   });
   const [submitting, setSubmitting] = useState(false);
@@ -208,6 +209,7 @@ export const AdminDashboard = () => {
         confidence: signalForm.confidence,
         risk_score: signalForm.risk_score,
         explanation: signalForm.explanation,
+        analysis: signalForm.explanation,  // Also send as 'analysis' for image generator
         channels: channels
       };
       
@@ -224,6 +226,7 @@ export const AdminDashboard = () => {
           confidence: 0.75,
           risk_score: 30,
           explanation: '',
+          analysisPreset: '',
           selectedChannel: 'elite'
         });
         fetchData();
@@ -1909,17 +1912,52 @@ export const AdminDashboard = () => {
                   </div>
                 </div>
 
-                {/* Explanation */}
+                {/* Explanation - Dropdown + Custom */}
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">Analyse / Erklärung</label>
-                  <textarea
-                    value={signalForm.explanation}
-                    onChange={(e) => setSignalForm({...signalForm, explanation: e.target.value})}
-                    placeholder="Kurze Analyse zum Signal..."
-                    rows={3}
-                    className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-cyan-500 focus:outline-none resize-none"
-                    required
-                  />
+                  <label className="block text-sm text-gray-400 mb-2">🔍 Analyse / Erklärung</label>
+                  <select
+                    value={signalForm.analysisPreset || 'custom'}
+                    onChange={(e) => {
+                      const preset = e.target.value;
+                      if (preset === 'custom') {
+                        setSignalForm({...signalForm, analysisPreset: 'custom', explanation: ''});
+                      } else {
+                        setSignalForm({...signalForm, analysisPreset: preset, explanation: preset});
+                      }
+                    }}
+                    className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-cyan-500 focus:outline-none mb-2"
+                  >
+                    <optgroup label="Vordefinierte Analysen">
+                      <option value="Basierend auf Live-Statistiken und Formkurve">📊 Live-Statistiken & Formkurve</option>
+                      <option value="Beide Teams treffen regelmäßig">⚽ Beide Teams treffen regelmäßig</option>
+                      <option value="Historische H2H-Daten sprechen dafür">📈 Historische H2H-Daten</option>
+                      <option value="Starke Heimmannschaft, schwache Auswärtsform">🏠 Heimvorteil vs Auswärtsschwäche</option>
+                      <option value="Hohe Torquote in letzten 5 Spielen">🔥 Hohe Torquote zuletzt</option>
+                      <option value="Motivationslage und Tabellensituation">💪 Motivation & Tabellensituation</option>
+                      <option value="Verletzungen begünstigen diese Wette">🏥 Verletzungssituation</option>
+                      <option value="Value-Bet: Quote höher als Wahrscheinlichkeit">💰 Value-Bet erkannt</option>
+                      <option value="KI-Analyse: Muster in Spieldaten erkannt">🤖 KI-Musteranalyse</option>
+                    </optgroup>
+                    <optgroup label="Eigene Eingabe">
+                      <option value="custom">✏️ Eigene Analyse schreiben...</option>
+                    </optgroup>
+                  </select>
+                  
+                  {(signalForm.analysisPreset === 'custom' || !signalForm.analysisPreset) && (
+                    <textarea
+                      value={signalForm.explanation}
+                      onChange={(e) => setSignalForm({...signalForm, explanation: e.target.value})}
+                      placeholder="Eigene Analyse zum Signal..."
+                      rows={2}
+                      className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-cyan-500 focus:outline-none resize-none"
+                    />
+                  )}
+                  
+                  {signalForm.analysisPreset && signalForm.analysisPreset !== 'custom' && (
+                    <div className="text-sm text-cyan-400 mt-1">
+                      ✓ Ausgewählt: "{signalForm.explanation}"
+                    </div>
+                  )}
                 </div>
 
                 {/* Channel Selection - Dropdown */}

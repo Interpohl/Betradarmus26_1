@@ -215,7 +215,35 @@ def create_signal_image(signal: Dict[str, Any]) -> io.BytesIO:
     level_x = (width - (level_bbox[2] - level_bbox[0])) // 2
     draw.text((level_x, y + 220), risk_level, fill=hex_to_rgb(neon_red), font=font_label)
     
-    y += risk_box_height + 60
+    y += risk_box_height + 50
+    
+    # === ANALYSIS SECTION (if provided) ===
+    analysis = signal.get('analysis', '')
+    if analysis:
+        # Analysis box
+        analysis_box_height = 120
+        draw.rounded_rectangle(
+            [pad, y, width - pad, y + analysis_box_height],
+            radius=15,
+            fill=hex_to_rgb('#0a0a0a'),
+            outline=hex_to_rgb('#333333'),
+            width=2
+        )
+        
+        # Analysis icon and label
+        pilmoji.text((pad + 20, y + 15), "🔍 ANALYSE", fill=hex_to_rgb('#00C2FF'), font=font_label)
+        
+        # Analysis text (wrap if too long)
+        analysis_font = font_disclaimer
+        # Truncate if too long
+        max_chars = 45
+        if len(analysis) > max_chars:
+            analysis_display = analysis[:max_chars-3] + "..."
+        else:
+            analysis_display = analysis
+        
+        draw.text((pad + 20, y + 65), analysis_display, fill=hex_to_rgb('#CCCCCC'), font=analysis_font)
+        y += analysis_box_height + 20
     
     # === ODDS (if provided) ===
     if odds:
