@@ -369,6 +369,16 @@ SENDER_NAME=BETRADARMUS
    - **Hilfe aktualisiert**: /help zeigt jetzt /signals und /live Commands
    - **Hinweis**: Bot ist in Preview deaktiviert, funktioniert auf Produktionsserver
 
+6. ✅ **Live-Ticker mit echten Signalen** - Durchlaufender Ticker umgestellt
+   - **Vorher**: Statische fiktive Daten (Bayern vs Dortmund, etc.)
+   - **Nachher**: Echte OddsPapi Signale von `/api/signals/upcoming` und `/api/signals/live`
+   - **Features**:
+     - Signal Score Badges (grün 70+, gelb 50-69, rot <50)
+     - Team-Namen aus echten API-Daten
+     - "STARK", "GUT", "HOLD" Empfehlungen
+     - Status-Alert: "Signal Engine 2.0 analysiert Märkte"
+   - **Auto-Refresh**: Alle 60 Sekunden
+
 ## Completed (2025-04-07)
 
 1. ✅ **Landing Page Sections Upgrade** - 5 neue Sections basierend auf Benutzer-Prompt implementiert:
