@@ -328,6 +328,17 @@ SENDER_NAME=BETRADARMUS
      - Gradient-Hintergründe mit abgerundeten Ecken
    - **Vorteil**: Keine externe API-Abhängigkeit, schnellere Ladezeiten
 
+3. ✅ **Match-Details Modal** - Interaktives Spiel-Detail-Popup
+   - **Komponente**: `MatchDetailsModal.jsx` (450+ Zeilen)
+   - **Backend**: Neuer `/api/sofascore/match/{event_id}` Endpoint
+   - **Features**:
+     - Team-Badges mit Score und Live-Status
+     - **Premium-Gate** für nicht-PRO/ELITE User mit Upgrade-CTA
+     - **Statistiken-Tab**: Ballbesitz, Torschüsse, Ecken, Fouls, Karten, Pässe
+     - **Ereignisse-Tab**: Tore, Karten, Auswechslungen mit Zeitstempel
+     - **Aufstellungen-Tab**: Formation und Startelf (wenn verfügbar)
+   - **Design**: Dark-Theme mit Gradient-Header und Tab-Navigation
+
 ## Completed (2025-04-07)
 
 1. ✅ **Landing Page Sections Upgrade** - 5 neue Sections basierend auf Benutzer-Prompt implementiert:

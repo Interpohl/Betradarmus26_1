@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Activity, TrendingUp, RefreshCw, Zap, Globe, AlertCircle, Calendar } from 'lucide-react';
+import { Activity, TrendingUp, RefreshCw, Zap, Globe, AlertCircle, Calendar, ChevronRight } from 'lucide-react';
 import axios from 'axios';
+import MatchDetailsModal from './MatchDetailsModal';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -96,7 +97,7 @@ const getCountryFlag = (country) => {
   return flags.default;
 };
 
-const LiveMatchCard = ({ match }) => {
+const LiveMatchCard = ({ match, onClick }) => {
   // Parse minute - handles various formats from SofaScore and Livescore
   const getStatusDisplay = () => {
     const minute = (match.minute || '').toLowerCase();
@@ -207,7 +208,11 @@ const LiveMatchCard = ({ match }) => {
   };
   
   return (
-    <div className="bg-[#121212] border border-white/10 rounded-xl p-4 hover:border-[#39FF14]/30 transition-all group">
+    <div 
+      className="bg-[#121212] border border-white/10 rounded-xl p-4 hover:border-[#39FF14]/30 transition-all group cursor-pointer"
+      onClick={onClick}
+      data-testid={`match-card-${match.id}`}
+    >
       {/* League & Status */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
@@ -267,6 +272,13 @@ const LiveMatchCard = ({ match }) => {
           </span>
         </div>
       </div>
+      
+      {/* Click hint */}
+      <div className="flex items-center justify-center mt-3 pt-3 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
+        <span className="text-[10px] text-[#A1A1AA] flex items-center gap-1">
+          Details anzeigen <ChevronRight className="w-3 h-3" />
+        </span>
+      </div>
     </div>
   );
 };
@@ -277,6 +289,10 @@ export const LiveMatchesFeed = () => {
   const [error, setError] = useState(null);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [selectedMatch, setSelectedMatch] = useState(null);
+  
+  // Get auth token from localStorage
+  const token = localStorage.getItem('token');
 
   const fetchMatches = useCallback(async (showRefreshing = false) => {
     if (showRefreshing) setIsRefreshing(true);
@@ -416,7 +432,11 @@ export const LiveMatchesFeed = () => {
             {/* Matches Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {matches.map((match) => (
-                <LiveMatchCard key={match.id} match={match} />
+                <LiveMatchCard 
+                  key={match.id} 
+                  match={match} 
+                  onClick={() => setSelectedMatch(match)}
+                />
               ))}
             </div>
             
@@ -439,6 +459,15 @@ export const LiveMatchesFeed = () => {
               </a>
             </div>
           </>
+        )}
+        
+        {/* Match Details Modal */}
+        {selectedMatch && (
+          <MatchDetailsModal 
+            match={selectedMatch} 
+            onClose={() => setSelectedMatch(null)}
+            token={token}
+          />
         )}
       </div>
     </section>
