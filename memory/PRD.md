@@ -339,6 +339,23 @@ SENDER_NAME=BETRADARMUS
      - **Aufstellungen-Tab**: Formation und Startelf (wenn verfügbar)
    - **Design**: Dark-Theme mit Gradient-Header und Tab-Navigation
 
+4. ✅ **Signal Engine 2.0 (OddsPapi Integration)** - KI-gestützte Wett-Signale
+   - **Backend Service**: `oddspapi_service.py` (400+ Zeilen)
+     - `OddsPapiService`: API-Client für 300+ Buchmacher inkl. Betfair Exchange
+     - `SignalEngine`: Analyse-Engine mit Sharp/Soft-Bookmaker-Vergleich
+   - **API Endpoints**:
+     - `GET /api/signals/live` - Live-Signale für laufende Spiele
+     - `GET /api/signals/upcoming` - Pre-Match-Signale
+     - `GET /api/signals/analyze/{fixture_id}` - Detaillierte Analyse (ELITE)
+     - `GET /api/signals/tournaments` - Verfügbare Ligen
+   - **Frontend**: `SignalEnginePanel.jsx` - Full-Featured UI mit Tabs, Signal-Cards, Premium-Gate
+   - **Features**:
+     - Signal Score (0-100) mit Farbcodierung
+     - Risk Score mit Niedrig/Mittel/Hoch-Indikator
+     - Empfehlungen: STRONG_BUY, BUY, HOLD, AVOID
+     - Sharp-Bookmaker-Erkennung (Pinnacle, Betfair, SBOBet)
+   - **Status**: Wartet auf OddsPapi API-Key
+
 ## Completed (2025-04-07)
 
 1. ✅ **Landing Page Sections Upgrade** - 5 neue Sections basierend auf Benutzer-Prompt implementiert:

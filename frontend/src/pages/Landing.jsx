@@ -16,6 +16,7 @@ import { useAuth } from '../context/AuthContext';
 import { PricingCard } from '../components/PricingCard';
 import { ExecutionDashboard } from '../components/ExecutionDashboard';
 import { BillingToggle } from '../components/BillingToggle';
+import { SignalEnginePanel } from '../components/SignalEnginePanel';
 
 // New sections for upgrade
 const WhyDifferentSection = lazy(() => import('../components/WhyDifferentSection').then(m => ({ default: m.WhyDifferentSection })));
@@ -295,6 +296,9 @@ export const Landing = () => {
 
       {/* Live Matches Feed - Aktuelle Spiele */}
       <LiveMatchesFeed />
+
+      {/* Signal Engine 2.0 - KI-Signale */}
+      <SignalEnginePanel />
 
       {/* NEW: Value Framing Section - Position: Nach Hero/Live Counter */}
       <Suspense fallback={<div className="py-20 text-center text-[#A1A1AA]">Laden...</div>}>
