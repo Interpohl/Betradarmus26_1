@@ -23,6 +23,13 @@ const TelegramBotSection = lazy(() => import('../components/TelegramBotSection')
 const TargetAudienceSection = lazy(() => import('../components/TargetAudienceSection').then(m => ({ default: m.TargetAudienceSection })));
 const ConversionSection = lazy(() => import('../components/ConversionSection').then(m => ({ default: m.ConversionSection })));
 
+// NEW: Added sections from prompt
+const ValueFramingSection = lazy(() => import('../components/ValueFramingSection').then(m => ({ default: m.ValueFramingSection })));
+const SignalComparisonTable = lazy(() => import('../components/SignalComparisonTable').then(m => ({ default: m.SignalComparisonTable })));
+const FAQSection = lazy(() => import('../components/FAQSection').then(m => ({ default: m.FAQSection })));
+const TrustSection = lazy(() => import('../components/TrustSection').then(m => ({ default: m.TrustSection })));
+const FinalCTASection = lazy(() => import('../components/FinalCTASection').then(m => ({ default: m.FinalCTASection })));
+
 // Heavy components below the fold - lazy load only these
 const LiveDemo = lazy(() => import('../components/LiveDemo').then(m => ({ default: m.LiveDemo })));
 const ComparisonSection = lazy(() => import('../components/ComparisonSection').then(m => ({ default: m.ComparisonSection })));
@@ -275,6 +282,11 @@ export const Landing = () => {
       {/* Live Ticker */}
       <LiveTicker />
 
+      {/* NEW: Value Framing Section - Position: Nach Hero/Live Counter */}
+      <Suspense fallback={<div className="py-20 text-center text-[#A1A1AA]">Laden...</div>}>
+        <ValueFramingSection />
+      </Suspense>
+
       {/* NEW: Why Different Section */}
       <Suspense fallback={<div className="py-20 text-center text-[#A1A1AA]">Laden...</div>}>
         <WhyDifferentSection />
@@ -283,6 +295,11 @@ export const Landing = () => {
       {/* NEW: Four Pillars Section */}
       <Suspense fallback={<div className="py-20 text-center text-[#A1A1AA]">Laden...</div>}>
         <FourPillarsSection />
+      </Suspense>
+
+      {/* NEW: Signal Comparison Table - Position: Nach Feature-Section */}
+      <Suspense fallback={<div className="py-20 text-center text-[#A1A1AA]">Laden...</div>}>
+        <SignalComparisonTable />
       </Suspense>
 
       {/* NEW: Signal Timeline */}
@@ -879,6 +896,11 @@ export const Landing = () => {
         </div>
       </section>
 
+      {/* NEW: FAQ Section - Position: Unterhalb Pricing */}
+      <Suspense fallback={<div className="py-20 text-center text-[#A1A1AA]">Laden...</div>}>
+        <FAQSection />
+      </Suspense>
+
       {/* Early Access Section */}
       <section id="early-access" className="py-24 md:py-32 bg-[#121212]/50 relative overflow-hidden" data-testid="early-access-section">
         <div className="absolute inset-0 hero-glow opacity-50" />
@@ -910,6 +932,19 @@ export const Landing = () => {
       {/* NEW: Conversion Section */}
       <Suspense fallback={<div className="py-20 text-center text-[#A1A1AA]">Laden...</div>}>
         <ConversionSection onGetStarted={() => {
+          setPendingPlan('free');
+          setShowAuthModal(true);
+        }} />
+      </Suspense>
+
+      {/* NEW: Trust Section - Position: Vor Final CTA */}
+      <Suspense fallback={<div className="py-20 text-center text-[#A1A1AA]">Laden...</div>}>
+        <TrustSection />
+      </Suspense>
+
+      {/* NEW: Final CTA Section - Position: Ganz am Ende vor Disclaimer */}
+      <Suspense fallback={<div className="py-20 text-center text-[#A1A1AA]">Laden...</div>}>
+        <FinalCTASection onGetStarted={() => {
           setPendingPlan('free');
           setShowAuthModal(true);
         }} />
