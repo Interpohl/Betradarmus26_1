@@ -1,7 +1,19 @@
 import React from 'react';
 import { Zap, MessageCircle, ArrowRight, Clock } from 'lucide-react';
+import { useCTATracking } from '../utils/analyticsHooks';
 
 export const FinalCTASection = ({ onGetStarted }) => {
+  const { trackCTAClick, trackTelegramClick } = useCTATracking();
+
+  const handleStartClick = () => {
+    trackCTAClick('final_cta_start', { section: 'final_cta' });
+    onGetStarted?.();
+  };
+
+  const handleTelegramClick = () => {
+    trackTelegramClick('bot', 'https://t.me/betradarmus_bot');
+  };
+
   return (
     <section className="py-20 md:py-32 relative overflow-hidden" data-testid="final-cta-section">
       {/* Background Effects */}
@@ -43,9 +55,10 @@ export const FinalCTASection = ({ onGetStarted }) => {
         {/* CTA Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
           <button
-            onClick={onGetStarted}
+            onClick={handleStartClick}
             className="group relative flex items-center justify-center gap-3 px-10 py-5 bg-[#39FF14] hover:bg-[#39FF14]/90 text-black font-bold text-lg rounded-xl transition-all duration-300 hover:shadow-[0_0_40px_rgba(57,255,20,0.4)] w-full sm:w-auto overflow-hidden"
             data-testid="final-cta-start-btn"
+            data-ph-capture="true"
           >
             {/* Shine effect */}
             <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/30 to-transparent" />
@@ -58,8 +71,10 @@ export const FinalCTASection = ({ onGetStarted }) => {
             href="https://t.me/betradarmus_bot"
             target="_blank"
             rel="noopener noreferrer"
+            onClick={handleTelegramClick}
             className="group flex items-center justify-center gap-3 px-10 py-5 bg-transparent border-2 border-[#0088cc] hover:bg-[#0088cc]/10 text-[#0088cc] font-bold text-lg rounded-xl transition-all duration-300 w-full sm:w-auto"
             data-testid="final-cta-telegram-btn"
+            data-ph-capture="true"
           >
             <MessageCircle className="w-6 h-6" />
             <span>Live-Bot aktivieren</span>

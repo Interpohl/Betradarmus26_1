@@ -7,6 +7,9 @@ import { HelmetProvider } from "react-helmet-async";
 // Context
 import { AuthProvider } from "./context/AuthContext";
 
+// Analytics - PostHog
+import { PostHogProvider } from "./utils/PostHogProvider";
+
 // Components - Always loaded
 import { Navbar } from "./components/Navbar";
 import { Footer } from "./components/Footer";
@@ -49,36 +52,38 @@ function App() {
   return (
     <HelmetProvider>
       <AuthProvider>
-        <div className="App min-h-screen bg-[#0a0a0a]">
-          <BrowserRouter>
-            <ScrollToTop />
-            <Navbar />
-            <main>
-              <Routes>
-                <Route path="/" element={<Landing />} />
-                <Route path="/admin" element={<Suspense fallback={<PageLoader />}><AdminDashboard /></Suspense>} />
-                <Route path="/verify" element={<Suspense fallback={<PageLoader />}><VerifyEmail /></Suspense>} />
-                <Route path="/faq" element={<Suspense fallback={<PageLoader />}><FAQ /></Suspense>} />
-                <Route path="/impressum" element={<Suspense fallback={<PageLoader />}><Impressum /></Suspense>} />
-                <Route path="/agb" element={<Suspense fallback={<PageLoader />}><AGB /></Suspense>} />
-                <Route path="/datenschutz" element={<Suspense fallback={<PageLoader />}><Datenschutz /></Suspense>} />
-                <Route path="/kontakt" element={<Suspense fallback={<PageLoader />}><Kontakt /></Suspense>} />
-                <Route path="/payment/success" element={<Suspense fallback={<PageLoader />}><PaymentSuccess /></Suspense>} />
-              </Routes>
-            </main>
-            <Footer />
-            <Toaster 
-              position="bottom-right"
-              toastOptions={{
-                style: {
-                  background: '#121212',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  color: '#EDEDED',
-                },
-              }}
-            />
-          </BrowserRouter>
-        </div>
+        <BrowserRouter>
+          <PostHogProvider>
+            <div className="App min-h-screen bg-[#0a0a0a]">
+              <ScrollToTop />
+              <Navbar />
+              <main>
+                <Routes>
+                  <Route path="/" element={<Landing />} />
+                  <Route path="/admin" element={<Suspense fallback={<PageLoader />}><AdminDashboard /></Suspense>} />
+                  <Route path="/verify" element={<Suspense fallback={<PageLoader />}><VerifyEmail /></Suspense>} />
+                  <Route path="/faq" element={<Suspense fallback={<PageLoader />}><FAQ /></Suspense>} />
+                  <Route path="/impressum" element={<Suspense fallback={<PageLoader />}><Impressum /></Suspense>} />
+                  <Route path="/agb" element={<Suspense fallback={<PageLoader />}><AGB /></Suspense>} />
+                  <Route path="/datenschutz" element={<Suspense fallback={<PageLoader />}><Datenschutz /></Suspense>} />
+                  <Route path="/kontakt" element={<Suspense fallback={<PageLoader />}><Kontakt /></Suspense>} />
+                  <Route path="/payment/success" element={<Suspense fallback={<PageLoader />}><PaymentSuccess /></Suspense>} />
+                </Routes>
+              </main>
+              <Footer />
+              <Toaster 
+                position="bottom-right"
+                toastOptions={{
+                  style: {
+                    background: '#121212',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    color: '#EDEDED',
+                  },
+                }}
+              />
+            </div>
+          </PostHogProvider>
+        </BrowserRouter>
       </AuthProvider>
     </HelmetProvider>
   );

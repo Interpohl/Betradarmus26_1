@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { HelpCircle } from 'lucide-react';
 import {
   Accordion,
@@ -6,8 +6,12 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from './ui/accordion';
+import { useFAQTracking } from '../utils/analyticsHooks';
 
 export const FAQSection = () => {
+  const { trackFAQOpen, trackFAQClose } = useFAQTracking();
+  const [openItems, setOpenItems] = useState([]);
+
   const faqs = [
     {
       question: 'Ist Betradarmus ein Tippdienst?',
@@ -51,7 +55,21 @@ export const FAQSection = () => {
         
         {/* FAQ Accordion */}
         <div className="bg-[#121212] border border-white/10 rounded-2xl overflow-hidden">
-          <Accordion type="single" collapsible className="w-full">
+          <Accordion 
+            type="single" 
+            collapsible 
+            className="w-full"
+            onValueChange={(value) => {
+              // Track FAQ interactions
+              if (value) {
+                const index = parseInt(value.replace('item-', ''));
+                if (!openItems.includes(value)) {
+                  trackFAQOpen(index, faqs[index]?.question);
+                  setOpenItems([...openItems, value]);
+                }
+              }
+            }}
+          >
             {faqs.map((faq, index) => (
               <AccordionItem 
                 key={index} 

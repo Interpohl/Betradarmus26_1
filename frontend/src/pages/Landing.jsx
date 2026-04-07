@@ -30,6 +30,9 @@ const FAQSection = lazy(() => import('../components/FAQSection').then(m => ({ de
 const TrustSection = lazy(() => import('../components/TrustSection').then(m => ({ default: m.TrustSection })));
 const FinalCTASection = lazy(() => import('../components/FinalCTASection').then(m => ({ default: m.FinalCTASection })));
 
+// Analytics Tracker
+const AnalyticsTracker = lazy(() => import('../components/AnalyticsTracker').then(m => ({ default: m.AnalyticsTracker })));
+
 // Heavy components below the fold - lazy load only these
 const LiveDemo = lazy(() => import('../components/LiveDemo').then(m => ({ default: m.LiveDemo })));
 const ComparisonSection = lazy(() => import('../components/ComparisonSection').then(m => ({ default: m.ComparisonSection })));
@@ -165,6 +168,11 @@ export const Landing = () => {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]" data-testid="landing-page">
+      {/* Analytics Tracker - Scroll Depth & Time on Page */}
+      <Suspense fallback={null}>
+        <AnalyticsTracker />
+      </Suspense>
+
       {/* Hero Section - UPGRADED */}
       <section className="relative min-h-screen flex items-center pt-20 pb-8 overflow-hidden" data-testid="hero-section">
         {/* Background Effects */}
