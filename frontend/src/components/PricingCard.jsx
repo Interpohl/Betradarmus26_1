@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, Zap, Crown, Star, Loader2 } from 'lucide-react';
+import { Check, Zap, Crown, Star, Loader2, Clock, TrendingUp, Shield, Eye } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
@@ -10,52 +10,63 @@ const plans = {
   free: {
     name: 'Free',
     price: '0',
-    period: 'Kostenlos',
-    description: 'Kostenloser Einstieg in die BETRADARMUS Community',
+    period: '',
+    yearlyPrice: null,
+    description: 'Für den Einstieg',
+    microcopy: 'Erste Einblicke in Live-Marktdynamik',
     icon: Star,
     features: [
-      'Zugang zur Telegram-Gruppe',
-      'Free-Tipps',
-      'Community Support',
-      'Freier Zugang zur TV-Show auf Twitch'
+      'Zugriff auf ausgewählte Live-Signale',
+      'Basis-Marktübersicht',
+      'Eingeschränkte Telegram Alerts',
+      'Verzögerte Signalanzeige'
     ],
-    cta: 'Kostenlos Starten',
-    highlight: false
+    cta: 'Kostenlos starten',
+    highlight: false,
+    badge: null
   },
   pro: {
     name: 'Pro',
-    price: '49',
+    price: '29',
     period: '/Monat',
-    description: 'Für ambitionierte Analysten',
+    yearlyPrice: '249',
+    description: 'Für datenbasierte Entscheidungen',
+    microcopy: 'Erkenne den richtigen Moment, nicht nur das Signal',
     icon: Zap,
     features: [
-      'Voller Live-Zugriff',
-      'Risk Score Analyse',
-      'Confidence Index',
-      'Erweiterte Liga-Filter',
-      'E-Mail Support'
+      'Voller Zugriff auf Live-Signale',
+      'Execution Score',
+      'Confidence Bewertung',
+      'Risk Score',
+      'Signal-Timeline',
+      'Echtzeit Telegram Alerts',
+      'Priorisierte Signale'
     ],
-    cta: 'Pro Wählen',
-    highlight: true
+    cta: 'Zugriff freischalten',
+    highlight: true,
+    badge: 'Meistgewählt'
   },
   elite: {
     name: 'Elite',
-    price: '199',
+    price: '79',
     period: '/Monat',
-    description: 'Maximale Performance',
+    yearlyPrice: '699',
+    description: 'Für maximale Echtzeit-Transparenz',
+    microcopy: 'Volle Kontrolle über Timing und Marktverhalten',
     icon: Crown,
     features: [
-      'Priorisierte Live-Updates',
-      'Historische Analyse',
-      'Erweiterte Insights',
-      'Alle Ligen weltweit',
-      'API-Zugang',
-      'Priority Support',
-      'Explainable AI Details'
+      'Alles aus Pro',
+      'Signal Lifetime Prediction',
+      'Erweiterte Explain Layer',
+      'Personalisierte Signalfilter',
+      'Schnellere Signal-Ausspielung',
+      'Signal-Historie',
+      'Frühere Signalerkennung'
     ],
-    cta: 'Elite Werden',
+    cta: 'Elite freischalten',
     highlight: false,
     elite: true,
+    badge: 'Maximale Kontrolle',
     disabled: false
   }
 };
@@ -115,55 +126,65 @@ export const PricingCard = ({ plan, onSelect, onAuthRequired }) => {
 
   return (
     <div 
-      className={`relative flex flex-col h-full p-6 md:p-8 ${
+      className={`relative flex flex-col h-full p-6 md:p-8 rounded-2xl transition-all duration-300 ${
         planData.elite 
-          ? 'pricing-card-elite bg-[#121212]' 
+          ? 'bg-gradient-to-b from-[#00C2FF]/10 to-[#121212] border-2 border-[#00C2FF]/30 hover:border-[#00C2FF]/50' 
           : planData.highlight 
-            ? 'pricing-card bg-[#1a1a1a] border-[#39FF14]/30' 
-            : 'pricing-card'
+            ? 'bg-gradient-to-b from-[#39FF14]/10 to-[#1a1a1a] border-2 border-[#39FF14]/50 hover:border-[#39FF14]/70 scale-105 shadow-[0_0_40px_rgba(57,255,20,0.15)]' 
+            : 'bg-[#0f0f0f] border border-white/10 hover:border-white/20'
       }`}
       data-testid={`pricing-card-${plan}`}
     >
-      {/* Popular Badge */}
-      {planData.highlight && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-[#39FF14] text-black text-xs font-bold uppercase tracking-wider rounded-sm">
-          Beliebt
+      {/* Badge */}
+      {planData.badge && (
+        <div className={`absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full ${
+          planData.elite 
+            ? 'bg-[#00C2FF] text-black' 
+            : 'bg-[#39FF14] text-black'
+        }`}>
+          {planData.badge}
         </div>
       )}
 
       {/* Current Plan Badge */}
       {isCurrentPlan && (
-        <div className="absolute -top-3 right-4 px-3 py-1 bg-[#00C2FF] text-black text-xs font-bold uppercase tracking-wider rounded-sm">
+        <div className="absolute -top-4 right-4 px-3 py-1.5 bg-white/20 text-white text-xs font-bold uppercase tracking-wider rounded-full border border-white/30">
           Aktuell
         </div>
       )}
 
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-6 pt-2">
         <div className="flex items-center gap-3 mb-4">
-          <div className={`w-10 h-10 flex items-center justify-center rounded-sm ${
-            planData.elite ? 'bg-[#00C2FF]/10' : planData.highlight ? 'bg-[#39FF14]/10' : 'bg-white/5'
+          <div className={`w-12 h-12 flex items-center justify-center rounded-xl ${
+            planData.elite ? 'bg-[#00C2FF]/20' : planData.highlight ? 'bg-[#39FF14]/20' : 'bg-white/5'
           }`}>
             <Icon 
-              size={20} 
+              size={24} 
               className={planData.elite ? 'text-[#00C2FF]' : planData.highlight ? 'text-[#39FF14]' : 'text-white'} 
             />
           </div>
-          <h3 className="font-heading text-2xl uppercase tracking-tight text-white">
+          <h3 className="font-heading text-2xl font-bold text-white">
             {planData.name}
           </h3>
         </div>
         
-        <div className="flex items-baseline gap-1 mb-2">
+        <div className="flex items-baseline gap-1 mb-1">
           <span className="font-mono text-4xl md:text-5xl font-bold text-white">€{planData.price}</span>
-          <span className="text-[#A1A1AA] text-sm">{planData.period}</span>
+          {planData.period && <span className="text-[#A1A1AA] text-sm">{planData.period}</span>}
         </div>
+        
+        {planData.yearlyPrice && (
+          <p className="text-xs text-[#A1A1AA] mb-2">
+            oder €{planData.yearlyPrice}/Jahr <span className="text-[#39FF14]">(spare 17%)</span>
+          </p>
+        )}
         
         <p className="text-[#A1A1AA] text-sm">{planData.description}</p>
       </div>
 
       {/* Features */}
-      <ul className="flex-1 space-y-3 mb-8">
+      <ul className="flex-1 space-y-3 mb-6">
         {planData.features.map((feature, index) => (
           <li key={index} className="flex items-start gap-3">
             <Check 
@@ -186,15 +207,15 @@ export const PricingCard = ({ plan, onSelect, onAuthRequired }) => {
       <button
         onClick={handleClick}
         disabled={loading || isCurrentPlan || planData.disabled}
-        className={`w-full h-12 font-bold uppercase tracking-wide text-sm rounded-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
+        className={`w-full h-14 font-bold uppercase tracking-wide text-sm rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
           isCurrentPlan
             ? 'bg-white/10 text-white border border-white/20'
             : planData.disabled
               ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
               : planData.highlight 
-                ? 'bg-[#39FF14] text-black hover:bg-[#2ebb11] hover:shadow-[0_0_20px_rgba(57,255,20,0.4)]'
+                ? 'bg-[#39FF14] text-black hover:bg-[#2ebb11] hover:shadow-[0_0_30px_rgba(57,255,20,0.5)]'
                 : planData.elite
-                  ? 'bg-[#00C2FF] text-black hover:bg-[#00a8dd] hover:shadow-[0_0_20px_rgba(0,194,255,0.4)]'
+                  ? 'bg-[#00C2FF] text-black hover:bg-[#00a8dd] hover:shadow-[0_0_30px_rgba(0,194,255,0.5)]'
                   : 'bg-white/5 text-white border border-white/10 hover:bg-white/10 hover:border-white/20'
         }`}
         data-testid={`pricing-cta-${plan}`}
@@ -211,6 +232,11 @@ export const PricingCard = ({ plan, onSelect, onAuthRequired }) => {
           planData.cta
         )}
       </button>
+
+      {/* Microcopy */}
+      {planData.microcopy && (
+        <p className="text-xs text-[#666] text-center mt-4">{planData.microcopy}</p>
+      )}
     </div>
   );
 };
