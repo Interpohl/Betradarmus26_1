@@ -1162,6 +1162,128 @@ async def get_livescore_live():
         "source": "livescore.com"
     }
 
+# ==================== SOFASCORE LIVE EVENTS ====================
+
+def fetch_sofascore_live_events():
+    """Fetch live football events from SofaScore RapidAPI"""
+    try:
+        url = "https://sofascore.p.rapidapi.com/tournaments/get-live-events"
+        
+        headers = {
+            "X-RapidAPI-Key": SOFASCORE_API_KEY,
+            "X-RapidAPI-Host": SOFASCORE_HOST
+        }
+        
+        params = {"sport": "football"}
+        
+        response = requests.get(url, headers=headers, params=params, timeout=15)
+        
+        if response.status_code == 200:
+            return response.json()
+        else:
+            logger.error(f"SofaScore API error: {response.status_code}")
+            return None
+    except Exception as e:
+        logger.error(f"SofaScore API request error: {str(e)}")
+        return None
+
+def parse_sofascore_live_events(data: dict) -> list:
+    """Parse live events from SofaScore data"""
+    live_matches = []
+    
+    if not data:
+        return live_matches
+    
+    events = data.get('events', [])
+    
+    for event in events:
+        try:
+            status = event.get('status', {})
+            status_type = status.get('type', '')
+            status_desc = status.get('description', '')
+            
+            # Only include in-progress matches
+            if status_type != 'inprogress':
+                continue
+            
+            # Get teams
+            home_team = event.get('homeTeam', {})
+            away_team = event.get('awayTeam', {})
+            
+            # Get scores
+            home_score = event.get('homeScore', {})
+            away_score = event.get('awayScore', {})
+            
+            # Get tournament/league info
+            tournament = event.get('tournament', {})
+            category = tournament.get('category', {})
+            
+            # Calculate current minute from timestamp
+            time_info = event.get('time', {})
+            current_period_start = time_info.get('currentPeriodStartTimestamp', 0)
+            initial_time = time_info.get('initial', 0)
+            
+            if current_period_start:
+                elapsed = int((datetime.now(timezone.utc).timestamp() - current_period_start) / 60)
+                minute = initial_time // 60 + elapsed
+                if status_desc == '2nd half':
+                    minute = max(minute, 46)
+                minute_str = f"{minute}'"
+            else:
+                minute_str = status_desc
+            
+            # Handle halftime
+            if status.get('code') == 31 or 'half' in status_desc.lower():
+                minute_str = 'HT' if 'half time' in status_desc.lower() or status.get('code') == 31 else status_desc
+            
+            match = {
+                "id": str(event.get('id', '')),
+                "home_team": home_team.get('name', 'Home'),
+                "away_team": away_team.get('name', 'Away'),
+                "home_score": home_score.get('current', 0) or 0,
+                "away_score": away_score.get('current', 0) or 0,
+                "status": status_desc,
+                "minute": minute_str,
+                "league": tournament.get('name', 'Unknown'),
+                "country": category.get('name', category.get('country', {}).get('name', 'International')),
+                "tournament": tournament.get('name', 'Unknown'),
+                "country_code": category.get('alpha2', category.get('flag', ''))
+            }
+            live_matches.append(match)
+        except Exception as e:
+            logger.error(f"Error parsing SofaScore event: {e}")
+            continue
+    
+    return live_matches
+
+@api_router.get("/sofascore/live")
+async def get_sofascore_live():
+    """Get current live football events from SofaScore"""
+    data = await asyncio.to_thread(fetch_sofascore_live_events)
+    
+    if not data:
+        # Fallback to livescore.com
+        livescore_data = await asyncio.to_thread(fetch_livescore_matches)
+        if livescore_data:
+            live_matches = parse_livescore_live_matches(livescore_data)
+            return {
+                "live_matches": live_matches,
+                "count": len(live_matches),
+                "source": "livescore.com"
+            }
+        return {"live_matches": [], "count": 0, "source": "error"}
+    
+    live_matches = parse_sofascore_live_events(data)
+    
+    # Sort by country/league
+    live_matches.sort(key=lambda x: (x['country'], x['league']))
+    
+    return {
+        "live_matches": live_matches,
+        "count": len(live_matches),
+        "source": "sofascore"
+    }
+
 # ==================== THE ODDS API ROUTES ====================
 
 def odds_api_request(endpoint: str, params: dict = None) -> dict:
