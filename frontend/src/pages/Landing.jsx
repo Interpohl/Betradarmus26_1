@@ -10,6 +10,7 @@ import { LiveCounter } from '../components/LiveCounter';
 import { LiveDashboard } from '../components/LiveDashboard';
 import { LiveDashboardReal } from '../components/LiveDashboardReal';
 import { LiveTicker } from '../components/LiveTicker';
+import { LiveMatchesFeed } from '../components/LiveMatchesFeed';
 import { AuthModal } from '../components/AuthModal';
 import { useAuth } from '../context/AuthContext';
 import { PricingCard } from '../components/PricingCard';
@@ -291,6 +292,9 @@ export const Landing = () => {
 
       {/* Live Ticker */}
       <LiveTicker />
+
+      {/* Live Matches Feed - Aktuelle Spiele */}
+      <LiveMatchesFeed />
 
       {/* NEW: Value Framing Section - Position: Nach Hero/Live Counter */}
       <Suspense fallback={<div className="py-20 text-center text-[#A1A1AA]">Laden...</div>}>
