@@ -23,28 +23,37 @@ An AI-powered live sports analysis platform for football, analyzing live markets
 ```
 /app
 ├── backend/
-│   ├── server.py              # Main FastAPI application
-│   ├── telegram_service.py    # Telegram Bot Service
-│   ├── email_service.py       # SendGrid Email Service
-│   ├── statistics_service.py  # Statistics & Tip Tracking Service
+│   ├── server.py                     # Main FastAPI application
+│   ├── subscription_service.py       # NEW: Subscription Management
+│   ├── telegram_service.py           # Telegram Bot Service (Updated with payment commands)
+│   ├── telegram_payment_service.py   # NEW: Telegram Payment Handling
+│   ├── email_service.py              # SendGrid Email Service
+│   ├── statistics_service.py         # Statistics & Tip Tracking Service
 │   ├── requirements.txt
 │   ├── Dockerfile
 │   └── .env
 ├── frontend/
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── Statistics.jsx        # Statistics Component
-│   │   │   ├── ValueFramingSection.jsx     # NEW: Value Framing
-│   │   │   ├── SignalComparisonTable.jsx   # NEW: Comparison Table
-│   │   │   ├── FAQSection.jsx              # NEW: FAQ Accordion
-│   │   │   ├── TrustSection.jsx            # NEW: Trust Building
-│   │   │   └── FinalCTASection.jsx         # NEW: Final CTA
-│   │   └── pages/
-│   │       ├── AdminDashboard.jsx
-│   │       ├── FAQ.jsx            # FAQ Page (NEW)
-│   │       └── Landing.jsx        # Enhanced with new sections
+│   │   │   ├── BillingToggle.jsx           # NEW: Monthly/Yearly Toggle
+│   │   │   ├── ValueFramingSection.jsx     # Value Framing
+│   │   │   ├── SignalComparisonTable.jsx   # Comparison Table
+│   │   │   ├── FAQSection.jsx              # FAQ Accordion
+│   │   │   ├── TrustSection.jsx            # Trust Building
+│   │   │   ├── FinalCTASection.jsx         # Final CTA
+│   │   │   └── PricingCard.jsx             # Updated with billingInterval
+│   │   ├── pages/
+│   │   │   ├── AdminDashboard.jsx
+│   │   │   ├── BillingPage.jsx             # NEW: Account/Billing Management
+│   │   │   └── Landing.jsx                 # Enhanced with BillingToggle
+│   │   └── utils/
+│   │       ├── analytics.js                # PostHog Event Constants
+│   │       ├── analyticsHooks.js           # Custom Tracking Hooks
+│   │       └── PostHogProvider.jsx         # PostHog Provider
 │   ├── package.json
 │   └── Dockerfile
+├── docs/
+│   └── POSTHOG_SETUP.md                    # Analytics Documentation
 ├── docker-compose.yml
 └── .github/workflows/deploy-strato.yml
 ```
@@ -313,7 +322,23 @@ SENDER_NAME=BETRADARMUS
    - Feature Flags vorbereitet für A/B Tests (Trust Section, Final CTA, Value Framing, Pricing)
    - Session Recording aktiviert mit Privacy-Masking
    - Dokumentation erstellt: `/app/docs/POSTHOG_SETUP.md`
-   - **WICHTIG**: User muss PostHog API Key in `.env` eintragen!
+4. ✅ **Payment & Subscription System** - Vollständiges Hybrides Payment-System implementiert:
+   - **Backend**:
+     - `subscription_service.py` - Zentrales Subscription-Management
+     - Stripe Checkout Sessions für monatliche/jährliche Abos
+     - Webhook-Handling (checkout.session.completed, subscription.updated/deleted, invoice.paid/failed)
+     - User Linking zwischen Website und Telegram
+     - Access Control Endpoints (Feature-Check, Signal-Limit)
+   - **Frontend**:
+     - `BillingToggle.jsx` - Monatlich/Jährlich Umschalter mit -28% Badge
+     - `BillingPage.jsx` - Abo-Verwaltung, Telegram-Verknüpfung, Zahlungsverlauf
+     - `PricingCard.jsx` - Aktualisiert mit billingInterval-Support
+     - Neue Routen: `/account`, `/billing`
+   - **Telegram Bot**:
+     - Neue Kommandos: `/plans`, `/upgrade`, `/manage`, `/link`
+     - Callback Handler für Upgrade-Buttons
+     - Link-Code Verarbeitung für Konto-Verknüpfung
+   - **100% Backend & Frontend Tests bestanden** (21/21 Backend, alle Frontend)
 
 ## Completed (2025-03-27)
 
