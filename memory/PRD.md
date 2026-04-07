@@ -357,6 +357,18 @@ SENDER_NAME=BETRADARMUS
      - Premium-Gate für Free User mit Upgrade-CTA
    - **Status**: ✅ AKTIV mit OddsPapi API-Key (Free Tier: 250 Req/Monat, max 5 Turniere, 1 Bookmaker)
 
+5. ✅ **Telegram Bot Signal Commands** - /signals und /live
+   - **Neue Commands**:
+     - `/signals` - Zeigt bevorstehende Signale (Top 10 für PRO/ELITE, Preview für Free)
+     - `/live` - Zeigt Live-Signale für laufende Spiele
+   - **Features**:
+     - Signal Score mit Emojis (🟢 70+, 🟡 50-69, 🔴 <50)
+     - Risk Score mit Emojis (🛡️ Niedrig, ⚠️ Mittel, 🔥 Hoch)
+     - Premium-Gate: Free User sehen 3 Signale ohne Details
+     - PRO/ELITE User sehen alle Details inkl. Quoten und Empfehlungen
+   - **Hilfe aktualisiert**: /help zeigt jetzt /signals und /live Commands
+   - **Hinweis**: Bot ist in Preview deaktiviert, funktioniert auf Produktionsserver
+
 ## Completed (2025-04-07)
 
 1. ✅ **Landing Page Sections Upgrade** - 5 neue Sections basierend auf Benutzer-Prompt implementiert:

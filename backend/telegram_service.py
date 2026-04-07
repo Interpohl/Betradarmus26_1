@@ -24,6 +24,9 @@ from telegram.constants import ParseMode
 # Import signal image generator
 from signal_image_generator import create_signal_image
 
+# Import Signal Engine 2.0
+from oddspapi_service import get_signal_engine, get_oddspapi_service
+
 logger = logging.getLogger(__name__)
 
 # Available leagues for subscription
@@ -125,6 +128,9 @@ class TelegramBotService:
         self.application.add_handler(CommandHandler("upgrade", self.cmd_upgrade))
         self.application.add_handler(CommandHandler("manage", self.cmd_manage))
         self.application.add_handler(CommandHandler("link", self.cmd_link))
+        # Signal Engine 2.0 commands
+        self.application.add_handler(CommandHandler("signals", self.cmd_signals))
+        self.application.add_handler(CommandHandler("live", self.cmd_live_signals))
         self.application.add_handler(CallbackQueryHandler(self.handle_callback))
         
         # Handler for link codes (messages that look like codes)
@@ -393,6 +399,8 @@ Wähle eine Option zum Ändern:
 *Verfügbare Befehle:*
 
 /start - Registrierung starten
+/signals - 📊 Signal Engine 2.0 Signale
+/live - 🔴 Live-Signale (laufende Spiele)
 /settings - Einstellungen ändern
 /subscribe - Ligen abonnieren
 /unsubscribe - Ligen abbestellen
@@ -407,19 +415,190 @@ Wähle eine Option zum Ändern:
 *Was sind Signale?*
 Unsere KI analysiert Live-Fußballmärkte und erkennt Ineffizienzen. Wenn eine Gelegenheit erkannt wird, erhältst du ein Signal mit:
 • Spiel & Liga
-• Markt (z.B. Over 2.5)
-• Confidence Score
+• Signal Score (0-100)
 • Risk Score
+• Empfehlung (STRONG\\_BUY, BUY, HOLD, AVOID)
 
 *Subscription Levels:*
-• FREE: 2 Ligen, 5 Signale/Tag, Community Gruppe
-• PRO: 5 Ligen, 50 Signale/Tag, Echtzeit
-• ELITE: 8 Ligen, Unbegrenzt, VIP Signal-Kanal
+• FREE: 2 Signale Preview, Score sichtbar
+• PRO: Alle Signale + Details + Quoten
+• ELITE: Alles + Detailanalyse + VIP Kanal
 
 Upgrade: betradarmus.de
 Support: support@betradarmus.de
 """
         await update.message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
+    
+    # ==================== SIGNAL ENGINE 2.0 COMMANDS ====================
+    
+    async def cmd_signals(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /signals command - Show upcoming Signal Engine 2.0 signals"""
+        telegram_id = str(update.effective_user.id)
+        user = await self.db.telegram_users.find_one({"telegram_id": telegram_id})
+        subscription = user.get("subscription_level", "free") if user else "free"
+        is_premium = subscription in ["pro", "elite"]
+        
+        await update.message.reply_text("📊 *Analysiere Märkte...*", parse_mode=ParseMode.MARKDOWN)
+        
+        try:
+            engine = get_signal_engine()
+            signals = engine.analyze_upcoming_matches()
+            
+            if not signals:
+                await update.message.reply_text(
+                    "😴 *Keine Signale verfügbar*\n\nAktuell gibt es keine bevorstehenden Spiele mit Quotendaten.\n\nVersuche /live für laufende Spiele.",
+                    parse_mode=ParseMode.MARKDOWN
+                )
+                return
+            
+            # Build response message
+            if is_premium:
+                # Premium users get full details
+                message = f"📊 *SIGNAL ENGINE 2.0*\n\n*{len(signals)} Signale gefunden:*\n\n"
+                
+                for i, signal in enumerate(signals[:10], 1):
+                    score = signal.get("signal_score", 0)
+                    risk = signal.get("risk_score", 50)
+                    rec = signal.get("recommendation_text", "?")
+                    home = signal.get("home_team", "?")
+                    away = signal.get("away_team", "?")
+                    odds = signal.get("suggested_bet", {}).get("odds", "?")
+                    selection = signal.get("suggested_bet", {}).get("selection", "?")
+                    
+                    # Score emoji
+                    if score >= 70:
+                        score_emoji = "🟢"
+                    elif score >= 50:
+                        score_emoji = "🟡"
+                    else:
+                        score_emoji = "🔴"
+                    
+                    # Risk emoji
+                    if risk <= 30:
+                        risk_emoji = "🛡️"
+                    elif risk <= 60:
+                        risk_emoji = "⚠️"
+                    else:
+                        risk_emoji = "🔥"
+                    
+                    message += f"{score_emoji} *{home}* vs *{away}*\n"
+                    message += f"   Score: {score:.0f} | Risk: {risk_emoji} {risk:.0f}\n"
+                    message += f"   📌 {rec}: {selection} @{odds}\n\n"
+                
+                message += "\n_Aktualisiert: " + datetime.now(timezone.utc).strftime("%H:%M UTC") + "_"
+                
+            else:
+                # Free users get preview only
+                message = f"📊 *SIGNAL ENGINE 2.0*\n\n*{len(signals)} Signale verfügbar:*\n\n"
+                
+                for i, signal in enumerate(signals[:3], 1):
+                    score = signal.get("signal_score", 0)
+                    home = signal.get("home_team", "?")
+                    away = signal.get("away_team", "?")
+                    
+                    if score >= 70:
+                        score_emoji = "🟢"
+                    elif score >= 50:
+                        score_emoji = "🟡"
+                    else:
+                        score_emoji = "🔴"
+                    
+                    message += f"{score_emoji} *{home}* vs *{away}*\n"
+                    message += f"   Score: {score:.0f} | 🔒 _Details für PRO/ELITE_\n\n"
+                
+                if len(signals) > 3:
+                    message += f"_... und {len(signals) - 3} weitere Signale_\n\n"
+                
+                message += "━━━━━━━━━━━━━━━━━━━━━\n"
+                message += "🔓 *Upgrade für alle Signale:*\n"
+                message += "• Vollständige Empfehlungen\n"
+                message += "• Quoten & Wahrscheinlichkeiten\n"
+                message += "• Risk Score Analyse\n\n"
+                message += "➡️ /upgrade oder betradarmus.de"
+            
+            await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
+            
+        except Exception as e:
+            logger.error(f"Error in cmd_signals: {e}")
+            await update.message.reply_text(
+                "❌ *Fehler beim Laden der Signale*\n\nBitte versuche es später erneut.",
+                parse_mode=ParseMode.MARKDOWN
+            )
+    
+    async def cmd_live_signals(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /live command - Show live Signal Engine 2.0 signals"""
+        telegram_id = str(update.effective_user.id)
+        user = await self.db.telegram_users.find_one({"telegram_id": telegram_id})
+        subscription = user.get("subscription_level", "free") if user else "free"
+        is_premium = subscription in ["pro", "elite"]
+        
+        await update.message.reply_text("🔴 *Suche Live-Spiele...*", parse_mode=ParseMode.MARKDOWN)
+        
+        try:
+            engine = get_signal_engine()
+            signals = engine.analyze_live_matches()
+            
+            if not signals:
+                await update.message.reply_text(
+                    "😴 *Keine Live-Signale*\n\nAktuell laufen keine Spiele mit Quotendaten.\n\nVersuche /signals für bevorstehende Spiele.",
+                    parse_mode=ParseMode.MARKDOWN
+                )
+                return
+            
+            # Build response message
+            if is_premium:
+                message = f"🔴 *LIVE SIGNALE*\n\n*{len(signals)} Live-Spiele:*\n\n"
+                
+                for signal in signals[:8]:
+                    score = signal.get("signal_score", 0)
+                    risk = signal.get("risk_score", 50)
+                    rec = signal.get("recommendation_text", "?")
+                    home = signal.get("home_team", "?")
+                    away = signal.get("away_team", "?")
+                    odds = signal.get("suggested_bet", {}).get("odds", "?")
+                    selection = signal.get("suggested_bet", {}).get("selection", "?")
+                    
+                    if score >= 70:
+                        score_emoji = "🟢"
+                    elif score >= 50:
+                        score_emoji = "🟡"
+                    else:
+                        score_emoji = "🔴"
+                    
+                    message += f"{score_emoji} *{home}* vs *{away}* 🔴\n"
+                    message += f"   Score: {score:.0f} | {rec}\n"
+                    message += f"   📌 {selection} @{odds}\n\n"
+                
+                message += "_Live-Daten von Pinnacle_"
+                
+            else:
+                message = f"🔴 *LIVE SIGNALE*\n\n*{len(signals)} Live-Spiele:*\n\n"
+                
+                for signal in signals[:2]:
+                    score = signal.get("signal_score", 0)
+                    home = signal.get("home_team", "?")
+                    away = signal.get("away_team", "?")
+                    
+                    if score >= 70:
+                        score_emoji = "🟢"
+                    else:
+                        score_emoji = "🟡"
+                    
+                    message += f"{score_emoji} *{home}* vs *{away}* 🔴\n"
+                    message += f"   Score: {score:.0f} | 🔒 _PRO/ELITE only_\n\n"
+                
+                message += "━━━━━━━━━━━━━━━━━━━━━\n"
+                message += "🔓 *Upgrade für Live-Signale:*\n"
+                message += "➡️ /upgrade oder betradarmus.de"
+            
+            await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
+            
+        except Exception as e:
+            logger.error(f"Error in cmd_live_signals: {e}")
+            await update.message.reply_text(
+                "❌ *Fehler beim Laden der Live-Signale*\n\nBitte versuche es später erneut.",
+                parse_mode=ParseMode.MARKDOWN
+            )
     
     # ==================== PAYMENT & SUBSCRIPTION COMMANDS ====================
     
