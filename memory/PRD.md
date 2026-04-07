@@ -13,9 +13,10 @@ An AI-powered live sports analysis platform for football, analyzing live markets
 - **Database**: MongoDB
 - **Authentication**: JWT
 - **Payments**: Stripe (official Python SDK)
-- **Live Data**: Hybrid solution - The Odds API (prematch odds) + Livescore.com (live scores)
+- **Live Data**: Hybrid solution - The Odds API (prematch odds) + **SofaScore RapidAPI** (live matches) + Livescore.com (fallback)
 - **Signal Distribution**: Telegram Bot (python-telegram-bot)
 - **Email**: SendGrid
+- **Analytics**: PostHog (A/B Testing, Session Recording)
 - **Deployment**: Docker, Docker Compose, Nginx on Strato V-Server
 - **CI/CD**: GitHub Actions
 
@@ -150,6 +151,12 @@ SENDER_NAME=BETRADARMUS
 - `GET /api/statistics/recent` - Recent evaluated tips
 - `POST /api/statistics/process` - Process pending tips (ELITE only)
 - `POST /api/statistics/record-tip` - Record a new tip (ELITE only)
+
+### Live Matches
+- `GET /api/sofascore/live` - Live football matches from SofaScore RapidAPI (Primary)
+- `GET /api/livescore/live` - Live football matches from Livescore.com (Fallback)
+- `GET /api/live/matches` - Live matches with subscription-based access
+- `GET /api/live/match/{match_id}` - Detailed match stats (PRO/ELITE only)
 
 ---
 
@@ -299,6 +306,19 @@ SENDER_NAME=BETRADARMUS
 3. ✅ SSL for api.betradarmus.de
 4. ✅ Google Search Console verification
 5. ✅ Telegram Bot implementation
+
+## Completed (2026-04-07)
+
+1. ✅ **SofaScore Live Feed Integration** - Vollständige Integration der SofaScore RapidAPI für echte Live-Spiele
+   - **Backend**: Neuer `/api/sofascore/live` Endpoint mit optimiertem Data-Parsing
+   - **Frontend**: `LiveMatchesFeed.jsx` aktualisiert auf SofaScore-API
+   - **Features**:
+     - Echte Live-Spiele aus 50+ Ländern weltweit
+     - Verbesserte Status-Erkennung (1. HZ, 2. HZ, HZ, VL, ELF)
+     - Länderflaggen-Mapping für 70+ Länder
+     - Auto-Refresh alle 30 Sekunden
+     - Fallback auf Livescore.com bei API-Fehlern
+   - **Testing**: Backend curl-Tests + Frontend Screenshot verifiziert
 
 ## Completed (2025-04-07)
 

@@ -97,20 +97,47 @@ const getCountryFlag = (country) => {
 };
 
 const LiveMatchCard = ({ match }) => {
-  // Parse minute - could be "45'", "HT", "Int.", "90+2", etc.
+  // Parse minute - handles various formats from SofaScore and Livescore
   const getStatusDisplay = () => {
-    const minute = match.minute;
-    const status = match.status;
+    const minute = (match.minute || '').toLowerCase();
+    const status = (match.status || '').toLowerCase();
     
-    if (status === 'HT' || minute === 'HT' || minute === 'Int.') {
+    // Halftime detection
+    if (status.includes('halftime') || status.includes('half time') || 
+        minute === 'ht' || minute === 'int.' || status === 'ht') {
       return { text: 'HZ', isLive: true, isHalftime: true };
     }
-    if (status === 'FT' || minute === 'FT') {
+    
+    // Full time / Ended
+    if (status === 'ft' || minute === 'ft' || status.includes('ended') || status.includes('finished')) {
       return { text: 'Ende', isLive: false, isHalftime: false };
     }
-    if (minute && minute !== '') {
-      return { text: minute, isLive: true, isHalftime: false };
+    
+    // First half
+    if (status.includes('1st half') || minute.includes('1st half')) {
+      return { text: '1. HZ', isLive: true, isHalftime: false };
     }
+    
+    // Second half
+    if (status.includes('2nd half') || minute.includes('2nd half')) {
+      return { text: '2. HZ', isLive: true, isHalftime: false };
+    }
+    
+    // Extra time
+    if (status.includes('extra') || minute.includes('extra')) {
+      return { text: 'VL', isLive: true, isHalftime: false };
+    }
+    
+    // Penalty shootout
+    if (status.includes('penalty') || minute.includes('penalty')) {
+      return { text: 'ELF', isLive: true, isHalftime: false };
+    }
+    
+    // If minute contains a number (e.g., "45'", "67", etc.)
+    if (match.minute && match.minute !== '') {
+      return { text: match.minute, isLive: true, isHalftime: false };
+    }
+    
     return { text: 'LIVE', isLive: true, isHalftime: false };
   };
   
@@ -186,19 +213,20 @@ export const LiveMatchesFeed = () => {
     if (showRefreshing) setIsRefreshing(true);
     
     try {
-      // Use the livescore.com API for real live matches
-      const response = await axios.get(`${API}/livescore/live`);
+      // Use SofaScore API for more comprehensive live matches
+      const response = await axios.get(`${API}/sofascore/live`);
       const liveMatches = response.data.live_matches || [];
       
-      // Transform the data
+      // Transform the data - handle both string and integer scores
       const transformed = liveMatches.map(match => ({
         id: match.id || Math.random(),
         league: match.league || match.tournament || 'International',
         country: match.country || '',
+        countryCode: match.country_code || '',
         homeTeam: match.home_team || 'Team A',
         awayTeam: match.away_team || 'Team B',
-        homeScore: match.home_score ?? 0,
-        awayScore: match.away_score ?? 0,
+        homeScore: parseInt(match.home_score, 10) || 0,
+        awayScore: parseInt(match.away_score, 10) || 0,
         minute: match.minute || '',
         status: match.status || 'LIVE',
         startTime: null
