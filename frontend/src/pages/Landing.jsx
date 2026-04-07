@@ -13,6 +13,15 @@ import { LiveTicker } from '../components/LiveTicker';
 import { AuthModal } from '../components/AuthModal';
 import { useAuth } from '../context/AuthContext';
 import { PricingCard } from '../components/PricingCard';
+import { ExecutionDashboard } from '../components/ExecutionDashboard';
+
+// New sections for upgrade
+const WhyDifferentSection = lazy(() => import('../components/WhyDifferentSection').then(m => ({ default: m.WhyDifferentSection })));
+const FourPillarsSection = lazy(() => import('../components/FourPillarsSection').then(m => ({ default: m.FourPillarsSection })));
+const SignalTimeline = lazy(() => import('../components/SignalTimeline').then(m => ({ default: m.SignalTimeline })));
+const TelegramBotSection = lazy(() => import('../components/TelegramBotSection').then(m => ({ default: m.TelegramBotSection })));
+const TargetAudienceSection = lazy(() => import('../components/TargetAudienceSection').then(m => ({ default: m.TargetAudienceSection })));
+const ConversionSection = lazy(() => import('../components/ConversionSection').then(m => ({ default: m.ConversionSection })));
 
 // Heavy components below the fold - lazy load only these
 const LiveDemo = lazy(() => import('../components/LiveDemo').then(m => ({ default: m.LiveDemo })));
@@ -149,7 +158,7 @@ export const Landing = () => {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]" data-testid="landing-page">
-      {/* Hero Section */}
+      {/* Hero Section - UPGRADED */}
       <section className="relative min-h-screen flex items-center pt-20 pb-8 overflow-hidden" data-testid="hero-section">
         {/* Background Effects */}
         <div className="absolute inset-0 hero-glow" />
@@ -159,81 +168,102 @@ export const Landing = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
             {/* Left Column - Text */}
             <div className="lg:col-span-5 space-y-6">
-              {/* USP Badge - Eye-catching */}
+              {/* USP Badge */}
               <div className="flex flex-wrap gap-2 animate-fade-in-up">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#39FF14]/10 border border-[#39FF14]/20 rounded-sm">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#39FF14]/10 border border-[#39FF14]/20 rounded-full">
                   <div className="live-dot" />
                   <span className="font-mono text-xs text-[#39FF14] uppercase tracking-wider">Live</span>
                 </div>
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#00C2FF]/10 border border-[#00C2FF]/20 rounded-sm">
-                  <span className="font-mono text-xs text-[#00C2FF] uppercase tracking-wider">71% Trefferquote</span>
-                </div>
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#FFD700]/10 border border-[#FFD700]/20 rounded-sm">
-                  <span className="font-mono text-xs text-[#FFD700] uppercase tracking-wider">Gewinnen statt zocken</span>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#00C2FF]/10 border border-[#00C2FF]/20 rounded-full">
+                  <Zap className="w-3 h-3 text-[#00C2FF]" />
+                  <span className="font-mono text-xs text-[#00C2FF] uppercase tracking-wider">Decision Engine</span>
                 </div>
               </div>
               
-              <h1 className="font-heading text-4xl sm:text-5xl lg:text-6xl font-bold uppercase tracking-tighter text-white leading-[0.95] animate-fade-in-up animation-delay-100">
-                <span className="text-[#FFD700]">Gewinnen statt zocken.</span>
+              {/* NEW Headline */}
+              <h1 className="font-heading text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-[1.1] animate-fade-in-up animation-delay-100">
+                Erkenne nicht nur Signale.
                 <br />
-                <span className="text-white">KI-Signale mit </span>
-                <span className="text-[#39FF14]">71% Trefferquote.</span>
+                <span className="text-[#39FF14]">Erkenne, ob sie jetzt noch spielbar sind.</span>
               </h1>
               
+              {/* NEW Subheadline */}
               <p className="text-base md:text-lg text-[#A1A1AA] leading-relaxed animate-fade-in-up animation-delay-200">
-                Unsere KI analysiert Live-Fußballmärkte und sendet dir profitable Signale per Telegram. Transparent, schnell, nachweisbar.
+                Betradarmus analysiert Live-Fußballmärkte in Echtzeit und bewertet für dich 
+                <span className="text-white"> Ausführbarkeit, Stabilität, Risiko </span> 
+                und verbleibendes Zeitfenster eines Signals.
               </p>
 
-              {/* USP Stats Row */}
-              <div className="grid grid-cols-3 gap-4 py-4 animate-fade-in-up animation-delay-250">
+              {/* Quick Stats */}
+              <div className="grid grid-cols-4 gap-3 py-4 animate-fade-in-up animation-delay-250">
                 <div className="text-center">
-                  <div className="font-mono text-2xl md:text-3xl font-bold text-[#39FF14]">71%</div>
-                  <div className="text-xs text-[#A1A1AA] uppercase tracking-wide">Win Rate</div>
+                  <div className="font-mono text-xl md:text-2xl font-bold text-[#39FF14]">78+</div>
+                  <div className="text-[10px] text-[#A1A1AA] uppercase tracking-wide">Exec Score</div>
                 </div>
                 <div className="text-center border-x border-white/10">
-                  <div className="font-mono text-2xl md:text-3xl font-bold text-[#00C2FF]">+42%</div>
-                  <div className="text-xs text-[#A1A1AA] uppercase tracking-wide">ROI</div>
+                  <div className="font-mono text-xl md:text-2xl font-bold text-[#00C2FF]">81%</div>
+                  <div className="text-[10px] text-[#A1A1AA] uppercase tracking-wide">Confidence</div>
+                </div>
+                <div className="text-center border-r border-white/10">
+                  <div className="font-mono text-xl md:text-2xl font-bold text-[#FF0040]">29</div>
+                  <div className="text-[10px] text-[#A1A1AA] uppercase tracking-wide">Risk</div>
                 </div>
                 <div className="text-center">
-                  <div className="font-mono text-2xl md:text-3xl font-bold text-white">150+</div>
-                  <div className="text-xs text-[#A1A1AA] uppercase tracking-wide">Tipps</div>
+                  <div className="font-mono text-xl md:text-2xl font-bold text-[#FFD700]">~50s</div>
+                  <div className="text-[10px] text-[#A1A1AA] uppercase tracking-wide">Window</div>
                 </div>
               </div>
               
+              {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 animate-fade-in-up animation-delay-300">
                 <button 
                   onClick={() => {
                     setPendingPlan('free');
                     setShowAuthModal(true);
                   }}
-                  className="h-14 px-8 bg-[#39FF14] text-black font-bold uppercase tracking-wide text-sm rounded-sm hover:bg-[#2ebb11] hover:shadow-[0_0_30px_rgba(57,255,20,0.5)] transition-all flex items-center justify-center gap-2"
+                  className="h-14 px-8 bg-[#39FF14] text-black font-bold uppercase tracking-wide text-sm rounded-xl hover:bg-[#2ebb11] hover:shadow-[0_0_30px_rgba(57,255,20,0.5)] transition-all flex items-center justify-center gap-2"
                   data-testid="hero-cta-btn"
                 >
+                  <Zap className="w-5 h-5" />
                   Kostenlos starten
                   <ChevronRight size={18} />
                 </button>
-                <button 
-                  onClick={() => document.getElementById('statistics')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="h-14 px-6 bg-white/5 border border-white/10 text-white font-bold uppercase tracking-wide text-sm rounded-sm hover:bg-white/10 hover:border-white/20 transition-all"
-                  data-testid="hero-stats-btn"
+                <a
+                  href="https://t.me/betradarmus_bot"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="h-14 px-6 bg-[#0088cc]/10 border border-[#0088cc]/30 text-[#0088cc] font-bold uppercase tracking-wide text-sm rounded-xl hover:bg-[#0088cc]/20 transition-all flex items-center justify-center gap-2"
+                  data-testid="hero-telegram-btn"
                 >
-                  Statistiken ansehen
-                </button>
+                  <MessageCircle className="w-5 h-5" />
+                  @betradarmus_bot
+                </a>
               </div>
 
-              {/* Trust Indicator */}
-              <p className="text-xs text-[#A1A1AA] animate-fade-in-up animation-delay-400">
-                Alle Statistiken verifiziert via The Odds API. Keine versteckten Zahlen.
+              {/* Trust Note */}
+              <p className="text-xs text-[#A1A1AA] animate-fade-in-up animation-delay-400 flex items-center gap-2">
+                <CheckCircle className="w-3 h-3 text-[#39FF14]" />
+                Automatische Live-Signal-Ausspielung über @betradarmus_bot
               </p>
             </div>
 
-            {/* Right Column - Dashboard */}
+            {/* Right Column - NEW Execution Dashboard */}
             <div className="lg:col-span-7 animate-fade-in-up animation-delay-400">
-              {isAuthenticated ? (
-                <LiveDashboardReal onUpgradeClick={scrollToPricing} />
-              ) : (
-                <LiveDashboard />
-              )}
+              <ExecutionDashboard 
+                match="Bayern München vs Dortmund"
+                league="Bundesliga"
+                market="Over 2.5 Goals"
+                executionScore={78}
+                confidence={81}
+                riskScore={29}
+                lifetime="~50s"
+                status="entry_open"
+                reasons={[
+                  "market lag detected",
+                  "stable across 3 updates", 
+                  "4.2% divergence from consensus"
+                ]}
+              />
             </div>
           </div>
         </div>
@@ -245,7 +275,32 @@ export const Landing = () => {
       {/* Live Ticker */}
       <LiveTicker />
 
-      {/* How It Works Section - NEW */}
+      {/* NEW: Why Different Section */}
+      <Suspense fallback={<div className="py-20 text-center text-[#A1A1AA]">Laden...</div>}>
+        <WhyDifferentSection />
+      </Suspense>
+
+      {/* NEW: Four Pillars Section */}
+      <Suspense fallback={<div className="py-20 text-center text-[#A1A1AA]">Laden...</div>}>
+        <FourPillarsSection />
+      </Suspense>
+
+      {/* NEW: Signal Timeline */}
+      <Suspense fallback={<div className="py-20 text-center text-[#A1A1AA]">Laden...</div>}>
+        <SignalTimeline />
+      </Suspense>
+
+      {/* NEW: Telegram Bot Section */}
+      <Suspense fallback={<div className="py-20 text-center text-[#A1A1AA]">Laden...</div>}>
+        <TelegramBotSection />
+      </Suspense>
+
+      {/* NEW: Target Audience Section */}
+      <Suspense fallback={<div className="py-20 text-center text-[#A1A1AA]">Laden...</div>}>
+        <TargetAudienceSection />
+      </Suspense>
+
+      {/* How It Works Section */}
       <section className="py-16 md:py-20 bg-[#0a0a0a] relative overflow-hidden" data-testid="how-it-works-section">
         <div className="absolute inset-0 bg-gradient-to-b from-[#39FF14]/5 via-transparent to-transparent opacity-50" />
         <div className="max-w-7xl mx-auto px-4 md:px-8 relative z-10">
@@ -851,6 +906,14 @@ export const Landing = () => {
           </div>
         </div>
       </section>
+
+      {/* NEW: Conversion Section */}
+      <Suspense fallback={<div className="py-20 text-center text-[#A1A1AA]">Laden...</div>}>
+        <ConversionSection onGetStarted={() => {
+          setPendingPlan('free');
+          setShowAuthModal(true);
+        }} />
+      </Suspense>
 
       {/* Legal Disclaimer Section - ENHANCED */}
       <section className="py-16 bg-[#0a0a0a] border-t border-white/10" data-testid="disclaimer-section">
