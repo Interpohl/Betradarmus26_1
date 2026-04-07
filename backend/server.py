@@ -1210,6 +1210,16 @@ def parse_sofascore_live_events(data: dict) -> list:
             home_team = event.get('homeTeam', {})
             away_team = event.get('awayTeam', {})
             
+            # Get team IDs for logo URLs
+            home_team_id = home_team.get('id')
+            away_team_id = away_team.get('id')
+            
+            # Note: SofaScore CDN requires authentication/browser access
+            # We include the IDs for potential future use, but the frontend
+            # will use a stylish initial-based fallback
+            home_logo = None  # Logo URLs require auth - using fallback
+            away_logo = None
+            
             # Get scores
             home_score = event.get('homeScore', {})
             away_score = event.get('awayScore', {})
@@ -1217,6 +1227,10 @@ def parse_sofascore_live_events(data: dict) -> list:
             # Get tournament/league info
             tournament = event.get('tournament', {})
             category = tournament.get('category', {})
+            
+            # Get tournament ID for league logo
+            tournament_id = tournament.get('uniqueTournament', {}).get('id') or tournament.get('id')
+            tournament_logo = None  # Using country flags instead
             
             # Calculate current minute from timestamp
             time_info = event.get('time', {})
@@ -1240,11 +1254,16 @@ def parse_sofascore_live_events(data: dict) -> list:
                 "id": str(event.get('id', '')),
                 "home_team": home_team.get('name', 'Home'),
                 "away_team": away_team.get('name', 'Away'),
+                "home_team_id": home_team_id,
+                "away_team_id": away_team_id,
+                "home_logo": home_logo,
+                "away_logo": away_logo,
                 "home_score": home_score.get('current', 0) or 0,
                 "away_score": away_score.get('current', 0) or 0,
                 "status": status_desc,
                 "minute": minute_str,
                 "league": tournament.get('name', 'Unknown'),
+                "league_logo": tournament_logo,
                 "country": category.get('name', category.get('country', {}).get('name', 'International')),
                 "tournament": tournament.get('name', 'Unknown'),
                 "country_code": category.get('alpha2', category.get('flag', ''))
@@ -1283,6 +1302,80 @@ async def get_sofascore_live():
         "count": len(live_matches),
         "source": "sofascore"
     }
+
+@api_router.get("/sofascore/team-logo/{team_id}")
+async def get_team_logo(team_id: int):
+    """Proxy endpoint for SofaScore team logos"""
+    from fastapi.responses import Response
+    
+    try:
+        url = f"https://api.sofascore.app/api/v1/team/{team_id}/image"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept": "image/webp,image/apng,image/*,*/*;q=0.8",
+            "Referer": "https://www.sofascore.com/"
+        }
+        
+        response = requests.get(url, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            return Response(
+                content=response.content,
+                media_type=response.headers.get('content-type', 'image/png'),
+                headers={"Cache-Control": "public, max-age=86400"}  # Cache for 24 hours
+            )
+        else:
+            # Return a 1x1 transparent pixel as fallback
+            transparent_pixel = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
+            return Response(
+                content=transparent_pixel,
+                media_type="image/png",
+                headers={"Cache-Control": "public, max-age=3600"}
+            )
+    except Exception as e:
+        logger.error(f"Error fetching team logo {team_id}: {e}")
+        # Return transparent pixel on error
+        transparent_pixel = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
+        return Response(
+            content=transparent_pixel,
+            media_type="image/png"
+        )
+
+@api_router.get("/sofascore/tournament-logo/{tournament_id}")
+async def get_tournament_logo(tournament_id: int):
+    """Proxy endpoint for SofaScore tournament logos"""
+    from fastapi.responses import Response
+    
+    try:
+        url = f"https://api.sofascore.app/api/v1/unique-tournament/{tournament_id}/image"
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept": "image/webp,image/apng,image/*,*/*;q=0.8",
+            "Referer": "https://www.sofascore.com/"
+        }
+        
+        response = requests.get(url, headers=headers, timeout=10)
+        
+        if response.status_code == 200:
+            return Response(
+                content=response.content,
+                media_type=response.headers.get('content-type', 'image/png'),
+                headers={"Cache-Control": "public, max-age=86400"}
+            )
+        else:
+            transparent_pixel = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
+            return Response(
+                content=transparent_pixel,
+                media_type="image/png",
+                headers={"Cache-Control": "public, max-age=3600"}
+            )
+    except Exception as e:
+        logger.error(f"Error fetching tournament logo {tournament_id}: {e}")
+        transparent_pixel = b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82'
+        return Response(
+            content=transparent_pixel,
+            media_type="image/png"
+        )
 
 # ==================== THE ODDS API ROUTES ====================
 

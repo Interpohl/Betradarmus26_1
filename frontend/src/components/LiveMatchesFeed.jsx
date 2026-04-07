@@ -143,6 +143,69 @@ const LiveMatchCard = ({ match }) => {
   
   const statusDisplay = getStatusDisplay();
   
+  // Team logo component with stylish initial-based design
+  const TeamLogo = ({ logo, teamName, isHome }) => {
+    const [hasError, setHasError] = React.useState(false);
+    
+    // Generate a consistent color based on team name
+    const getTeamColor = (name) => {
+      if (!name) return '#39FF14';
+      const hash = name.split('').reduce((acc, char) => char.charCodeAt(0) + ((acc << 5) - acc), 0);
+      const colors = [
+        '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', 
+        '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
+        '#F8B500', '#00CED1', '#FF6347', '#7B68EE', '#3CB371'
+      ];
+      return colors[Math.abs(hash) % colors.length];
+    };
+    
+    // Get initials from team name (up to 2 characters)
+    const getInitials = (name) => {
+      if (!name) return '?';
+      const words = name.split(' ').filter(w => w.length > 0);
+      if (words.length >= 2) {
+        // Use first letter of first two significant words
+        return (words[0][0] + words[1][0]).toUpperCase();
+      }
+      return name.substring(0, 2).toUpperCase();
+    };
+    
+    if (!logo || hasError) {
+      const color = getTeamColor(teamName);
+      const initials = getInitials(teamName);
+      
+      return (
+        <div 
+          className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 shadow-sm"
+          style={{ 
+            background: `linear-gradient(135deg, ${color}40 0%, ${color}20 100%)`,
+            border: `1px solid ${color}50`
+          }}
+        >
+          <span 
+            className="text-[10px] font-bold"
+            style={{ color: color }}
+          >
+            {initials}
+          </span>
+        </div>
+      );
+    }
+    
+    // Convert relative API paths to full URLs
+    const logoUrl = logo.startsWith('/api') ? `${BACKEND_URL}${logo}` : logo;
+    
+    return (
+      <img 
+        src={logoUrl} 
+        alt={teamName}
+        className="w-7 h-7 object-contain flex-shrink-0 rounded-md bg-white/5"
+        onError={() => setHasError(true)}
+        loading="lazy"
+      />
+    );
+  };
+  
   return (
     <div className="bg-[#121212] border border-white/10 rounded-xl p-4 hover:border-[#39FF14]/30 transition-all group">
       {/* League & Status */}
@@ -179,20 +242,26 @@ const LiveMatchCard = ({ match }) => {
       {/* Teams & Score */}
       <div className="space-y-2">
         {/* Home Team */}
-        <div className="flex items-center justify-between">
-          <span className="text-white text-sm font-medium truncate max-w-[140px]">
-            {match.homeTeam}
-          </span>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <TeamLogo logo={match.homeLogo} teamName={match.homeTeam} />
+            <span className="text-white text-sm font-medium truncate">
+              {match.homeTeam}
+            </span>
+          </div>
           <span className={`text-lg font-bold ${statusDisplay.isLive ? 'text-white' : 'text-[#A1A1AA]'}`}>
             {match.homeScore ?? '-'}
           </span>
         </div>
         
         {/* Away Team */}
-        <div className="flex items-center justify-between">
-          <span className="text-white text-sm font-medium truncate max-w-[140px]">
-            {match.awayTeam}
-          </span>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <TeamLogo logo={match.awayLogo} teamName={match.awayTeam} />
+            <span className="text-white text-sm font-medium truncate">
+              {match.awayTeam}
+            </span>
+          </div>
           <span className={`text-lg font-bold ${statusDisplay.isLive ? 'text-white' : 'text-[#A1A1AA]'}`}>
             {match.awayScore ?? '-'}
           </span>
@@ -221,10 +290,15 @@ export const LiveMatchesFeed = () => {
       const transformed = liveMatches.map(match => ({
         id: match.id || Math.random(),
         league: match.league || match.tournament || 'International',
+        leagueLogo: match.league_logo || null,
         country: match.country || '',
         countryCode: match.country_code || '',
         homeTeam: match.home_team || 'Team A',
         awayTeam: match.away_team || 'Team B',
+        homeTeamId: match.home_team_id || null,
+        awayTeamId: match.away_team_id || null,
+        homeLogo: match.home_logo || null,
+        awayLogo: match.away_logo || null,
         homeScore: parseInt(match.home_score, 10) || 0,
         awayScore: parseInt(match.away_score, 10) || 0,
         minute: match.minute || '',

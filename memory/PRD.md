@@ -320,6 +320,14 @@ SENDER_NAME=BETRADARMUS
      - Fallback auf Livescore.com bei API-Fehlern
    - **Testing**: Backend curl-Tests + Frontend Screenshot verifiziert
 
+2. ✅ **Team-Logo Badges** - Stylische Team-Initialen als Logo-Alternative
+   - **Problem**: SofaScore CDN blockiert Server-Zugriffe (403 Forbidden)
+   - **Lösung**: Elegante Initial-basierte Badges mit:
+     - 2-Buchstaben-Initialen (z.B. "CT" für Cooma Tigers)
+     - Konsistente Farben pro Team (Hash-basiert)
+     - Gradient-Hintergründe mit abgerundeten Ecken
+   - **Vorteil**: Keine externe API-Abhängigkeit, schnellere Ladezeiten
+
 ## Completed (2025-04-07)
 
 1. ✅ **Landing Page Sections Upgrade** - 5 neue Sections basierend auf Benutzer-Prompt implementiert:
