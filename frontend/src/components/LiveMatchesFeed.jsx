@@ -1,35 +1,95 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Activity, Clock, TrendingUp, RefreshCw, Zap, Globe, AlertCircle } from 'lucide-react';
+import { Activity, TrendingUp, RefreshCw, Zap, Globe, AlertCircle, Calendar } from 'lucide-react';
 import axios from 'axios';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-// League flag emojis
-const getLeagueFlag = (league) => {
+// Country flag emojis
+const getCountryFlag = (country) => {
   const flags = {
-    'Bundesliga': '🇩🇪',
-    'Premier League': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
-    'La Liga': '🇪🇸',
-    'Serie A': '🇮🇹',
-    'Ligue 1': '🇫🇷',
-    'Champions League': '🏆',
-    'Europa League': '🏆',
-    'Conference League': '🏆',
-    'DFB-Pokal': '🇩🇪',
-    'FA Cup': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
-    'Copa del Rey': '🇪🇸',
-    'Coppa Italia': '🇮🇹',
-    'Coupe de France': '🇫🇷',
-    'Eredivisie': '🇳🇱',
-    'Primeira Liga': '🇵🇹',
-    'Super Lig': '🇹🇷',
-    'MLS': '🇺🇸',
+    'Germany': '🇩🇪',
+    'Deutschland': '🇩🇪',
+    'England': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+    'Spain': '🇪🇸',
+    'Spanien': '🇪🇸',
+    'Italy': '🇮🇹',
+    'Italien': '🇮🇹',
+    'France': '🇫🇷',
+    'Frankreich': '🇫🇷',
+    'Netherlands': '🇳🇱',
+    'Portugal': '🇵🇹',
+    'Turkey': '🇹🇷',
+    'Türkei': '🇹🇷',
+    'Belgium': '🇧🇪',
+    'Belgien': '🇧🇪',
+    'Austria': '🇦🇹',
+    'Österreich': '🇦🇹',
+    'Switzerland': '🇨🇭',
+    'Schweiz': '🇨🇭',
+    'Scotland': '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+    'USA': '🇺🇸',
+    'Brazil': '🇧🇷',
+    'Brasilien': '🇧🇷',
+    'Argentina': '🇦🇷',
+    'Argentinien': '🇦🇷',
+    'Mexico': '🇲🇽',
+    'Japan': '🇯🇵',
+    'South Korea': '🇰🇷',
+    'Korea': '🇰🇷',
+    'Australia': '🇦🇺',
+    'Saudi Arabia': '🇸🇦',
+    'UAE': '🇦🇪',
+    'Ghana': '🇬🇭',
+    'Nigeria': '🇳🇬',
+    'Egypt': '🇪🇬',
+    'South Africa': '🇿🇦',
+    'Morocco': '🇲🇦',
+    'Tunisia': '🇹🇳',
+    'Algeria': '🇩🇿',
+    'Poland': '🇵🇱',
+    'Polen': '🇵🇱',
+    'Czech Republic': '🇨🇿',
+    'Czechia': '🇨🇿',
+    'Greece': '🇬🇷',
+    'Griechenland': '🇬🇷',
+    'Russia': '🇷🇺',
+    'Ukraine': '🇺🇦',
+    'Croatia': '🇭🇷',
+    'Serbia': '🇷🇸',
+    'Romania': '🇷🇴',
+    'Denmark': '🇩🇰',
+    'Dänemark': '🇩🇰',
+    'Sweden': '🇸🇪',
+    'Schweden': '🇸🇪',
+    'Norway': '🇳🇴',
+    'Norwegen': '🇳🇴',
+    'Finland': '🇫🇮',
+    'China': '🇨🇳',
+    'India': '🇮🇳',
+    'Indonesia': '🇮🇩',
+    'Thailand': '🇹🇭',
+    'Vietnam': '🇻🇳',
+    'Malaysia': '🇲🇾',
+    'Singapore': '🇸🇬',
+    'Colombia': '🇨🇴',
+    'Chile': '🇨🇱',
+    'Peru': '🇵🇪',
+    'Ecuador': '🇪🇨',
+    'Uruguay': '🇺🇾',
+    'Paraguay': '🇵🇾',
+    'Bolivia': '🇧🇴',
+    'Venezuela': '🇻🇪',
+    'International': '🌍',
+    'Europe': '🇪🇺',
+    'World': '🌍',
     'default': '⚽'
   };
   
+  if (!country) return flags.default;
+  
   for (const [key, flag] of Object.entries(flags)) {
-    if (league?.toLowerCase().includes(key.toLowerCase())) {
+    if (country.toLowerCase().includes(key.toLowerCase())) {
       return flag;
     }
   }
@@ -37,21 +97,54 @@ const getLeagueFlag = (league) => {
 };
 
 const LiveMatchCard = ({ match }) => {
-  const statusText = match.status === 'LIVE' ? `${match.minute}'` : match.status;
-  const isLive = match.status === 'LIVE' || match.minute > 0;
+  // Parse minute - could be "45'", "HT", "Int.", "90+2", etc.
+  const getStatusDisplay = () => {
+    const minute = match.minute;
+    const status = match.status;
+    
+    if (status === 'HT' || minute === 'HT' || minute === 'Int.') {
+      return { text: 'HZ', isLive: true, isHalftime: true };
+    }
+    if (status === 'FT' || minute === 'FT') {
+      return { text: 'Ende', isLive: false, isHalftime: false };
+    }
+    if (minute && minute !== '') {
+      return { text: minute, isLive: true, isHalftime: false };
+    }
+    return { text: 'LIVE', isLive: true, isHalftime: false };
+  };
+  
+  const statusDisplay = getStatusDisplay();
   
   return (
     <div className="bg-[#121212] border border-white/10 rounded-xl p-4 hover:border-[#39FF14]/30 transition-all group">
       {/* League & Status */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span className="text-lg">{getLeagueFlag(match.league)}</span>
-          <span className="text-xs text-[#A1A1AA] font-medium">{match.league}</span>
+          <span className="text-lg">{getCountryFlag(match.country)}</span>
+          <div className="flex flex-col">
+            <span className="text-xs text-white font-medium">{match.league}</span>
+            {match.country && match.country !== match.league && (
+              <span className="text-[10px] text-[#A1A1AA]">{match.country}</span>
+            )}
+          </div>
         </div>
-        {isLive && (
-          <div className="flex items-center gap-1.5 px-2 py-0.5 bg-[#FF0040]/20 rounded-full">
-            <div className="w-1.5 h-1.5 bg-[#FF0040] rounded-full animate-pulse" />
-            <span className="text-[#FF0040] text-xs font-bold">{statusText}</span>
+        {statusDisplay.isLive && (
+          <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full ${
+            statusDisplay.isHalftime 
+              ? 'bg-[#FFD700]/20' 
+              : 'bg-[#FF0040]/20'
+          }`}>
+            <div className={`w-1.5 h-1.5 rounded-full ${
+              statusDisplay.isHalftime 
+                ? 'bg-[#FFD700]' 
+                : 'bg-[#FF0040] animate-pulse'
+            }`} />
+            <span className={`text-xs font-bold ${
+              statusDisplay.isHalftime 
+                ? 'text-[#FFD700]' 
+                : 'text-[#FF0040]'
+            }`}>{statusDisplay.text}</span>
           </div>
         )}
       </div>
@@ -63,7 +156,7 @@ const LiveMatchCard = ({ match }) => {
           <span className="text-white text-sm font-medium truncate max-w-[140px]">
             {match.homeTeam}
           </span>
-          <span className={`text-lg font-bold ${isLive ? 'text-white' : 'text-[#A1A1AA]'}`}>
+          <span className={`text-lg font-bold ${statusDisplay.isLive ? 'text-white' : 'text-[#A1A1AA]'}`}>
             {match.homeScore ?? '-'}
           </span>
         </div>
@@ -73,21 +166,11 @@ const LiveMatchCard = ({ match }) => {
           <span className="text-white text-sm font-medium truncate max-w-[140px]">
             {match.awayTeam}
           </span>
-          <span className={`text-lg font-bold ${isLive ? 'text-white' : 'text-[#A1A1AA]'}`}>
+          <span className={`text-lg font-bold ${statusDisplay.isLive ? 'text-white' : 'text-[#A1A1AA]'}`}>
             {match.awayScore ?? '-'}
           </span>
         </div>
       </div>
-      
-      {/* Match Info */}
-      {match.startTime && (
-        <div className="mt-3 pt-3 border-t border-white/5">
-          <div className="flex items-center gap-1.5 text-[#A1A1AA] text-xs">
-            <Clock className="w-3 h-3" />
-            <span>{match.startTime}</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
@@ -103,54 +186,25 @@ export const LiveMatchesFeed = () => {
     if (showRefreshing) setIsRefreshing(true);
     
     try {
-      const response = await axios.get(`${API}/live/matches`);
-      const events = response.data.events || [];
+      // Use the livescore.com API for real live matches
+      const response = await axios.get(`${API}/livescore/live`);
+      const liveMatches = response.data.live_matches || [];
       
-      // Transform and sort - live matches first
-      const transformed = events.map(event => {
-        // Handle both object and string formats for league/tournament
-        let league = 'International';
-        if (typeof event.tournament === 'string') {
-          league = event.tournament;
-        } else if (event.tournament?.name) {
-          league = event.tournament.name;
-        } else if (event.league) {
-          league = event.league;
-        } else if (event.competition) {
-          league = event.competition;
-        }
-        
-        // Parse minute from string like "29'" or number
-        let minute = 0;
-        if (typeof event.minute === 'string') {
-          minute = parseInt(event.minute.replace("'", "")) || 0;
-        } else if (typeof event.minute === 'number') {
-          minute = event.minute;
-        }
-        
-        return {
-          id: event.id || Math.random(),
-          league,
-          homeTeam: event.homeTeam?.name || event.homeTeam?.shortName || event.home_team || 'Team A',
-          awayTeam: event.awayTeam?.name || event.awayTeam?.shortName || event.away_team || 'Team B',
-          homeScore: event.homeScore?.current ?? event.homeScore?.display ?? event.home_score ?? 0,
-          awayScore: event.awayScore?.current ?? event.awayScore?.display ?? event.away_score ?? 0,
-          minute,
-          status: event.status?.type === 'inprogress' || event.status === 'Live' || event.status === 'LIVE' ? 'LIVE' : (event.status?.description || event.status || 'LIVE'),
-          startTime: event.start_timestamp || event.startTimestamp 
-            ? new Date((event.start_timestamp || event.startTimestamp) * 1000).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
-            : null
-        };
-      });
+      // Transform the data
+      const transformed = liveMatches.map(match => ({
+        id: match.id || Math.random(),
+        league: match.league || match.tournament || 'International',
+        country: match.country || '',
+        homeTeam: match.home_team || 'Team A',
+        awayTeam: match.away_team || 'Team B',
+        homeScore: match.home_score ?? 0,
+        awayScore: match.away_score ?? 0,
+        minute: match.minute || '',
+        status: match.status || 'LIVE',
+        startTime: null
+      }));
       
-      // Sort: Live matches first, then by minute
-      transformed.sort((a, b) => {
-        if (a.status === 'LIVE' && b.status !== 'LIVE') return -1;
-        if (a.status !== 'LIVE' && b.status === 'LIVE') return 1;
-        return (b.minute || 0) - (a.minute || 0);
-      });
-      
-      setMatches(transformed.slice(0, 8)); // Show max 8 matches
+      setMatches(transformed.slice(0, 12)); // Show max 12 matches
       setLastUpdate(new Date());
       setError(null);
     } catch (err) {
@@ -241,9 +295,19 @@ export const LiveMatchesFeed = () => {
           </div>
         ) : matches.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <Globe className="w-12 h-12 text-[#A1A1AA]/50 mb-4" />
-            <p className="text-[#A1A1AA]">Aktuell keine Live-Spiele verfügbar</p>
-            <p className="text-[#A1A1AA]/70 text-sm mt-1">Schau später nochmal vorbei!</p>
+            <Calendar className="w-12 h-12 text-[#A1A1AA]/50 mb-4" />
+            <p className="text-white font-medium mb-2">Aktuell keine Live-Spiele</p>
+            <p className="text-[#A1A1AA] text-sm max-w-md">
+              Die meisten Spiele finden nachmittags und abends statt. 
+              Schau später nochmal vorbei oder aktiviere Benachrichtigungen!
+            </p>
+            <button
+              onClick={() => fetchMatches(true)}
+              className="mt-4 flex items-center gap-2 px-4 py-2 bg-[#39FF14]/10 border border-[#39FF14]/30 rounded-lg text-[#39FF14] hover:bg-[#39FF14]/20 transition-colors"
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              <span>Jetzt aktualisieren</span>
+            </button>
           </div>
         ) : (
           <>
