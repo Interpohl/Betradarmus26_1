@@ -46,6 +46,8 @@ class OddsPapiService:
     def __init__(self, api_key: str = None):
         self.api_key = api_key or ODDSPAPI_KEY
         self.base_url = ODDSPAPI_BASE_URL
+        self._participants_cache = {}
+        self._participants_cache_time = 0
         
     def _make_request(self, endpoint: str, params: Dict = None) -> Optional[Dict]:
         """Make API request with error handling"""
@@ -85,6 +87,28 @@ class OddsPapiService:
         data = self._make_request("tournaments", {"sportId": sport_id})
         return data if isinstance(data, list) else []
     
+    def get_participants(self, sport_id: int = SPORT_FOOTBALL) -> Dict[str, str]:
+        """Get participant ID to name mapping (cached for 1 hour)"""
+        current_time = time.time()
+        
+        # Return cached data if still valid (1 hour cache)
+        if self._participants_cache and (current_time - self._participants_cache_time) < 3600:
+            return self._participants_cache
+        
+        data = self._make_request("participants", {"sportId": sport_id})
+        
+        if isinstance(data, dict) and not data.get('error'):
+            self._participants_cache = data
+            self._participants_cache_time = current_time
+            return data
+        
+        return self._participants_cache or {}
+    
+    def get_participant_name(self, participant_id: int, sport_id: int = SPORT_FOOTBALL) -> str:
+        """Get participant name by ID"""
+        participants = self.get_participants(sport_id)
+        return participants.get(str(participant_id), f"Team {participant_id}")
+    
     def get_live_fixtures(self, sport_id: int = SPORT_FOOTBALL) -> List[Dict]:
         """Get currently live fixtures"""
         data = self._make_request("fixtures", {
@@ -102,39 +126,32 @@ class OddsPapiService:
         })
         return data if isinstance(data, list) else []
     
-    def get_odds_by_fixture(self, fixture_id: str, bookmakers: List[str] = None) -> Optional[Dict]:
-        """Get odds for a specific fixture"""
-        params = {"fixtureId": fixture_id}
-        
-        if bookmakers:
-            params["bookmakers"] = ",".join(bookmakers)
+    def get_odds_by_fixture(self, fixture_id: str, bookmaker: str = "pinnacle") -> Optional[Dict]:
+        """Get odds for a specific fixture from a single bookmaker (Free tier limit)"""
+        params = {
+            "fixtureId": fixture_id,
+            "bookmaker": bookmaker  # Free tier: only 1 bookmaker allowed
+        }
             
         return self._make_request("odds", params)
     
-    def get_odds_by_tournaments(self, tournament_ids: List[int], bookmakers: List[str] = None) -> List[Dict]:
-        """Get odds for fixtures in specified tournaments"""
+    def get_odds_by_tournaments(self, tournament_ids: List[int], bookmaker: str = "pinnacle") -> List[Dict]:
+        """Get odds for fixtures in specified tournaments from a single bookmaker"""
         params = {
-            "tournamentIds": ",".join(str(t) for t in tournament_ids)
+            "tournamentIds": ",".join(str(t) for t in tournament_ids),
+            "bookmaker": bookmaker  # Free tier: only 1 bookmaker allowed
         }
-        
-        if bookmakers:
-            params["bookmakers"] = ",".join(bookmakers)
             
         data = self._make_request("odds-by-tournaments", params)
         return data if isinstance(data, list) else []
     
-    def get_live_odds(self, bookmakers: List[str] = None) -> List[Dict]:
-        """Get live odds for in-play matches"""
+    def get_live_odds(self, bookmaker: str = "pinnacle") -> List[Dict]:
+        """Get live odds for in-play matches from a single bookmaker"""
         params = {
             "sportId": SPORT_FOOTBALL,
-            "status": "live"
+            "status": "live",
+            "bookmaker": bookmaker  # Free tier: only 1 bookmaker allowed
         }
-        
-        if bookmakers:
-            params["bookmakers"] = ",".join(bookmakers)
-        else:
-            # Default to sharp bookmakers for best signals
-            params["bookmakers"] = ",".join(SHARP_BOOKMAKERS[:3])
             
         data = self._make_request("odds", params)
         return data if isinstance(data, list) else []
@@ -359,9 +376,24 @@ class SignalEngine:
             recommendation = "AVOID"
             recommendation_text = "Vermeiden"
         
-        # Extract fixture info
-        home_team = fixture.get("participant1Name", fixture.get("homeTeam", "Home"))
-        away_team = fixture.get("participant2Name", fixture.get("awayTeam", "Away"))
+        # Extract fixture info - use participant IDs to get names
+        home_team = fixture.get("participant1Name")
+        away_team = fixture.get("participant2Name")
+        
+        # If names not in fixture, look them up via participant IDs
+        if not home_team or home_team == "Home":
+            participant1_id = fixture.get("participant1Id")
+            if participant1_id:
+                home_team = self.odds_service.get_participant_name(participant1_id)
+            else:
+                home_team = "Heim"
+                
+        if not away_team or away_team == "Away":
+            participant2_id = fixture.get("participant2Id")
+            if participant2_id:
+                away_team = self.odds_service.get_participant_name(participant2_id)
+            else:
+                away_team = "Auswärts"
         
         return {
             "fixture_id": fixture.get("fixtureId", ""),
@@ -424,9 +456,28 @@ class SignalEngine:
         if tournament_ids:
             fixtures = self.odds_service.get_odds_by_tournaments(tournament_ids)
         else:
-            # Default to top European leagues
-            default_tournaments = [17, 8, 35, 23, 34]  # EPL, La Liga, Bundesliga, Serie A, Ligue 1
-            fixtures = self.odds_service.get_odds_by_tournaments(default_tournaments)
+            # Get tournaments with upcoming fixtures dynamically
+            all_tournaments = self.odds_service.get_tournaments()
+            
+            if all_tournaments:
+                # Sort by upcoming fixtures count and take top tournaments
+                active_tournaments = [
+                    t for t in all_tournaments 
+                    if t.get('upcomingFixtures', 0) > 0
+                ]
+                active_tournaments.sort(key=lambda x: x.get('upcomingFixtures', 0), reverse=True)
+                
+                # Take top 5 most active tournaments (Free tier limit)
+                tournament_ids = [t.get('tournamentId') for t in active_tournaments[:5]]
+                
+                if tournament_ids:
+                    fixtures = self.odds_service.get_odds_by_tournaments(tournament_ids)
+                else:
+                    fixtures = []
+            else:
+                # Fallback to top European leagues
+                default_tournaments = [17, 8, 35, 23, 34]  # EPL, La Liga, Bundesliga, Serie A, Ligue 1
+                fixtures = self.odds_service.get_odds_by_tournaments(default_tournaments)
         
         if not fixtures:
             logger.info("No upcoming matches with odds available")

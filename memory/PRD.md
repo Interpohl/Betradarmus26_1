@@ -340,21 +340,22 @@ SENDER_NAME=BETRADARMUS
    - **Design**: Dark-Theme mit Gradient-Header und Tab-Navigation
 
 4. ✅ **Signal Engine 2.0 (OddsPapi Integration)** - KI-gestützte Wett-Signale
-   - **Backend Service**: `oddspapi_service.py` (400+ Zeilen)
-     - `OddsPapiService`: API-Client für 300+ Buchmacher inkl. Betfair Exchange
-     - `SignalEngine`: Analyse-Engine mit Sharp/Soft-Bookmaker-Vergleich
+   - **Backend Service**: `oddspapi_service.py` (500+ Zeilen)
+     - `OddsPapiService`: API-Client für 300+ Buchmacher inkl. Pinnacle (Sharp)
+     - `SignalEngine`: Analyse-Engine mit Confidence/Risk-Scoring
+     - Participants-Cache für Team-Namen
    - **API Endpoints**:
      - `GET /api/signals/live` - Live-Signale für laufende Spiele
-     - `GET /api/signals/upcoming` - Pre-Match-Signale
+     - `GET /api/signals/upcoming` - Pre-Match-Signale (Top 5 Turniere)
      - `GET /api/signals/analyze/{fixture_id}` - Detaillierte Analyse (ELITE)
-     - `GET /api/signals/tournaments` - Verfügbare Ligen
-   - **Frontend**: `SignalEnginePanel.jsx` - Full-Featured UI mit Tabs, Signal-Cards, Premium-Gate
+     - `GET /api/signals/tournaments` - Verfügbare Ligen (94 Turniere)
+   - **Frontend**: `SignalEnginePanel.jsx` - Full-Featured UI
    - **Features**:
-     - Signal Score (0-100) mit Farbcodierung
+     - Signal Score (0-100) mit Farbcodierung (grün/gelb/rot)
      - Risk Score mit Niedrig/Mittel/Hoch-Indikator
      - Empfehlungen: STRONG_BUY, BUY, HOLD, AVOID
-     - Sharp-Bookmaker-Erkennung (Pinnacle, Betfair, SBOBet)
-   - **Status**: Wartet auf OddsPapi API-Key
+     - Premium-Gate für Free User mit Upgrade-CTA
+   - **Status**: ✅ AKTIV mit OddsPapi API-Key (Free Tier: 250 Req/Monat, max 5 Turniere, 1 Bookmaker)
 
 ## Completed (2025-04-07)
 
