@@ -21,6 +21,14 @@ import stripe
 # Email Service
 from email_service import get_email_service
 
+# Subscription Service
+from subscription_service import (
+    SubscriptionService, 
+    SUBSCRIPTION_PLANS as SUB_PLANS,
+    SubscriptionPlan,
+    BillingInterval
+)
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
@@ -33,6 +41,9 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
+# Subscription Service Instance
+subscription_service = SubscriptionService(db)
+
 # JWT Settings
 JWT_SECRET = os.environ.get('JWT_SECRET_KEY', 'fallback-secret-key')
 JWT_ALGORITHM = "HS256"
@@ -40,6 +51,15 @@ JWT_EXPIRATION_HOURS = 24
 
 # Stripe Settings
 STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY')
+STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET', '')
+
+# Stripe Price IDs (create these in Stripe Dashboard)
+STRIPE_PRICES = {
+    "pro_monthly": os.environ.get('STRIPE_PRICE_PRO_MONTHLY', ''),
+    "pro_yearly": os.environ.get('STRIPE_PRICE_PRO_YEARLY', ''),
+    "elite_monthly": os.environ.get('STRIPE_PRICE_ELITE_MONTHLY', ''),
+    "elite_yearly": os.environ.get('STRIPE_PRICE_ELITE_YEARLY', '')
+}
 
 # SofaScore API Settings
 SOFASCORE_API_KEY = os.environ.get('SOFASCORE_API_KEY')
@@ -123,10 +143,12 @@ class PaymentTransaction(BaseModel):
     amount: float
     currency: str = "eur"
     payment_status: str = "pending"
+    billing_interval: str = "monthly"
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class CheckoutRequest(BaseModel):
     plan: str
+    billing_interval: str = "monthly"  # monthly or yearly
     origin_url: str
 
 class CheckoutResponse(BaseModel):
@@ -134,6 +156,30 @@ class CheckoutResponse(BaseModel):
     checkout_url: Optional[str] = None
     session_id: Optional[str] = None
     message: Optional[str] = None
+
+# Billing Models
+class SubscriptionResponse(BaseModel):
+    plan: str
+    status: str
+    billing_interval: Optional[str] = None
+    current_period_end: Optional[str] = None
+    cancel_at_period_end: bool = False
+    provider: Optional[str] = None
+
+class BillingInfoResponse(BaseModel):
+    subscription: Optional[SubscriptionResponse] = None
+    payments: List[Dict] = []
+    linked_telegram: Optional[str] = None
+
+class CancelSubscriptionRequest(BaseModel):
+    immediate: bool = False
+
+class ChangePlanRequest(BaseModel):
+    new_plan: str
+    billing_interval: str = "monthly"
+
+class LinkTelegramRequest(BaseModel):
+    code: str
 
 # Early Access & Contact Models
 class EarlyAccessSignup(BaseModel):
@@ -326,44 +372,77 @@ async def get_me(user: dict = Depends(require_auth)):
 
 @api_router.post("/payments/checkout", response_model=CheckoutResponse)
 async def create_checkout(input: CheckoutRequest, request: Request, user: dict = Depends(require_auth)):
+    """Create Stripe Checkout Session for subscription"""
+    
     # Validate plan
-    if input.plan not in SUBSCRIPTION_PLANS or input.plan == "free":
+    if input.plan not in SUB_PLANS or input.plan == "free":
         return CheckoutResponse(success=False, message="Ungültiger Plan ausgewählt.")
     
-    plan = SUBSCRIPTION_PLANS[input.plan]
-    amount = plan["price"]
+    plan_data = SUB_PLANS[input.plan]
+    
+    # Get price based on billing interval (server-side only - never from frontend)
+    if input.billing_interval == "yearly":
+        amount = plan_data["price_yearly"]
+    else:
+        amount = plan_data["price_monthly"]
     
     # Create Stripe checkout
     try:
         stripe.api_key = STRIPE_API_KEY
         
         success_url = f"{input.origin_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}"
-        cancel_url = f"{input.origin_url}/pricing"
+        cancel_url = f"{input.origin_url}/#pricing"
         
-        session = stripe.checkout.Session.create(
-            payment_method_types=['card', 'paypal', 'klarna'],
-            line_items=[{
-                'price_data': {
-                    'currency': 'eur',
-                    'unit_amount': int(float(amount) * 100),  # Stripe uses cents
-                    'product_data': {
-                        'name': f'BETRADARMUS {input.plan.upper()} Plan',
-                        'description': plan.get('description', f'{input.plan.upper()} Subscription')
+        # Check if we have a Stripe Price ID for subscription mode
+        price_key = f"{input.plan}_{input.billing_interval}"
+        stripe_price_id = STRIPE_PRICES.get(price_key)
+        
+        if stripe_price_id:
+            # Use subscription mode with Stripe Price
+            session = stripe.checkout.Session.create(
+                mode='subscription',
+                line_items=[{
+                    'price': stripe_price_id,
+                    'quantity': 1,
+                }],
+                success_url=success_url,
+                cancel_url=cancel_url,
+                customer_email=user['email'],
+                metadata={
+                    "user_id": user['id'],
+                    "user_email": user['email'],
+                    "plan": input.plan,
+                    "billing_interval": input.billing_interval
+                }
+            )
+        else:
+            # Fallback to one-time payment mode
+            interval_text = "Jahr" if input.billing_interval == "yearly" else "Monat"
+            session = stripe.checkout.Session.create(
+                payment_method_types=['card'],
+                line_items=[{
+                    'price_data': {
+                        'currency': 'eur',
+                        'unit_amount': int(float(amount) * 100),
+                        'product_data': {
+                            'name': f'BETRADARMUS {input.plan.upper()} Plan ({interval_text})',
+                            'description': f'{plan_data["name"]} Subscription - {interval_text}sabrechnung'
+                        },
                     },
-                },
-                'quantity': 1,
-            }],
-            mode='payment',
-            success_url=success_url,
-            cancel_url=cancel_url,
-            customer_email=user['email'],
-            billing_address_collection='required',  # Klarna benötigt Adresse
-            metadata={
-                "user_id": user['id'],
-                "user_email": user['email'],
-                "plan": input.plan
-            }
-        )
+                    'quantity': 1,
+                }],
+                mode='payment',
+                success_url=success_url,
+                cancel_url=cancel_url,
+                customer_email=user['email'],
+                billing_address_collection='auto',
+                metadata={
+                    "user_id": user['id'],
+                    "user_email": user['email'],
+                    "plan": input.plan,
+                    "billing_interval": input.billing_interval
+                }
+            )
         
         # Create payment transaction record
         transaction = PaymentTransaction(
@@ -372,12 +451,15 @@ async def create_checkout(input: CheckoutRequest, request: Request, user: dict =
             session_id=session.id,
             plan=input.plan,
             amount=amount,
+            billing_interval=input.billing_interval,
             payment_status="pending"
         )
         
         doc = transaction.model_dump()
         doc['created_at'] = doc['created_at'].isoformat()
         await db.payment_transactions.insert_one(doc)
+        
+        logger.info(f"Checkout session created: user={user['id']}, plan={input.plan}, interval={input.billing_interval}")
         
         return CheckoutResponse(
             success=True,
@@ -391,6 +473,7 @@ async def create_checkout(input: CheckoutRequest, request: Request, user: dict =
 
 @api_router.get("/payments/status/{session_id}")
 async def get_payment_status(session_id: str, request: Request, user: dict = Depends(require_auth)):
+    """Check payment status and activate subscription if paid"""
     try:
         stripe.api_key = STRIPE_API_KEY
         session = stripe.checkout.Session.retrieve(session_id)
@@ -412,12 +495,42 @@ async def get_payment_status(session_id: str, request: Request, user: dict = Dep
                     {"$set": {"payment_status": "paid"}}
                 )
                 
-                # Update user subscription
+                # Create subscription via subscription service
                 plan = transaction.get('plan', 'pro')
-                await db.users.update_one(
-                    {"id": user['id']},
-                    {"$set": {"subscription": plan, "subscription_status": "active"}}
+                billing_interval = transaction.get('billing_interval', 'monthly')
+                
+                await subscription_service.create_subscription(
+                    user_id=user['id'],
+                    plan=plan,
+                    provider="stripe",
+                    provider_customer_id=session.customer,
+                    provider_subscription_id=session.subscription,
+                    billing_interval=billing_interval
                 )
+                
+                # Record payment
+                await subscription_service.record_payment(
+                    user_id=user['id'],
+                    user_email=user['email'],
+                    provider="stripe",
+                    amount=transaction.get('amount', 0),
+                    currency="eur",
+                    external_payment_id=session_id,
+                    status="completed"
+                )
+                
+                # Send upgrade email
+                if plan in ["pro", "elite"]:
+                    try:
+                        email_service = get_email_service()
+                        await email_service.send_upgrade_email(
+                            to_email=user.get("email"),
+                            user_name=user.get("name", ""),
+                            new_plan=plan
+                        )
+                        logger.info(f"Upgrade email sent to {user.get('email')} for {plan} plan")
+                    except Exception as e:
+                        logger.error(f"Failed to send upgrade email: {e}")
         
         return {
             "status": session.status,
@@ -432,62 +545,378 @@ async def get_payment_status(session_id: str, request: Request, user: dict = Dep
 
 @api_router.post("/webhook/stripe")
 async def stripe_webhook(request: Request):
+    """Handle Stripe webhook events"""
     try:
         body = await request.body()
         signature = request.headers.get("Stripe-Signature")
         
         stripe.api_key = STRIPE_API_KEY
         
-        # For now, just parse the event without signature verification
-        # (signature verification requires webhook secret which we don't have)
-        import json
-        event_data = json.loads(body)
-        
-        if event_data.get('type') == 'checkout.session.completed':
-            session = event_data['data']['object']
-            session_id = session.get('id')
-            metadata = session.get('metadata', {})
-            payment_status = session.get('payment_status', 'unpaid')
-            
-            if payment_status == "paid":
-                # Update transaction
-                await db.payment_transactions.update_one(
-                    {"session_id": session_id},
-                    {"$set": {"payment_status": "paid"}}
+        # Verify webhook signature if secret is configured
+        if STRIPE_WEBHOOK_SECRET:
+            try:
+                event = stripe.Webhook.construct_event(
+                    body, signature, STRIPE_WEBHOOK_SECRET
                 )
-                
-                # Update user subscription and send upgrade email
-            if metadata:
-                user_id = metadata.get("user_id")
-                plan = metadata.get("plan", "pro")
-                if user_id:
-                    # Update subscription in database
-                    await db.users.update_one(
-                        {"id": user_id},
-                        {"$set": {"subscription": plan, "subscription_status": "active"}}
-                    )
-                    
-                    # Send upgrade email with Telegram group invite
-                    if plan in ["pro", "elite"]:
-                        try:
-                            user = await db.users.find_one({"id": user_id}, {"_id": 0})
-                            if user:
-                                from email_service import get_email_service
-                                email_service = get_email_service()
-                                await email_service.send_upgrade_email(
-                                    to_email=user.get("email"),
-                                    user_name=user.get("name", ""),
-                                    new_plan=plan
-                                )
-                                logger.info(f"Upgrade email sent to {user.get('email')} for {plan} plan")
-                        except Exception as e:
-                            logger.error(f"Failed to send upgrade email: {e}")
+            except stripe.error.SignatureVerificationError:
+                logger.error("Webhook signature verification failed")
+                raise HTTPException(status_code=400, detail="Invalid signature")
+        else:
+            import json
+            event = json.loads(body)
+        
+        event_type = event.get('type')
+        data = event.get('data', {}).get('object', {})
+        
+        logger.info(f"Stripe webhook received: {event_type}")
+        
+        if event_type == 'checkout.session.completed':
+            await handle_checkout_completed(data)
+        
+        elif event_type == 'customer.subscription.updated':
+            await handle_subscription_updated(data)
+        
+        elif event_type == 'customer.subscription.deleted':
+            await handle_subscription_deleted(data)
+        
+        elif event_type == 'invoice.paid':
+            await handle_invoice_paid(data)
+        
+        elif event_type == 'invoice.payment_failed':
+            await handle_invoice_failed(data)
         
         return {"status": "received"}
         
     except Exception as e:
         logger.error(f"Webhook error: {str(e)}")
         return {"status": "error", "message": str(e)}
+
+async def handle_checkout_completed(session: Dict):
+    """Handle checkout.session.completed event"""
+    session_id = session.get('id')
+    metadata = session.get('metadata', {})
+    payment_status = session.get('payment_status', 'unpaid')
+    
+    if payment_status == "paid" and metadata:
+        user_id = metadata.get("user_id")
+        plan = metadata.get("plan", "pro")
+        billing_interval = metadata.get("billing_interval", "monthly")
+        
+        if user_id:
+            # Update transaction
+            await db.payment_transactions.update_one(
+                {"session_id": session_id},
+                {"$set": {"payment_status": "paid"}}
+            )
+            
+            # Create subscription
+            await subscription_service.create_subscription(
+                user_id=user_id,
+                plan=plan,
+                provider="stripe",
+                provider_customer_id=session.get('customer'),
+                provider_subscription_id=session.get('subscription'),
+                billing_interval=billing_interval
+            )
+            
+            # Send upgrade email
+            user = await db.users.find_one({"id": user_id}, {"_id": 0})
+            if user and plan in ["pro", "elite"]:
+                try:
+                    email_service = get_email_service()
+                    await email_service.send_upgrade_email(
+                        to_email=user.get("email"),
+                        user_name=user.get("name", ""),
+                        new_plan=plan
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to send upgrade email: {e}")
+
+async def handle_subscription_updated(subscription: Dict):
+    """Handle customer.subscription.updated event"""
+    sub_id = subscription.get('id')
+    status = subscription.get('status')
+    cancel_at_period_end = subscription.get('cancel_at_period_end', False)
+    
+    # Find user by subscription ID
+    sub_doc = await db.subscriptions.find_one(
+        {"provider_subscription_id": sub_id},
+        {"_id": 0}
+    )
+    
+    if sub_doc:
+        user_id = sub_doc.get('user_id')
+        
+        # Map Stripe status to our status
+        status_map = {
+            'active': 'active',
+            'past_due': 'past_due',
+            'canceled': 'canceled',
+            'unpaid': 'past_due',
+            'trialing': 'trialing'
+        }
+        
+        our_status = status_map.get(status, 'inactive')
+        
+        await subscription_service.update_subscription_status(
+            user_id=user_id,
+            status=our_status,
+            cancel_at_period_end=cancel_at_period_end
+        )
+
+async def handle_subscription_deleted(subscription: Dict):
+    """Handle customer.subscription.deleted event"""
+    sub_id = subscription.get('id')
+    
+    sub_doc = await db.subscriptions.find_one(
+        {"provider_subscription_id": sub_id},
+        {"_id": 0}
+    )
+    
+    if sub_doc:
+        user_id = sub_doc.get('user_id')
+        await subscription_service.cancel_subscription(user_id, immediate=True)
+
+async def handle_invoice_paid(invoice: Dict):
+    """Handle invoice.paid event - renewal payment"""
+    customer_id = invoice.get('customer')
+    subscription_id = invoice.get('subscription')
+    amount_paid = invoice.get('amount_paid', 0) / 100
+    
+    # Find user
+    sub_doc = await db.subscriptions.find_one(
+        {"provider_subscription_id": subscription_id},
+        {"_id": 0}
+    )
+    
+    if sub_doc:
+        user_id = sub_doc.get('user_id')
+        user = await db.users.find_one({"id": user_id}, {"_id": 0})
+        
+        if user:
+            # Record payment
+            await subscription_service.record_payment(
+                user_id=user_id,
+                user_email=user.get('email', ''),
+                provider="stripe",
+                amount=amount_paid,
+                currency="eur",
+                external_payment_id=invoice.get('id'),
+                status="completed"
+            )
+            
+            # Ensure subscription is active
+            await subscription_service.update_subscription_status(user_id, "active")
+
+async def handle_invoice_failed(invoice: Dict):
+    """Handle invoice.payment_failed event"""
+    subscription_id = invoice.get('subscription')
+    
+    sub_doc = await db.subscriptions.find_one(
+        {"provider_subscription_id": subscription_id},
+        {"_id": 0}
+    )
+    
+    if sub_doc:
+        user_id = sub_doc.get('user_id')
+        await subscription_service.update_subscription_status(user_id, "past_due")
+        
+        # Optionally send payment failed email
+        user = await db.users.find_one({"id": user_id}, {"_id": 0})
+        if user:
+            logger.warning(f"Payment failed for user {user.get('email')}")
+
+# ==================== BILLING & SUBSCRIPTION MANAGEMENT ====================
+
+@api_router.get("/billing/info")
+async def get_billing_info(user: dict = Depends(require_auth)):
+    """Get user's billing information"""
+    
+    # Get subscription
+    subscription = await subscription_service.get_user_subscription(user['id'])
+    
+    sub_response = None
+    if subscription:
+        sub_response = SubscriptionResponse(
+            plan=subscription.get('plan', 'free'),
+            status=subscription.get('status', 'active'),
+            billing_interval=subscription.get('billing_interval'),
+            current_period_end=subscription.get('current_period_end'),
+            cancel_at_period_end=subscription.get('cancel_at_period_end', False),
+            provider=subscription.get('provider')
+        )
+    else:
+        sub_response = SubscriptionResponse(
+            plan=user.get('subscription', 'free'),
+            status=user.get('subscription_status', 'active')
+        )
+    
+    # Get payments
+    payments = await subscription_service.get_user_payments(user['id'], limit=10)
+    
+    # Get linked Telegram
+    linked_telegram = await subscription_service.get_linked_telegram(user['id'])
+    
+    return BillingInfoResponse(
+        subscription=sub_response,
+        payments=payments,
+        linked_telegram=linked_telegram
+    )
+
+@api_router.post("/billing/cancel")
+async def cancel_subscription(
+    input: CancelSubscriptionRequest,
+    user: dict = Depends(require_auth)
+):
+    """Cancel user's subscription"""
+    
+    subscription = await subscription_service.get_user_subscription(user['id'])
+    
+    if not subscription or subscription.get('plan') == 'free':
+        raise HTTPException(status_code=400, detail="Kein aktives Abo gefunden")
+    
+    # If Stripe subscription, cancel through Stripe
+    if subscription.get('provider') == 'stripe' and subscription.get('provider_subscription_id'):
+        try:
+            stripe.api_key = STRIPE_API_KEY
+            
+            if input.immediate:
+                stripe.Subscription.delete(subscription['provider_subscription_id'])
+            else:
+                stripe.Subscription.modify(
+                    subscription['provider_subscription_id'],
+                    cancel_at_period_end=True
+                )
+        except Exception as e:
+            logger.error(f"Stripe cancellation error: {e}")
+    
+    # Update local subscription
+    await subscription_service.cancel_subscription(user['id'], immediate=input.immediate)
+    
+    return {"success": True, "message": "Abo wird zum Ende der Laufzeit gekündigt" if not input.immediate else "Abo wurde gekündigt"}
+
+@api_router.post("/billing/change-plan")
+async def change_plan(
+    input: ChangePlanRequest,
+    request: Request,
+    user: dict = Depends(require_auth)
+):
+    """Change subscription plan (upgrade/downgrade)"""
+    
+    if input.new_plan not in SUB_PLANS:
+        raise HTTPException(status_code=400, detail="Ungültiger Plan")
+    
+    current_subscription = await subscription_service.get_user_subscription(user['id'])
+    current_plan = current_subscription.get('plan') if current_subscription else 'free'
+    
+    # If downgrading to free
+    if input.new_plan == "free":
+        await subscription_service.cancel_subscription(user['id'], immediate=True)
+        return {"success": True, "message": "Downgrade auf FREE erfolgreich"}
+    
+    # If upgrading from free or changing paid plan, create new checkout
+    origin_url = request.headers.get('origin', 'https://betradarmus.de')
+    
+    return {
+        "success": True,
+        "action": "checkout_required",
+        "message": "Bitte schließe den Checkout ab",
+        "checkout_url": f"{origin_url}/#pricing"
+    }
+
+@api_router.get("/billing/portal")
+async def get_billing_portal(user: dict = Depends(require_auth)):
+    """Get Stripe Customer Portal URL"""
+    
+    subscription = await subscription_service.get_user_subscription(user['id'])
+    
+    if not subscription or subscription.get('provider') != 'stripe':
+        raise HTTPException(status_code=400, detail="Kein Stripe-Abo gefunden")
+    
+    customer_id = subscription.get('provider_customer_id')
+    if not customer_id:
+        raise HTTPException(status_code=400, detail="Keine Kundendaten gefunden")
+    
+    try:
+        stripe.api_key = STRIPE_API_KEY
+        session = stripe.billing_portal.Session.create(
+            customer=customer_id,
+            return_url="https://betradarmus.de/account"
+        )
+        return {"url": session.url}
+    except Exception as e:
+        logger.error(f"Portal error: {e}")
+        raise HTTPException(status_code=500, detail="Fehler beim Erstellen des Portals")
+
+# ==================== TELEGRAM LINKING ====================
+
+@api_router.post("/account/link-telegram/generate")
+async def generate_telegram_link_code(user: dict = Depends(require_auth)):
+    """Generate a code to link Telegram account"""
+    
+    code = await subscription_service.generate_link_code(user['id'])
+    return {
+        "code": code,
+        "expires_in_hours": 24,
+        "instructions": "Sende diesen Code an @betradarmus_bot auf Telegram"
+    }
+
+@api_router.post("/account/link-telegram/verify")
+async def verify_telegram_link(
+    input: LinkTelegramRequest,
+    user: dict = Depends(require_auth)
+):
+    """Verify and complete Telegram link (called from bot)"""
+    
+    # This endpoint is for manual verification from website
+    # The actual linking happens in the Telegram bot
+    return {
+        "message": "Bitte sende den Code an @betradarmus_bot auf Telegram",
+        "code": input.code
+    }
+
+@api_router.get("/account/linked-telegram")
+async def get_linked_telegram(user: dict = Depends(require_auth)):
+    """Get linked Telegram account info"""
+    
+    telegram_id = await subscription_service.get_linked_telegram(user['id'])
+    
+    if telegram_id:
+        telegram_user = await db.telegram_users.find_one(
+            {"telegram_id": telegram_id},
+            {"_id": 0, "telegram_username": 1, "first_name": 1}
+        )
+        return {
+            "linked": True,
+            "telegram_id": telegram_id,
+            "username": telegram_user.get('telegram_username') if telegram_user else None,
+            "name": telegram_user.get('first_name') if telegram_user else None
+        }
+    
+    return {"linked": False}
+
+# ==================== ACCESS CONTROL HELPERS ====================
+
+@api_router.get("/access/check/{feature}")
+async def check_feature_access(feature: str, user: dict = Depends(require_auth)):
+    """Check if user has access to a specific feature"""
+    
+    has_access = await subscription_service.check_feature_access(user['id'], feature)
+    plan = user.get('subscription', 'free')
+    
+    return {
+        "feature": feature,
+        "has_access": has_access,
+        "current_plan": plan,
+        "upgrade_required": not has_access
+    }
+
+@api_router.get("/access/signal-limit")
+async def check_signal_limit(user: dict = Depends(require_auth)):
+    """Check user's daily signal limit"""
+    
+    limit_info = await subscription_service.check_signal_limit(user['id'])
+    return limit_info
 
 # ==================== SOFASCORE LIVE DATA ROUTES ====================
 

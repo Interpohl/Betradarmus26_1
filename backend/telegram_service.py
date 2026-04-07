@@ -120,7 +120,18 @@ class TelegramBotService:
         self.application.add_handler(CommandHandler("status", self.cmd_status))
         self.application.add_handler(CommandHandler("help", self.cmd_help))
         self.application.add_handler(CommandHandler("elite", self.cmd_elite))
+        # Payment commands
+        self.application.add_handler(CommandHandler("plans", self.cmd_plans))
+        self.application.add_handler(CommandHandler("upgrade", self.cmd_upgrade))
+        self.application.add_handler(CommandHandler("manage", self.cmd_manage))
+        self.application.add_handler(CommandHandler("link", self.cmd_link))
         self.application.add_handler(CallbackQueryHandler(self.handle_callback))
+        
+        # Handler for link codes (messages that look like codes)
+        self.application.add_handler(MessageHandler(
+            filters.TEXT & ~filters.COMMAND,
+            self.handle_text_message
+        ))
         
         # Handler for new members in groups
         self.application.add_handler(MessageHandler(
@@ -386,6 +397,10 @@ Wähle eine Option zum Ändern:
 /subscribe - Ligen abonnieren
 /unsubscribe - Ligen abbestellen
 /status - Aktuellen Status anzeigen
+/plans - Alle Pläne anzeigen
+/upgrade - Auf PRO/ELITE upgraden
+/manage - Abo verwalten
+/link - Website-Konto verknüpfen
 /elite - Elite-Kanal beitreten (nur ELITE)
 /help - Diese Hilfe anzeigen
 
@@ -398,13 +413,297 @@ Unsere KI analysiert Live-Fußballmärkte und erkennt Ineffizienzen. Wenn eine G
 
 *Subscription Levels:*
 • FREE: 2 Ligen, 5 Signale/Tag, Community Gruppe
-• PRO: 5 Ligen, 50 Signale/Tag
+• PRO: 5 Ligen, 50 Signale/Tag, Echtzeit
 • ELITE: 8 Ligen, Unbegrenzt, VIP Signal-Kanal
 
 Upgrade: betradarmus.de
 Support: support@betradarmus.de
 """
         await update.message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
+    
+    # ==================== PAYMENT & SUBSCRIPTION COMMANDS ====================
+    
+    async def cmd_plans(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /plans command - Show available subscription plans"""
+        telegram_id = str(update.effective_user.id)
+        user = await self.db.telegram_users.find_one({"telegram_id": telegram_id})
+        current_plan = user.get("subscription_level", "free") if user else "free"
+        
+        message = f"""
+🎯 *BETRADARMUS Pläne*
+
+Dein aktueller Plan: *{current_plan.upper()}*
+
+━━━━━━━━━━━━━━━━━━━━━
+
+⭐ *FREE* - Kostenlos
+• Max. 5 Signale pro Tag
+• Verzögerte Signale (15 Min.)
+• 2 Ligen
+• Basis-Telegram Alerts
+
+━━━━━━━━━━━━━━━━━━━━━
+
+⚡ *PRO* - €29/Monat oder €249/Jahr
+• Unbegrenzte Signale
+• Echtzeit-Signale
+• Execution Score
+• Confidence Bewertung
+• Risk Score
+• 5 Ligen
+• Echtzeit Telegram Alerts
+
+━━━━━━━━━━━━━━━━━━━━━
+
+👑 *ELITE* - €79/Monat oder €699/Jahr
+• Alles aus PRO
+• Signal Lifetime Prediction
+• Erweiterte Explain Layer
+• Personalisierte Signalfilter
+• Signal-Historie
+• 8 Ligen
+• Schnellere Signalerkennung
+
+━━━━━━━━━━━━━━━━━━━━━
+
+Upgrade unter: betradarmus.de/#pricing
+"""
+        
+        keyboard = []
+        if current_plan == "free":
+            keyboard.append([
+                InlineKeyboardButton("⚡ PRO freischalten", callback_data="upgrade_pro"),
+                InlineKeyboardButton("👑 ELITE freischalten", callback_data="upgrade_elite")
+            ])
+        elif current_plan == "pro":
+            keyboard.append([
+                InlineKeyboardButton("👑 Upgrade auf ELITE", callback_data="upgrade_elite")
+            ])
+        
+        keyboard.append([
+            InlineKeyboardButton("📊 Mein Status", callback_data="check_status"),
+            InlineKeyboardButton("🔗 Konto verknüpfen", callback_data="link_account")
+        ])
+        
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup)
+    
+    async def cmd_upgrade(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /upgrade command - Show upgrade options"""
+        telegram_id = str(update.effective_user.id)
+        user = await self.db.telegram_users.find_one({"telegram_id": telegram_id})
+        current_plan = user.get("subscription_level", "free") if user else "free"
+        
+        if current_plan == "elite":
+            await update.message.reply_text(
+                "👑 Du hast bereits den *ELITE*-Plan!\n\n"
+                "Du genießt bereits alle Premium-Features.",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+        
+        message = f"""
+🚀 *Upgrade dein BETRADARMUS*
+
+Aktueller Plan: *{current_plan.upper()}*
+
+"""
+        
+        if current_plan == "free":
+            message += """
+*Upgrade-Optionen:*
+
+⚡ *PRO* - €29/Monat
+• Echtzeit-Signale ohne Verzögerung
+• Execution Score
+• Confidence & Risk Score
+• 5 Ligen
+
+👑 *ELITE* - €79/Monat
+• Alles aus PRO
+• Signal Lifetime Prediction
+• 8 Ligen
+• VIP-Kanal
+
+"""
+        else:  # pro
+            message += """
+*Upgrade auf ELITE:*
+
+👑 *ELITE* - €79/Monat
+• Signal Lifetime Prediction
+• Erweiterte Analyse
+• 8 Ligen (statt 5)
+• Noch schnellere Signale
+
+"""
+        
+        message += "━━━━━━━━━━━━━━━━━━━━━\n\n👉 Upgrade unter: betradarmus.de/#pricing"
+        
+        keyboard = []
+        if current_plan == "free":
+            keyboard.append([InlineKeyboardButton("⚡ PRO freischalten", url="https://betradarmus.de/#pricing")])
+            keyboard.append([InlineKeyboardButton("👑 ELITE freischalten", url="https://betradarmus.de/#pricing")])
+        else:
+            keyboard.append([InlineKeyboardButton("👑 Upgrade auf ELITE", url="https://betradarmus.de/#pricing")])
+        
+        keyboard.append([InlineKeyboardButton("🔗 Konto verknüpfen", callback_data="link_account")])
+        
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup, disable_web_page_preview=True)
+    
+    async def cmd_manage(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /manage command - Manage subscription"""
+        telegram_id = str(update.effective_user.id)
+        user = await self.db.telegram_users.find_one({"telegram_id": telegram_id})
+        
+        if not user:
+            await update.message.reply_text(
+                "❌ Du bist noch nicht registriert. Nutze /start zuerst."
+            )
+            return
+        
+        plan = user.get("subscription_level", "free")
+        linked_user_id = user.get("linked_user_id")
+        
+        message = f"""
+⚙️ *Abo verwalten*
+
+Dein aktueller Plan: *{plan.upper()}*
+Website-Konto: {"✅ Verknüpft" if linked_user_id else "❌ Nicht verknüpft"}
+
+"""
+        
+        if plan == "free":
+            message += """
+Um auf PRO oder ELITE zu upgraden, besuche:
+👉 betradarmus.de/#pricing
+"""
+        else:
+            message += """
+Um dein Abo zu kündigen oder Zahlungsdaten zu ändern:
+👉 betradarmus.de/account
+
+Für Support: support@betradarmus.de
+"""
+        
+        keyboard = [
+            [InlineKeyboardButton("🌐 Zur Website", url="https://betradarmus.de/account")],
+            [InlineKeyboardButton("📊 Mein Status", callback_data="check_status")]
+        ]
+        
+        if not linked_user_id:
+            keyboard.append([InlineKeyboardButton("🔗 Konto verknüpfen", callback_data="link_account")])
+        
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup, disable_web_page_preview=True)
+    
+    async def cmd_link(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /link command - Link Telegram to website account"""
+        message = """
+🔗 *Website-Konto verknüpfen*
+
+Um dein Telegram mit deinem BETRADARMUS-Konto zu verbinden:
+
+1️⃣ Gehe zu betradarmus.de
+2️⃣ Logge dich ein oder registriere dich
+3️⃣ Gehe zu *Account* → *Telegram verknüpfen*
+4️⃣ Kopiere den Code und sende ihn mir hier
+
+*Vorteile der Verknüpfung:*
+• Zahlungen auf der Website werden automatisch hier aktiv
+• Einheitlicher Subscription-Status
+• Synchronisierte Einstellungen
+
+Hast du bereits einen Code? Sende ihn mir direkt!
+"""
+        
+        keyboard = [
+            [InlineKeyboardButton("🌐 Zur Website", url="https://betradarmus.de")],
+            [InlineKeyboardButton("◀️ Zurück", callback_data="check_status")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup, disable_web_page_preview=True)
+    
+    async def handle_text_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle text messages - Check for link codes"""
+        if not update.message or not update.message.text:
+            return
+        
+        text = update.message.text.strip().upper()
+        
+        # Check if it looks like a link code (8 characters, alphanumeric)
+        if len(text) == 8 and text.isalnum():
+            telegram_id = str(update.effective_user.id)
+            
+            # Try to find the code
+            code_doc = await self.db.link_codes.find_one({
+                "code": text,
+                "used": False
+            })
+            
+            if code_doc:
+                # Check expiry
+                from datetime import datetime, timezone
+                expires_at = datetime.fromisoformat(code_doc["expires_at"])
+                if datetime.now(timezone.utc) > expires_at:
+                    await update.message.reply_text(
+                        "❌ *Code abgelaufen*\n\n"
+                        "Bitte generiere einen neuen Code auf der Website:\n"
+                        "betradarmus.de → Account → Telegram verknüpfen",
+                        parse_mode=ParseMode.MARKDOWN
+                    )
+                    return
+                
+                user_id = code_doc["user_id"]
+                
+                # Create the link
+                await self.db.user_links.update_one(
+                    {"user_id": user_id},
+                    {"$set": {
+                        "user_id": user_id,
+                        "telegram_id": telegram_id,
+                        "linked_at": datetime.now(timezone.utc).isoformat(),
+                        "verified": True
+                    }},
+                    upsert=True
+                )
+                
+                # Mark code as used
+                await self.db.link_codes.update_one(
+                    {"code": text},
+                    {"$set": {"used": True}}
+                )
+                
+                # Get user's current subscription and sync to Telegram
+                user = await self.db.users.find_one({"id": user_id})
+                if user:
+                    plan = user.get("subscription", "free")
+                    await self.db.telegram_users.update_one(
+                        {"telegram_id": telegram_id},
+                        {"$set": {
+                            "linked_user_id": user_id,
+                            "subscription_level": plan,
+                            "updated_at": datetime.now(timezone.utc).isoformat()
+                        }}
+                    )
+                    
+                    await update.message.reply_text(
+                        "✅ *Erfolgreich verknüpft!*\n\n"
+                        f"Dein Telegram ist jetzt mit deinem Website-Konto verbunden.\n"
+                        f"Plan: *{plan.upper()}*\n\n"
+                        "Dein Subscription-Status wird automatisch synchronisiert.",
+                        parse_mode=ParseMode.MARKDOWN
+                    )
+                    logger.info(f"Account linked via code: telegram_id={telegram_id}, user_id={user_id}")
+                else:
+                    await update.message.reply_text(
+                        "⚠️ Verknüpfung erstellt, aber Website-Konto nicht gefunden.\n"
+                        "Bitte kontaktiere den Support.",
+                        parse_mode=ParseMode.MARKDOWN
+                    )
+            # else: Not a valid code, ignore message
     
     async def handle_new_member(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle new members joining a group - Send welcome message"""
@@ -525,6 +824,142 @@ Bei Fragen: support@betradarmus.de
             await self._handle_confidence_callback(query, telegram_id, data)
         elif data == "toggle_alerts":
             await self._handle_alerts_toggle(query, telegram_id)
+        # Payment & Subscription callbacks
+        elif data.startswith("upgrade_"):
+            plan = data.replace("upgrade_", "")
+            await self._handle_upgrade_callback(query, telegram_id, plan)
+        elif data == "check_status":
+            await self._handle_status_callback(query, telegram_id)
+        elif data == "link_account":
+            await self._handle_link_account_callback(query, telegram_id)
+        elif data == "show_plans":
+            await self._handle_show_plans_callback(query, telegram_id)
+    
+    async def _handle_upgrade_callback(self, query, telegram_id: str, plan: str):
+        """Handle upgrade button clicks"""
+        plan_info = {
+            "pro": ("PRO", "⚡", "29", "249"),
+            "elite": ("ELITE", "👑", "79", "699")
+        }
+        
+        info = plan_info.get(plan)
+        if not info:
+            await query.edit_message_text("❌ Ungültiger Plan")
+            return
+        
+        name, icon, monthly, yearly = info
+        
+        message = f"""
+{icon} *{name} Plan*
+
+💰 *Preise:*
+• Monatlich: €{monthly}/Monat
+• Jährlich: €{yearly}/Jahr (spare ~28%!)
+
+Nach dem Upgrade erhältst du sofort Zugriff auf alle {name}-Features.
+
+━━━━━━━━━━━━━━━━━━━━━
+
+Um zu upgraden, besuche unsere Website:
+👉 betradarmus.de/#pricing
+
+Dort kannst du bequem per Kreditkarte, PayPal oder Klarna bezahlen.
+"""
+        
+        keyboard = [
+            [InlineKeyboardButton(f"💳 Jetzt {name} freischalten", url="https://betradarmus.de/#pricing")],
+            [InlineKeyboardButton("◀️ Zurück", callback_data="show_plans")]
+        ]
+        
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(message, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup, disable_web_page_preview=True)
+    
+    async def _handle_status_callback(self, query, telegram_id: str):
+        """Handle status check callback"""
+        user = await self.db.telegram_users.find_one({"telegram_id": telegram_id})
+        
+        if not user:
+            await query.edit_message_text("❌ Nicht registriert. Nutze /start")
+            return
+        
+        plan = user.get("subscription_level", "free")
+        plan_icons = {"free": "⭐", "pro": "⚡", "elite": "👑"}
+        plan_icon = plan_icons.get(plan, "⭐")
+        linked = "✅" if user.get("linked_user_id") else "❌"
+        
+        message = f"""
+📊 *Dein Status*
+
+{plan_icon} Plan: *{plan.upper()}*
+🔗 Website verknüpft: {linked}
+📅 Registriert: {user.get('created_at', 'Unbekannt')[:10]}
+"""
+        
+        keyboard = []
+        if plan == "free":
+            keyboard.append([InlineKeyboardButton("⚡ PRO freischalten", callback_data="upgrade_pro")])
+        elif plan == "pro":
+            keyboard.append([InlineKeyboardButton("👑 ELITE freischalten", callback_data="upgrade_elite")])
+        
+        if not user.get("linked_user_id"):
+            keyboard.append([InlineKeyboardButton("🔗 Konto verknüpfen", callback_data="link_account")])
+        
+        keyboard.append([InlineKeyboardButton("📋 Alle Pläne", callback_data="show_plans")])
+        
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(message, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup)
+    
+    async def _handle_link_account_callback(self, query, telegram_id: str):
+        """Handle link account callback"""
+        message = """
+🔗 *Website-Konto verknüpfen*
+
+1️⃣ Gehe zu betradarmus.de
+2️⃣ Logge dich ein
+3️⃣ Account → Telegram verknüpfen
+4️⃣ Kopiere den Code und sende ihn mir hier
+
+*Vorteile:*
+• Automatische Abo-Synchronisierung
+• Einheitlicher Status
+"""
+        
+        keyboard = [
+            [InlineKeyboardButton("🌐 Zur Website", url="https://betradarmus.de")],
+            [InlineKeyboardButton("◀️ Zurück", callback_data="check_status")]
+        ]
+        
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(message, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup, disable_web_page_preview=True)
+    
+    async def _handle_show_plans_callback(self, query, telegram_id: str):
+        """Handle show plans callback"""
+        user = await self.db.telegram_users.find_one({"telegram_id": telegram_id})
+        current_plan = user.get("subscription_level", "free") if user else "free"
+        
+        message = f"""
+🎯 *BETRADARMUS Pläne*
+
+Aktuell: *{current_plan.upper()}*
+
+⭐ FREE - Kostenlos
+⚡ PRO - €29/Mo oder €249/Jahr
+👑 ELITE - €79/Mo oder €699/Jahr
+"""
+        
+        keyboard = []
+        if current_plan == "free":
+            keyboard.append([
+                InlineKeyboardButton("⚡ PRO", callback_data="upgrade_pro"),
+                InlineKeyboardButton("👑 ELITE", callback_data="upgrade_elite")
+            ])
+        elif current_plan == "pro":
+            keyboard.append([InlineKeyboardButton("👑 ELITE", callback_data="upgrade_elite")])
+        
+        keyboard.append([InlineKeyboardButton("📊 Status", callback_data="check_status")])
+        
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text(message, parse_mode=ParseMode.MARKDOWN, reply_markup=reply_markup)
             
     async def _handle_subscribe_callback(self, query, telegram_id: str, data: str):
         """Handle league subscription callbacks"""

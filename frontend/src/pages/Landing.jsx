@@ -14,6 +14,7 @@ import { AuthModal } from '../components/AuthModal';
 import { useAuth } from '../context/AuthContext';
 import { PricingCard } from '../components/PricingCard';
 import { ExecutionDashboard } from '../components/ExecutionDashboard';
+import { BillingToggle } from '../components/BillingToggle';
 
 // New sections for upgrade
 const WhyDifferentSection = lazy(() => import('../components/WhyDifferentSection').then(m => ({ default: m.WhyDifferentSection })));
@@ -130,6 +131,7 @@ export const Landing = () => {
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [pendingPlan, setPendingPlan] = useState(null);
+  const [billingInterval, setBillingInterval] = useState('monthly');
   const { isAuthenticated } = useAuth();
 
   const handlePlanSelect = (plan) => {
@@ -887,19 +889,25 @@ export const Landing = () => {
       {/* Pricing Section */}
       <section id="pricing" className="py-24 md:py-32 relative" data-testid="pricing-section">
         <div className="max-w-7xl mx-auto px-4 md:px-8">
-          <div className="max-w-3xl mx-auto text-center mb-16">
+          <div className="max-w-3xl mx-auto text-center mb-8">
             <h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-semibold uppercase tracking-tight text-white mb-6">
               Wähle deinen Plan
             </h2>
-            <p className="text-[#A1A1AA] text-base md:text-lg">
+            <p className="text-[#A1A1AA] text-base md:text-lg mb-8">
               Starte kostenlos und upgrade, wenn du bereit bist.
             </p>
+            
+            {/* Billing Interval Toggle */}
+            <BillingToggle 
+              interval={billingInterval} 
+              onChange={setBillingInterval} 
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto">
-            <PricingCard plan="free" onSelect={handlePlanSelect} onAuthRequired={handleAuthRequired} />
-            <PricingCard plan="pro" onSelect={handlePlanSelect} onAuthRequired={handleAuthRequired} />
-            <PricingCard plan="elite" onSelect={handlePlanSelect} onAuthRequired={handleAuthRequired} />
+            <PricingCard plan="free" billingInterval={billingInterval} onSelect={handlePlanSelect} onAuthRequired={handleAuthRequired} />
+            <PricingCard plan="pro" billingInterval={billingInterval} onSelect={handlePlanSelect} onAuthRequired={handleAuthRequired} />
+            <PricingCard plan="elite" billingInterval={billingInterval} onSelect={handlePlanSelect} onAuthRequired={handleAuthRequired} />
           </div>
         </div>
       </section>

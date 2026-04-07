@@ -9,9 +9,9 @@ const API = `${BACKEND_URL}/api`;
 const plans = {
   free: {
     name: 'Free',
-    price: '0',
+    priceMonthly: '0',
+    priceYearly: '0',
     period: '',
-    yearlyPrice: null,
     description: 'Für den Einstieg',
     microcopy: 'Erste Einblicke in Live-Marktdynamik',
     icon: Star,
@@ -27,9 +27,9 @@ const plans = {
   },
   pro: {
     name: 'Pro',
-    price: '29',
+    priceMonthly: '29',
+    priceYearly: '249',
     period: '/Monat',
-    yearlyPrice: '249',
     description: 'Für datenbasierte Entscheidungen',
     microcopy: 'Erkenne den richtigen Moment, nicht nur das Signal',
     icon: Zap,
@@ -48,9 +48,9 @@ const plans = {
   },
   elite: {
     name: 'Elite',
-    price: '79',
+    priceMonthly: '79',
+    priceYearly: '699',
     period: '/Monat',
-    yearlyPrice: '699',
     description: 'Für maximale Echtzeit-Transparenz',
     microcopy: 'Volle Kontrolle über Timing und Marktverhalten',
     icon: Crown,
@@ -71,14 +71,25 @@ const plans = {
   }
 };
 
-export const PricingCard = ({ plan, onSelect, onAuthRequired }) => {
+export const PricingCard = ({ plan, billingInterval = 'monthly', onSelect, onAuthRequired }) => {
   const planData = plans[plan];
   const Icon = planData.icon;
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, token } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const isCurrentPlan = user?.subscription === plan;
+  const isYearly = billingInterval === 'yearly';
+  
+  // Get price based on billing interval
+  const price = isYearly ? planData.priceYearly : planData.priceMonthly;
+  const period = isYearly ? '/Jahr' : '/Monat';
+  
+  // Calculate savings for yearly
+  const monthlyCost = parseFloat(planData.priceMonthly);
+  const yearlyCost = parseFloat(planData.priceYearly);
+  const yearlyMonthlyCost = yearlyCost / 12;
+  const savingsPercent = monthlyCost > 0 ? Math.round((1 - yearlyMonthlyCost / monthlyCost) * 100) : 0;
 
   const handleClick = async () => {
     // For free plan, just select it
@@ -107,7 +118,10 @@ export const PricingCard = ({ plan, onSelect, onAuthRequired }) => {
     try {
       const response = await axios.post(`${API}/payments/checkout`, {
         plan: plan,
+        billing_interval: billingInterval,
         origin_url: window.location.origin
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
       if (response.data.success && response.data.checkout_url) {
@@ -170,13 +184,21 @@ export const PricingCard = ({ plan, onSelect, onAuthRequired }) => {
         </div>
         
         <div className="flex items-baseline gap-1 mb-1">
-          <span className="font-mono text-4xl md:text-5xl font-bold text-white">€{planData.price}</span>
-          {planData.period && <span className="text-[#A1A1AA] text-sm">{planData.period}</span>}
+          <span className="font-mono text-4xl md:text-5xl font-bold text-white">€{price}</span>
+          {plan !== 'free' && <span className="text-[#A1A1AA] text-sm">{period}</span>}
         </div>
         
-        {planData.yearlyPrice && (
+        {/* Savings indicator for yearly */}
+        {plan !== 'free' && isYearly && savingsPercent > 0 && (
+          <p className="text-xs text-[#39FF14] mb-2">
+            Spare {savingsPercent}% gegenüber monatlicher Zahlung
+          </p>
+        )}
+        
+        {/* Show alternative pricing */}
+        {plan !== 'free' && !isYearly && (
           <p className="text-xs text-[#A1A1AA] mb-2">
-            oder €{planData.yearlyPrice}/Jahr <span className="text-[#39FF14]">(spare 17%)</span>
+            oder €{planData.priceYearly}/Jahr <span className="text-[#39FF14]">(spare {savingsPercent}%)</span>
           </p>
         )}
         

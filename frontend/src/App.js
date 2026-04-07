@@ -36,6 +36,7 @@ const PaymentSuccess = lazy(() => import("./pages/PaymentSuccess").then(m => ({ 
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard").then(m => ({ default: m.AdminDashboard })));
 const VerifyEmail = lazy(() => import("./pages/VerifyEmail").then(m => ({ default: m.VerifyEmail })));
 const FAQ = lazy(() => import("./pages/FAQ").then(m => ({ default: m.FAQ })));
+const BillingPage = lazy(() => import("./pages/BillingPage").then(m => ({ default: m.BillingPage })));
 
 // Scroll to top on route change
 const ScrollToTop = () => {
@@ -68,6 +69,8 @@ function App() {
                   <Route path="/datenschutz" element={<Suspense fallback={<PageLoader />}><Datenschutz /></Suspense>} />
                   <Route path="/kontakt" element={<Suspense fallback={<PageLoader />}><Kontakt /></Suspense>} />
                   <Route path="/payment/success" element={<Suspense fallback={<PageLoader />}><PaymentSuccess /></Suspense>} />
+                  <Route path="/account" element={<Suspense fallback={<PageLoader />}><BillingPage /></Suspense>} />
+                  <Route path="/billing" element={<Suspense fallback={<PageLoader />}><BillingPage /></Suspense>} />
                 </Routes>
               </main>
               <Footer />
