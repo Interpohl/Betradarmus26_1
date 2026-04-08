@@ -37,6 +37,15 @@ from oddspapi_service import (
     SignalEngine
 )
 
+# Scheduler Service
+from scheduler_service import (
+    init_scheduler,
+    get_scheduler,
+    create_daily_result_update_task,
+    create_statistics_refresh_task,
+    create_cleanup_task
+)
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
@@ -3136,6 +3145,50 @@ async def record_tip(tip_data: dict, user: dict = Depends(require_auth)):
     tip_id = await statistics_service.record_tip(tip_data)
     return {"success": True, "tip_id": tip_id}
 
+# ==================== SCHEDULER API ROUTES ====================
+
+@api_router.get("/scheduler/status")
+async def get_scheduler_status(user: dict = Depends(require_admin)):
+    """Get scheduler status (admin only)"""
+    scheduler = get_scheduler()
+    if not scheduler:
+        return {"running": False, "message": "Scheduler nicht initialisiert"}
+    
+    return scheduler.get_status()
+
+@api_router.post("/scheduler/run/{task_name}")
+async def run_scheduler_task(task_name: str, user: dict = Depends(require_admin)):
+    """Manually trigger a scheduled task (admin only)"""
+    scheduler = get_scheduler()
+    if not scheduler:
+        raise HTTPException(status_code=503, detail="Scheduler nicht verfügbar")
+    
+    result = await scheduler.run_task_now(task_name)
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=404, detail=result.get("error", "Task nicht gefunden"))
+    
+    return result
+
+@api_router.get("/scheduler/logs")
+async def get_scheduler_logs(limit: int = 50, user: dict = Depends(require_admin)):
+    """Get scheduler execution logs (admin only)"""
+    logs = await db.scheduler_logs.find().sort("timestamp", -1).limit(limit).to_list(limit)
+    
+    return {
+        "logs": [
+            {
+                "task_name": log.get("task_name"),
+                "status": log.get("status"),
+                "result": log.get("result"),
+                "error": log.get("error"),
+                "duration_seconds": log.get("duration_seconds"),
+                "timestamp": log.get("timestamp").isoformat() if log.get("timestamp") else None
+            }
+            for log in logs
+        ]
+    }
+
 # ==================== SIGNAL GENERATOR API ROUTES ====================
 
 @api_router.post("/signals/generate")
@@ -3620,6 +3673,48 @@ async def startup_event():
     except Exception as e:
         logger.error(f"Failed to start Statistics Service: {e}")
     
+    # Initialize Scheduler Service
+    try:
+        scheduler = init_scheduler(db)
+        
+        # Register daily result update task (runs at 6:00 UTC)
+        if statistics_service:
+            daily_task = await create_daily_result_update_task(db, statistics_service)
+            scheduler.register_task(
+                name="daily_result_update",
+                func=daily_task,
+                run_at_hour=6,  # 6:00 UTC = 7:00 CET / 8:00 CEST
+                enabled=True
+            )
+        
+        # Register statistics refresh task (every 4 hours)
+        stats_task = await create_statistics_refresh_task(db)
+        scheduler.register_task(
+            name="statistics_refresh",
+            func=stats_task,
+            interval_hours=4,
+            enabled=True
+        )
+        
+        # Register cleanup task (runs at 3:00 UTC)
+        cleanup_task = await create_cleanup_task(db)
+        scheduler.register_task(
+            name="daily_cleanup",
+            func=cleanup_task,
+            run_at_hour=3,
+            enabled=True
+        )
+        
+        # Start scheduler if enabled
+        if os.environ.get('ENABLE_SCHEDULER', 'true').lower() == 'true':
+            scheduler.start()
+            logger.info("Scheduler started with 3 tasks")
+        else:
+            logger.info("Scheduler initialized (disabled via ENABLE_SCHEDULER=false)")
+            
+    except Exception as e:
+        logger.error(f"Failed to start Scheduler: {e}")
+    
     if TELEGRAM_BOT_TOKEN and ENABLE_TELEGRAM_BOT:
         try:
             telegram_service = await init_telegram_service(TELEGRAM_BOT_TOKEN, db)
@@ -3649,6 +3744,12 @@ async def startup_event():
 async def shutdown_event():
     """Cleanup on shutdown"""
     global telegram_service, signal_generator
+    
+    # Stop scheduler
+    scheduler = get_scheduler()
+    if scheduler:
+        scheduler.stop()
+        logger.info("Scheduler stopped")
     
     if signal_generator:
         await signal_generator.stop()

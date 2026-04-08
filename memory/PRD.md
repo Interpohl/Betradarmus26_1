@@ -261,6 +261,34 @@ SENDER_NAME=BETRADARMUS
 9. ✅ **Zahlungsmethoden erweitert** - Kreditkarte, PayPal, Klarna
    - Backend angepasst für payment_method_types
 
+## Completed (2025-12-19)
+
+1. ✅ **P0 Regression Testing** - Comprehensive testing after OddsPapi/SofaScore integration
+   - Backend: 19/19 tests passed (100%)
+   - Frontend: All components rendering correctly (100%)
+   - Tested: Auth flow, Signal Engine, SofaScore Live, Match Details, Billing
+   - No critical bugs found
+   - Test report: `/app/test_reports/iteration_7.json`
+
+2. ✅ **P1 Codebase Cleanup** - Removed unused skeleton files
+   - Deleted `/app/backend/routes/` (empty router stubs)
+   - Deleted `/app/frontend/src/components/admin/` (empty admin components)
+   - Monolithic approach kept for stability (server.py, AdminDashboard.jsx)
+
+3. ✅ **P1 Scheduler Service / Cronjob** - Automated background tasks
+   - New file: `/app/backend/scheduler_service.py`
+   - **Tasks:**
+     - `daily_result_update`: Täglich um 6:00 UTC - Wertet ausstehende Tipps aus
+     - `statistics_refresh`: Alle 4 Stunden - Aktualisiert gecachte Statistiken
+     - `daily_cleanup`: Täglich um 3:00 UTC - Bereinigt alte Logs
+   - **API Endpoints:**
+     - `GET /api/scheduler/status` - Scheduler-Status (Admin)
+     - `POST /api/scheduler/run/{task_name}` - Task manuell ausführen (Admin)
+     - `GET /api/scheduler/logs` - Ausführungs-Logs (Admin)
+   - Umgebungsvariable: `ENABLE_SCHEDULER=true/false`
+
+---
+
 ## Completed (2026-03-19)
 
 1. ✅ **Statistics & Performance Tracking** - Öffentliche Statistik-Sektion auf der Landing Page
@@ -509,16 +537,16 @@ SENDER_NAME=BETRADARMUS
 - **Stripe Dashboard Configuration**: Enable PayPal and Klarna in Stripe Dashboard manually
 - **Odds API Credits**: The Odds API credits (500/month free) are exhausted - consider upgrading plan or wait for monthly reset
 
-### P1 - High
+### P1 - High (Completed ✅)
+- ~~Cronjob für tägliche Ergebnis-Aktualisierung~~ → **DONE** (Scheduler Service)
 - Echte Tipps über Admin Dashboard erfassen und automatisch auswerten lassen
-- Cronjob für tägliche Ergebnis-Aktualisierung via The Odds API
 
 ### P2 - Medium
-- Push notifications (Web)
+- Push notifications (Web) - `/app/backend/push_notification_service.py` existiert bereits (Stubs)
 - Erweitertes Tip-Management im Admin Dashboard
-- Refactor AdminDashboard.jsx (~1800+ lines) into smaller tab components
-- Refactor server.py into separate routers (routes/admin.py, routes/signals.py)
 
-### P3 - Low
+### P3 - Low / Future Refactoring
+- Refactor AdminDashboard.jsx (~2000 lines) into smaller tab components
+- Refactor server.py (~3700 lines) into separate routers
 - Multiple language support
 - Mobile app (React Native)
