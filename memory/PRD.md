@@ -287,6 +287,24 @@ SENDER_NAME=BETRADARMUS
      - `GET /api/scheduler/logs` - Ausführungs-Logs (Admin)
    - Umgebungsvariable: `ENABLE_SCHEDULER=true/false`
 
+4. ✅ **P2 Web Push Notifications** - Browser Push-Benachrichtigungen
+   - **Backend:**
+     - VAPID Keys generiert und in `.env` konfiguriert
+     - API Endpoints: `/api/push/vapid-key`, `/api/push/subscribe`, `/api/push/unsubscribe`, `/api/push/status`, `/api/push/send-test`, `/api/push/broadcast`
+     - Push-Service nutzt `pywebpush` Bibliothek
+   - **Frontend:**
+     - Service Worker: `/app/frontend/public/sw.js`
+     - Push-Utility: `/app/frontend/src/utils/pushNotifications.js`
+     - Settings-Komponente: `/app/frontend/src/components/PushNotificationSettings.jsx`
+     - Integriert in BillingPage (Account-Seite)
+   - **Admin Dashboard:**
+     - Neuer "Push" Tab zum Senden von Push-Nachrichten an PRO/ELITE Nutzer
+   - **Features:**
+     - Browser-Berechtigung anfragen
+     - Subscription speichern/löschen
+     - Test-Benachrichtigung senden
+     - Admin Broadcast an Nutzergruppen
+
 ---
 
 ## Completed (2026-03-19)
@@ -541,12 +559,12 @@ SENDER_NAME=BETRADARMUS
 - ~~Cronjob für tägliche Ergebnis-Aktualisierung~~ → **DONE** (Scheduler Service)
 - Echte Tipps über Admin Dashboard erfassen und automatisch auswerten lassen
 
-### P2 - Medium
-- Push notifications (Web) - `/app/backend/push_notification_service.py` existiert bereits (Stubs)
+### P2 - Medium (Completed ✅)
+- ~~Push notifications (Web)~~ → **DONE** (Full implementation with Service Worker, API, Admin UI)
 - Erweitertes Tip-Management im Admin Dashboard
 
 ### P3 - Low / Future Refactoring
-- Refactor AdminDashboard.jsx (~2000 lines) into smaller tab components
-- Refactor server.py (~3700 lines) into separate routers
+- Refactor AdminDashboard.jsx (~2100 lines) into smaller tab components
+- Refactor server.py (~3800 lines) into separate routers
 - Multiple language support
 - Mobile app (React Native)

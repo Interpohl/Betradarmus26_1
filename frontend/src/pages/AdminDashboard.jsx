@@ -510,7 +510,8 @@ export const AdminDashboard = () => {
             { id: 'website-users', label: 'Website Nutzer', icon: Globe },
             { id: 'registrations', label: 'Registrierungen', icon: Plus },
             { id: 'payments', label: 'Zahlungen', icon: CreditCard },
-            { id: 'email', label: 'E-Mail', icon: Send }
+            { id: 'email', label: 'E-Mail', icon: Send },
+            { id: 'push', label: 'Push', icon: Bell }
           ].map(tab => (
             <button
               key={tab.id}
@@ -1814,6 +1815,119 @@ export const AdminDashboard = () => {
               <p className="text-gray-500 text-sm mt-4">
                 Hinweis: E-Mails werden an alle Nutzer gesendet, die sich auf der Website registriert haben.
                 Stelle sicher, dass deine Nachricht professionell und relevant ist.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Push Notification Tab */}
+        {activeTab === 'push' && (
+          <div className="bg-[#121212] border border-gray-800 rounded-xl p-6">
+            <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+              <Bell className="w-5 h-5 text-[#39FF14]" />
+              Push-Benachrichtigungen
+            </h2>
+            
+            <div className="space-y-6 max-w-2xl">
+              {/* Stats */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-[#0a0a0a] border border-gray-700 rounded-xl p-4">
+                  <p className="text-gray-400 text-sm">VAPID konfiguriert</p>
+                  <p className="text-2xl font-bold text-[#39FF14]">✓</p>
+                </div>
+                <div className="bg-[#0a0a0a] border border-gray-700 rounded-xl p-4">
+                  <p className="text-gray-400 text-sm">Push-fähige Nutzer</p>
+                  <p className="text-2xl font-bold text-white">-</p>
+                  <p className="text-xs text-gray-500">Subscriptions in DB</p>
+                </div>
+              </div>
+              
+              {/* Broadcast Form */}
+              <div className="border-t border-gray-700 pt-6">
+                <h3 className="text-lg font-semibold text-white mb-4">Push-Nachricht senden</h3>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-2">Empfänger</label>
+                    <select
+                      id="push-recipients"
+                      defaultValue="pro,elite"
+                      className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-[#39FF14] focus:outline-none"
+                    >
+                      <option value="pro,elite">PRO + ELITE Nutzer</option>
+                      <option value="elite">Nur ELITE Nutzer</option>
+                      <option value="pro">Nur PRO Nutzer</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-2">Titel</label>
+                    <Input
+                      id="push-title"
+                      placeholder="z.B. ⚡ Neues Signal verfügbar!"
+                      className="bg-[#0a0a0a] border-gray-700 text-white"
+                      defaultValue="⚡ BETRADARMUS Update"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-2">Nachricht</label>
+                    <textarea
+                      id="push-body"
+                      placeholder="Deine Push-Nachricht..."
+                      rows={4}
+                      className="w-full bg-[#0a0a0a] border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-[#39FF14] focus:outline-none resize-none"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-2">Link (optional)</label>
+                    <Input
+                      id="push-url"
+                      placeholder="z.B. /admin oder /"
+                      className="bg-[#0a0a0a] border-gray-700 text-white"
+                      defaultValue="/"
+                    />
+                  </div>
+                  
+                  <Button
+                    onClick={async () => {
+                      const title = document.getElementById('push-title').value;
+                      const body = document.getElementById('push-body').value;
+                      const url = document.getElementById('push-url').value;
+                      const recipients = document.getElementById('push-recipients').value;
+                      
+                      if (!body) {
+                        toast.error('Bitte Nachricht eingeben');
+                        return;
+                      }
+                      
+                      try {
+                        const response = await axios.post(`${API}/push/broadcast`, {
+                          title,
+                          body,
+                          url,
+                          target_plans: recipients.split(',')
+                        }, {
+                          headers: { Authorization: `Bearer ${token}` }
+                        });
+                        
+                        toast.success(`Push gesendet: ${response.data.sent} erfolgreich, ${response.data.failed} fehlgeschlagen`);
+                      } catch (error) {
+                        toast.error('Fehler beim Senden: ' + (error.response?.data?.detail || error.message));
+                      }
+                    }}
+                    className="bg-gradient-to-r from-[#39FF14] to-green-600 text-black font-semibold"
+                  >
+                    <Bell className="w-4 h-4 mr-2" />
+                    Push senden
+                  </Button>
+                </div>
+              </div>
+              
+              <p className="text-gray-500 text-sm mt-4">
+                Hinweis: Push-Benachrichtigungen erreichen nur Nutzer, die diese in ihrem Browser aktiviert haben.
+                Die Nachricht erscheint als Browser-Benachrichtigung, auch wenn die Website nicht geöffnet ist.
               </p>
             </div>
           </div>

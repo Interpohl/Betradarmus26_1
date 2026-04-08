@@ -3189,6 +3189,125 @@ async def get_scheduler_logs(limit: int = 50, user: dict = Depends(require_admin
         ]
     }
 
+# ==================== PUSH NOTIFICATION API ROUTES ====================
+
+# VAPID Public Key for client subscription
+VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY", "")
+
+@api_router.get("/push/vapid-key")
+async def get_vapid_public_key():
+    """Get VAPID public key for push subscription"""
+    if not VAPID_PUBLIC_KEY:
+        raise HTTPException(status_code=503, detail="Push-Benachrichtigungen nicht konfiguriert")
+    return {"publicKey": VAPID_PUBLIC_KEY}
+
+@api_router.post("/push/subscribe")
+async def subscribe_to_push(
+    subscription: dict,
+    user: dict = Depends(require_auth)
+):
+    """Subscribe to push notifications"""
+    from push_notification_service import save_push_subscription, set_database
+    set_database(db)
+    
+    success = await save_push_subscription(user['id'], subscription)
+    
+    if success:
+        return {"success": True, "message": "Push-Benachrichtigungen aktiviert"}
+    else:
+        raise HTTPException(status_code=500, detail="Fehler beim Speichern der Subscription")
+
+@api_router.post("/push/unsubscribe")
+async def unsubscribe_from_push(
+    data: dict,
+    user: dict = Depends(require_auth)
+):
+    """Unsubscribe from push notifications"""
+    from push_notification_service import remove_push_subscription, set_database
+    set_database(db)
+    
+    endpoint = data.get("endpoint")
+    if not endpoint:
+        raise HTTPException(status_code=400, detail="Endpoint erforderlich")
+    
+    success = await remove_push_subscription(user['id'], endpoint)
+    return {"success": success, "message": "Push-Benachrichtigungen deaktiviert"}
+
+@api_router.get("/push/status")
+async def get_push_status(user: dict = Depends(require_auth)):
+    """Get push notification status for user"""
+    from push_notification_service import get_user_subscriptions, set_database
+    set_database(db)
+    
+    subscriptions = await get_user_subscriptions(user['id'])
+    
+    return {
+        "enabled": len(subscriptions) > 0,
+        "subscription_count": len(subscriptions),
+        "vapid_configured": bool(VAPID_PUBLIC_KEY)
+    }
+
+@api_router.post("/push/send-test")
+async def send_test_push(user: dict = Depends(require_auth)):
+    """Send a test push notification to the current user"""
+    from push_notification_service import get_user_subscriptions, send_push_notification, set_database
+    set_database(db)
+    
+    subscriptions = await get_user_subscriptions(user['id'])
+    
+    if not subscriptions:
+        raise HTTPException(status_code=400, detail="Keine aktive Push-Subscription gefunden")
+    
+    payload = {
+        "type": "test",
+        "title": "🔔 BETRADARMUS Test",
+        "body": "Push-Benachrichtigungen funktionieren!",
+        "icon": "/logo192.png",
+        "tag": "test-notification",
+        "data": {"url": "/"}
+    }
+    
+    success_count = 0
+    for sub in subscriptions:
+        if send_push_notification(sub, payload):
+            success_count += 1
+    
+    return {
+        "success": success_count > 0,
+        "sent": success_count,
+        "total": len(subscriptions)
+    }
+
+@api_router.post("/push/broadcast")
+async def broadcast_push_notification(
+    data: dict,
+    user: dict = Depends(require_admin)
+):
+    """Broadcast a push notification to users (admin only)"""
+    from push_notification_service import send_custom_notification, set_database
+    set_database(db)
+    
+    title = data.get("title", "BETRADARMUS Update")
+    body = data.get("body", "")
+    target_plans = data.get("target_plans", ["pro", "elite"])
+    url = data.get("url", "/")
+    
+    if not body:
+        raise HTTPException(status_code=400, detail="Nachricht (body) erforderlich")
+    
+    result = await send_custom_notification(
+        title=title,
+        body=body,
+        target_plans=target_plans,
+        url=url
+    )
+    
+    return {
+        "success": True,
+        "sent": result.get("success", 0),
+        "failed": result.get("failed", 0)
+    }
+
 # ==================== SIGNAL GENERATOR API ROUTES ====================
 
 @api_router.post("/signals/generate")

@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { toast } from 'sonner';
+import { PushNotificationSettings } from '../components/PushNotificationSettings';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -358,6 +359,11 @@ export const BillingPage = () => {
               )}
             </div>
           )}
+        </div>
+
+        {/* Push Notification Settings */}
+        <div className="mb-6">
+          <PushNotificationSettings />
         </div>
 
         {/* Payment History */}

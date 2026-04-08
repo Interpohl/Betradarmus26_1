@@ -17,6 +17,32 @@ import { Footer } from "./components/Footer";
 // Critical page - load immediately
 import { Landing } from "./pages/Landing";
 
+// Register Service Worker for Push Notifications
+const registerServiceWorker = async () => {
+  if ('serviceWorker' in navigator) {
+    try {
+      const registration = await navigator.serviceWorker.register('/sw.js', {
+        scope: '/'
+      });
+      console.log('[App] Service Worker registered:', registration.scope);
+      
+      // Listen for updates
+      registration.addEventListener('updatefound', () => {
+        const newWorker = registration.installing;
+        if (newWorker) {
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              console.log('[App] New Service Worker available');
+            }
+          });
+        }
+      });
+    } catch (error) {
+      console.error('[App] Service Worker registration failed:', error);
+    }
+  }
+};
+
 // Loading Spinner for Suspense
 const PageLoader = () => (
   <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
@@ -50,6 +76,11 @@ const ScrollToTop = () => {
 };
 
 function App() {
+  // Register Service Worker on app mount
+  useEffect(() => {
+    registerServiceWorker();
+  }, []);
+
   return (
     <HelmetProvider>
       <AuthProvider>
