@@ -83,7 +83,7 @@ const faqData = [
     questions: [
       {
         q: "Was kostet BETRADARMUS?",
-        a: "FREE: 0€ - Kostenloser Einstieg mit Basis-Funktionen und Community-Zugang.\nPRO: 49€/Monat - Voller Zugriff auf alle Signale, Risk Scores und erweiterte Analysen.\nELITE: 199€/Monat - Premium-Features inkl. API-Zugang und Priority Support (Coming Soon)."
+        a: "FREE: 0€ - Kostenloser Einstieg mit Basis-Funktionen und Community-Zugang.\nPRO: 29€/Monat - Voller Zugriff auf alle Signale, Risk Scores und erweiterte Analysen.\nELITE: 79€/Monat - Premium-Features inkl. 10 Signale/Tag, 74% Trefferquote und Priority Support."
       },
       {
         q: "Welche Zahlungsmethoden werden akzeptiert?",

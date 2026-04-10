@@ -14,7 +14,7 @@ const PLANS = {
     avgOdds: 2.22,
     stakePercent: 0.05, // 5%
     color: '#39FF14',
-    monthlyPrice: 49
+    monthlyPrice: 29
   },
   elite: {
     name: 'ELITE',
@@ -23,7 +23,7 @@ const PLANS = {
     avgOdds: 2.57,
     stakePercent: 0.05, // 5%
     color: '#FFD700',
-    monthlyPrice: 99
+    monthlyPrice: 79
   }
 };
 
