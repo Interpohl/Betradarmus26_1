@@ -36,6 +36,9 @@ const FinalCTASection = lazy(() => import('../components/FinalCTASection').then(
 // What Is Section - Clear intro
 const WhatIsSection = lazy(() => import('../components/WhatIsSection').then(m => ({ default: m.WhatIsSection })));
 
+// Bankroll Calculator
+const BankrollCalculator = lazy(() => import('../components/BankrollCalculator').then(m => ({ default: m.BankrollCalculator })));
+
 // Analytics Tracker
 const AnalyticsTracker = lazy(() => import('../components/AnalyticsTracker').then(m => ({ default: m.AnalyticsTracker })));
 
@@ -296,6 +299,11 @@ export const Landing = () => {
       {/* NEW: What Is BETRADARMUS - Klare Erklärung */}
       <Suspense fallback={<SectionLoader />}>
         <WhatIsSection />
+      </Suspense>
+
+      {/* NEW: Bankroll Calculator - Gewinn-Rechner */}
+      <Suspense fallback={<SectionLoader />}>
+        <BankrollCalculator />
       </Suspense>
 
       {/* Live Ticker */}

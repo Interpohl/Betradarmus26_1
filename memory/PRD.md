@@ -316,6 +316,18 @@ SENDER_NAME=BETRADARMUS
      - Quick Facts: 50+ Ligen, 24/7, 81% Confidence, ~50s Fenster
    - **Ergebnis:** Besucher erkennt sofort worum es geht
 
+6. ✅ **Bankroll-Kalkulator** - Interaktiver Gewinn-Rechner
+   - **Neue Komponente:** `/app/frontend/src/components/BankrollCalculator.jsx`
+   - **Features:**
+     - Eingabe Startkapital (€500 - €5.000 Quick-Select)
+     - Plan-Auswahl: PRO vs ELITE
+     - Zeitraum-Berechnung: 1, 3, 6, 12 Monate
+     - Zeigt: Endkapital, Bruttogewinn, Netto nach Abo-Kosten
+   - **Parameter PRO:** 5 Signale/Tag, 71% Trefferquote, Ø Quote 2.22, 5% Einsatz
+   - **Parameter ELITE:** 10 Signale/Tag, 74% Trefferquote, Ø Quote 2.57, 5% Einsatz
+   - **Realistische Berechnung:** Compound-Wachstum mit konservativen Obergrenzen
+   - **Risikohinweis:** Integrierte Warnung über Sportwetten-Risiken
+
 ---
 
 ## Completed (2026-03-19)
