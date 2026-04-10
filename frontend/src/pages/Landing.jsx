@@ -33,11 +33,13 @@ const FAQSection = lazy(() => import('../components/FAQSection').then(m => ({ de
 const TrustSection = lazy(() => import('../components/TrustSection').then(m => ({ default: m.TrustSection })));
 const FinalCTASection = lazy(() => import('../components/FinalCTASection').then(m => ({ default: m.FinalCTASection })));
 
+// What Is Section - Clear intro
+const WhatIsSection = lazy(() => import('../components/WhatIsSection').then(m => ({ default: m.WhatIsSection })));
+
 // Analytics Tracker
 const AnalyticsTracker = lazy(() => import('../components/AnalyticsTracker').then(m => ({ default: m.AnalyticsTracker })));
 
 // Heavy components below the fold - lazy load only these
-const LiveDemo = lazy(() => import('../components/LiveDemo').then(m => ({ default: m.LiveDemo })));
 const ComparisonSection = lazy(() => import('../components/ComparisonSection').then(m => ({ default: m.ComparisonSection })));
 const TelegramPreview = lazy(() => import('../components/TelegramPreview').then(m => ({ default: m.TelegramPreview })));
 const FounderSection = lazy(() => import('../components/FounderSection').then(m => ({ default: m.FounderSection })));
@@ -291,6 +293,11 @@ export const Landing = () => {
       {/* Live Counter Bar */}
       <LiveCounter />
 
+      {/* NEW: What Is BETRADARMUS - Klare Erklärung */}
+      <Suspense fallback={<SectionLoader />}>
+        <WhatIsSection />
+      </Suspense>
+
       {/* Live Ticker */}
       <LiveTicker />
 
@@ -433,11 +440,6 @@ export const Landing = () => {
           </div>
         </div>
       </section>
-
-      {/* Live Demo Section */}
-      <Suspense fallback={<SectionLoader />}>
-        <LiveDemo />
-      </Suspense>
 
       {/* Statistics Section */}
       <Suspense fallback={<SectionLoader />}>
@@ -589,103 +591,6 @@ export const Landing = () => {
                   ))}
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Free Trial Comparison Section - NEW */}
-      <section className="py-16 md:py-20 bg-[#0a0a0a] relative" data-testid="free-trial-section">
-        <div className="max-w-5xl mx-auto px-4 md:px-8">
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#00C2FF]/10 border border-[#00C2FF]/20 rounded-full mb-6">
-              <Zap className="w-4 h-4 text-[#00C2FF]" />
-              <span className="text-[#00C2FF] text-sm font-medium">Kostenlos starten</span>
-            </div>
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
-              Teste BETRADARMUS gratis
-            </h2>
-            <p className="text-[#A1A1AA] max-w-2xl mx-auto">
-              Starte kostenlos und upgrade wenn du überzeugt bist. Keine Kreditkarte, keine versteckten Kosten.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Free Plan */}
-            <div className="p-6 md:p-8 bg-[#121212] border border-white/10 rounded-xl">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-bold text-white">FREE</h3>
-                <span className="px-3 py-1 bg-white/10 text-white text-sm rounded-full">Kostenlos</span>
-              </div>
-              <ul className="space-y-3 mb-6">
-                {[
-                  { text: "3 Signale pro Woche", included: true },
-                  { text: "Basis-Ligen (Bundesliga, PL)", included: true },
-                  { text: "Telegram Community Gruppe", included: true },
-                  { text: "Confidence Index", included: true },
-                  { text: "Risk Score", included: false },
-                  { text: "Alle 50+ Ligen", included: false },
-                  { text: "Unbegrenzte Signale", included: false },
-                  { text: "Priority Support", included: false }
-                ].map((item, index) => (
-                  <li key={index} className="flex items-center gap-3">
-                    {item.included ? (
-                      <CheckCircle className="w-5 h-5 text-[#39FF14]" />
-                    ) : (
-                      <Lock className="w-5 h-5 text-gray-600" />
-                    )}
-                    <span className={item.included ? "text-white" : "text-gray-500"}>{item.text}</span>
-                  </li>
-                ))}
-              </ul>
-              <button 
-                onClick={() => {
-                  setPendingPlan('free');
-                  setShowAuthModal(true);
-                }}
-                className="w-full h-12 bg-white/10 border border-white/20 text-white font-bold rounded-lg hover:bg-white/20 transition-all"
-              >
-                Kostenlos starten
-              </button>
-            </div>
-
-            {/* Pro Plan */}
-            <div className="p-6 md:p-8 bg-gradient-to-br from-[#39FF14]/10 to-[#00C2FF]/10 border border-[#39FF14]/30 rounded-xl relative overflow-hidden">
-              <div className="absolute top-4 right-4 px-3 py-1 bg-[#39FF14] text-black text-xs font-bold rounded-full">
-                BELIEBT
-              </div>
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-2xl font-bold text-white">PRO</h3>
-                <div className="text-right">
-                  <span className="text-3xl font-bold text-[#39FF14]">€49</span>
-                  <span className="text-[#A1A1AA] text-sm">/Monat</span>
-                </div>
-              </div>
-              <ul className="space-y-3 mb-6">
-                {[
-                  { text: "Unbegrenzte Signale", included: true },
-                  { text: "Alle 50+ Ligen weltweit", included: true },
-                  { text: "Risk Score & EV Analyse", included: true },
-                  { text: "Confidence Index", included: true },
-                  { text: "Liga & Markt Filter", included: true },
-                  { text: "Priority Telegram Signale", included: true },
-                  { text: "E-Mail Support", included: true }
-                ].map((item, index) => (
-                  <li key={index} className="flex items-center gap-3">
-                    <CheckCircle className="w-5 h-5 text-[#39FF14]" />
-                    <span className="text-white">{item.text}</span>
-                  </li>
-                ))}
-              </ul>
-              <button 
-                onClick={() => {
-                  setPendingPlan('pro');
-                  setShowAuthModal(true);
-                }}
-                className="w-full h-12 bg-[#39FF14] text-black font-bold rounded-lg hover:bg-[#2ebb11] hover:shadow-[0_0_30px_rgba(57,255,20,0.4)] transition-all"
-              >
-                PRO werden
-              </button>
             </div>
           </div>
         </div>

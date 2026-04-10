@@ -305,6 +305,17 @@ SENDER_NAME=BETRADARMUS
      - Test-Benachrichtigung senden
      - Admin Broadcast an Nutzergruppen
 
+5. ✅ **Landing Page Redesign** - Übersichtlicher und transparenter
+   - **Entfernt:**
+     - "Erlebe BETRADARMUS in Aktion" (LiveDemo Section)
+     - "Teste BETRADARMUS gratis" (Free Trial Section)
+   - **Neu hinzugefügt:**
+     - `WhatIsSection.jsx` - Klare Erklärung "Was ist BETRADARMUS?"
+     - 3 Hauptpunkte: KI-Analyse, Klare Signale, Echtzeit-Updates
+     - 100% Transparenz Box
+     - Quick Facts: 50+ Ligen, 24/7, 81% Confidence, ~50s Fenster
+   - **Ergebnis:** Besucher erkennt sofort worum es geht
+
 ---
 
 ## Completed (2026-03-19)
