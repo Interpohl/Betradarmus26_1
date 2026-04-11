@@ -13,7 +13,7 @@ const PLANS = {
     hitRate: 0.71, // 71%
     avgOdds: 2.22,
     color: '#39FF14',
-    monthlyPrice: 29
+    monthlyPrice: 49
   },
   elite: {
     name: 'ELITE',
@@ -21,7 +21,7 @@ const PLANS = {
     hitRate: 0.74, // 74%
     avgOdds: 2.57,
     color: '#FFD700',
-    monthlyPrice: 79
+    monthlyPrice: 149
   }
 };
 

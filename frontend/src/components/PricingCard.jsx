@@ -27,8 +27,8 @@ const plans = {
   },
   pro: {
     name: 'Pro',
-    priceMonthly: '29',
-    priceYearly: '249',
+    priceMonthly: '49',
+    priceYearly: '419',
     period: '/Monat',
     description: 'Für datenbasierte Entscheidungen',
     microcopy: 'Erkenne den richtigen Moment, nicht nur das Signal',
@@ -48,8 +48,8 @@ const plans = {
   },
   elite: {
     name: 'Elite',
-    priceMonthly: '79',
-    priceYearly: '699',
+    priceMonthly: '149',
+    priceYearly: '1249',
     period: '/Monat',
     description: 'Für maximale Echtzeit-Transparenz',
     microcopy: 'Volle Kontrolle über Timing und Marktverhalten',
