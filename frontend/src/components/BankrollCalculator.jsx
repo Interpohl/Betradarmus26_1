@@ -3,7 +3,7 @@
  * Berechnet potentielle Gewinne basierend auf Plan und Zeitraum
  */
 import React, { useState, useMemo } from 'react';
-import { Calculator, TrendingUp, Euro, Calendar, Zap, Crown, Info } from 'lucide-react';
+import { Calculator, TrendingUp, Euro, Calendar, Zap, Crown, Info, Percent } from 'lucide-react';
 
 // Plan-Konfiguration
 const PLANS = {
@@ -12,7 +12,6 @@ const PLANS = {
     signalsPerDay: 5,
     hitRate: 0.71, // 71%
     avgOdds: 2.22,
-    stakePercent: 0.05, // 5%
     color: '#39FF14',
     monthlyPrice: 29
   },
@@ -21,11 +20,16 @@ const PLANS = {
     signalsPerDay: 10,
     hitRate: 0.74, // 74%
     avgOdds: 2.57,
-    stakePercent: 0.05, // 5%
     color: '#FFD700',
     monthlyPrice: 79
   }
 };
+
+// Einsatz-Optionen
+const STAKE_OPTIONS = [
+  { value: 0.05, label: '5%', description: 'Konservativ' },
+  { value: 0.10, label: '10%', description: 'Aggressiv' }
+];
 
 const PERIODS = [
   { months: 1, label: '1 Monat' },
@@ -37,6 +41,7 @@ const PERIODS = [
 export const BankrollCalculator = () => {
   const [startCapital, setStartCapital] = useState(1000);
   const [selectedPlan, setSelectedPlan] = useState('pro');
+  const [stakePercent, setStakePercent] = useState(0.05); // Default 5%
   const [showInfo, setShowInfo] = useState(false);
 
   // Berechne erwarteten Gewinn für jeden Zeitraum
@@ -55,7 +60,7 @@ export const BankrollCalculator = () => {
         
         // Berechne täglichen Expected Value
         for (let signal = 0; signal < signalsToday; signal++) {
-          const stake = bankroll * plan.stakePercent;
+          const stake = bankroll * stakePercent;
           
           // Expected Value pro Signal
           const winAmount = stake * (plan.avgOdds - 1);
@@ -65,15 +70,18 @@ export const BankrollCalculator = () => {
           bankroll += expectedGain;
         }
         
-        // Cap das tägliche Wachstum bei maximal 15% pro Tag (realistisch)
+        // Cap das tägliche Wachstum bei maximal 20% pro Tag bei 10% Einsatz, 15% bei 5%
+        const maxDailyGrowth = stakePercent >= 0.10 ? 1.20 : 1.15;
         const maxDailyBankroll = bankroll > startCapital ? 
-          Math.min(bankroll, bankroll * 1.15) : bankroll;
+          Math.min(bankroll, bankroll * maxDailyGrowth) : bankroll;
         bankroll = maxDailyBankroll;
       }
       
       // Zusätzlich: Realistische Obergrenze basierend auf historischer Performance
-      // Pro: ~150% Rendite pro Jahr, Elite: ~200% Rendite pro Jahr
-      const annualizedReturn = selectedPlan === 'elite' ? 2.0 : 1.5;
+      // Bei 10% Einsatz: höhere Returns, aber auch höheres Risiko
+      const baseReturn = selectedPlan === 'elite' ? 2.0 : 1.5;
+      const stakeMultiplier = stakePercent >= 0.10 ? 1.8 : 1.0; // 80% mehr bei 10% Einsatz
+      const annualizedReturn = baseReturn * stakeMultiplier;
       const periodReturn = Math.pow(1 + annualizedReturn, period.months / 12);
       const conservativeBankroll = startCapital * periodReturn;
       
@@ -98,7 +106,7 @@ export const BankrollCalculator = () => {
     });
 
     return results;
-  }, [startCapital, selectedPlan]);
+  }, [startCapital, selectedPlan, stakePercent]);
 
   const plan = PLANS[selectedPlan];
 
@@ -198,6 +206,38 @@ export const BankrollCalculator = () => {
             </div>
           </div>
 
+          {/* Stake Selection - NEU */}
+          <div className="mb-8">
+            <label className="block text-sm text-[#A1A1AA] mb-3 font-medium">
+              Einsatz pro Signal
+            </label>
+            <div className="flex gap-3">
+              {STAKE_OPTIONS.map(option => (
+                <button
+                  key={option.value}
+                  onClick={() => setStakePercent(option.value)}
+                  className={`flex-1 p-4 rounded-xl border transition-all ${
+                    stakePercent === option.value
+                      ? 'bg-[#39FF14]/10 border-[#39FF14]/50'
+                      : 'bg-[#0a0a0a] border-white/10 hover:border-white/20'
+                  }`}
+                  data-testid={`stake-${option.value * 100}`}
+                >
+                  <div className="flex items-center justify-center gap-2 mb-1">
+                    <Percent className={`w-4 h-4 ${stakePercent === option.value ? 'text-[#39FF14]' : 'text-[#A1A1AA]'}`} />
+                    <span className={`text-xl font-bold ${stakePercent === option.value ? 'text-[#39FF14]' : 'text-white'}`}>
+                      {option.label}
+                    </span>
+                  </div>
+                  <div className="text-xs text-[#A1A1AA]">{option.description}</div>
+                  {option.value === 0.10 && (
+                    <div className="text-[10px] text-[#FFD700] mt-1">Höheres Risiko</div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Results Grid */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             {calculations.map((calc, index) => (
@@ -261,12 +301,17 @@ export const BankrollCalculator = () => {
                 <p>
                   <strong className="text-white">{plan.name}-Plan:</strong>{' '}
                   {plan.signalsPerDay} Signale/Tag × {Math.round(plan.hitRate * 100)}% Trefferquote × 
-                  Durchschnittsquote {plan.avgOdds.toFixed(2)} × 5% Einsatz pro Signal
+                  Durchschnittsquote {plan.avgOdds.toFixed(2)} × <span className="text-[#39FF14]">{Math.round(stakePercent * 100)}% Einsatz</span> pro Signal
                 </p>
                 <p>
                   Die Berechnung nutzt <span className="text-white">Compound-Wachstum</span> – 
                   dein Einsatz wächst proportional mit deiner Bankroll.
                 </p>
+                {stakePercent >= 0.10 && (
+                  <p className="text-[#FF6B6B]">
+                    ⚠️ Bei 10% Einsatz ist das Risiko deutlich höher! Nur für erfahrene Nutzer empfohlen.
+                  </p>
+                )}
                 <p className="text-[#FFD700]">
                   ⚠️ Hinweis: Diese Berechnung basiert auf historischen Durchschnittswerten. 
                   Sportwetten beinhalten Risiken. Vergangene Ergebnisse garantieren keine zukünftigen Gewinne.
@@ -282,7 +327,7 @@ export const BankrollCalculator = () => {
             { label: 'Signale/Tag', value: plan.signalsPerDay, icon: Zap },
             { label: 'Trefferquote', value: `${Math.round(plan.hitRate * 100)}%`, icon: TrendingUp },
             { label: 'Ø Quote', value: plan.avgOdds.toFixed(2), icon: Calculator },
-            { label: 'Einsatz/Signal', value: '5%', icon: Euro }
+            { label: 'Einsatz/Signal', value: `${Math.round(stakePercent * 100)}%`, icon: Percent }
           ].map((stat, index) => (
             <div 
               key={index}
