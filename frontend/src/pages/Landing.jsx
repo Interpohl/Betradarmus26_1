@@ -39,6 +39,11 @@ const WhatIsSection = lazy(() => import('../components/WhatIsSection').then(m =>
 // Bankroll Calculator
 const BankrollCalculator = lazy(() => import('../components/BankrollCalculator').then(m => ({ default: m.BankrollCalculator })));
 
+// NEW: High Priority Conversion Components
+const LivePerformance = lazy(() => import('../components/LivePerformance').then(m => ({ default: m.LivePerformance })));
+const MoneyBackGuarantee = lazy(() => import('../components/MoneyBackGuarantee').then(m => ({ default: m.MoneyBackGuarantee })));
+import { SignalCountdown } from '../components/SignalCountdown';
+
 // Analytics Tracker
 const AnalyticsTracker = lazy(() => import('../components/AnalyticsTracker').then(m => ({ default: m.AnalyticsTracker })));
 
@@ -304,6 +309,17 @@ export const Landing = () => {
       {/* NEW: Bankroll Calculator - Gewinn-Rechner */}
       <Suspense fallback={<SectionLoader />}>
         <BankrollCalculator />
+      </Suspense>
+
+      {/* NEW: Signal Countdown - Urgency Element */}
+      <SignalCountdown onCtaClick={() => {
+        setPendingPlan('pro');
+        setShowAuthModal(true);
+      }} />
+
+      {/* NEW: Live Performance Dashboard - Öffentliche Statistiken */}
+      <Suspense fallback={<SectionLoader />}>
+        <LivePerformance />
       </Suspense>
 
       {/* Live Ticker */}
@@ -806,6 +822,14 @@ export const Landing = () => {
           </div>
         </div>
       </section>
+
+      {/* NEW: Money Back Guarantee - Vor Pricing */}
+      <Suspense fallback={<SectionLoader />}>
+        <MoneyBackGuarantee onCtaClick={() => {
+          setPendingPlan('pro');
+          setShowAuthModal(true);
+        }} />
+      </Suspense>
 
       {/* Pricing Section */}
       <section id="pricing" className="py-24 md:py-32 relative" data-testid="pricing-section">

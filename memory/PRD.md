@@ -321,12 +321,31 @@ SENDER_NAME=BETRADARMUS
    - **Features:**
      - Eingabe Startkapital (€500 - €5.000 Quick-Select)
      - Plan-Auswahl: PRO vs ELITE
+     - Einsatz-Auswahl: 5% (Konservativ) / 10% (Aggressiv)
      - Zeitraum-Berechnung: 1, 3, 6, 12 Monate
      - Zeigt: Endkapital, Bruttogewinn, Netto nach Abo-Kosten
-   - **Parameter PRO:** 5 Signale/Tag, 71% Trefferquote, Ø Quote 2.22, 5% Einsatz
-   - **Parameter ELITE:** 10 Signale/Tag, 74% Trefferquote, Ø Quote 2.57, 5% Einsatz
+   - **Parameter PRO:** 5 Signale/Tag, 71% Trefferquote, Ø Quote 2.22
+   - **Parameter ELITE:** 10 Signale/Tag, 74% Trefferquote, Ø Quote 2.57
+   - **Preise:** PRO €29/Monat, ELITE €79/Monat
    - **Realistische Berechnung:** Compound-Wachstum mit konservativen Obergrenzen
    - **Risikohinweis:** Integrierte Warnung über Sportwetten-Risiken
+
+7. ✅ **High-Priority Conversion Features** - Vertrauen & Urgency
+   - **Live Performance Dashboard** (`LivePerformance.jsx`)
+     - Öffentliche Statistiken: Trefferquote, ROI, Signale, Gewinnserie
+     - Zeitraum-Filter: Heute, 7 Tage, 30 Tage, Gesamt
+     - "Letzte 10 Signale" mit Match, Markt, Quote, Ergebnis (+/-)
+     - Ø Quote und Bilanz sichtbar
+   - **Signal Countdown** (`SignalCountdown.jsx`)
+     - "X aktive Signale - Jetzt verfügbar für PRO/ELITE"
+     - Live-Countdown: "Nächstes Signal in: MM:SS"
+     - "Zugang sichern" CTA-Button
+     - Urgency-Warnung: "X Signale warten – Zeitfenster begrenzt"
+   - **Geld-zurück-Garantie** (`MoneyBackGuarantee.jsx`)
+     - "14 TAGE GELD-ZURÜCK-GARANTIE" prominent vor Pricing
+     - Trust-Punkte: 14 Tage testen, Volle Erstattung, Keine Fragen
+     - 100% Garantie Badge
+     - "Risikofrei starten" CTA
 
 ---
 
