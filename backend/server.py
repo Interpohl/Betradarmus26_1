@@ -3145,6 +3145,236 @@ async def record_tip(tip_data: dict, user: dict = Depends(require_auth)):
     tip_id = await statistics_service.record_tip(tip_data)
     return {"success": True, "tip_id": tip_id}
 
+# ==================== PERFORMANCE DATA API ROUTES ====================
+
+@api_router.get("/performance/public")
+async def get_public_performance():
+    """Get public performance data for landing page"""
+    from datetime import datetime, timezone, timedelta
+    
+    now = datetime.now(timezone.utc)
+    
+    # Get all performance entries
+    all_entries = await db.performance_data.find().sort("date", -1).to_list(500)
+    
+    if not all_entries:
+        # Return default data if no entries
+        return {
+            "today": {"signals": 0, "wins": 0, "hitRate": 0, "roi": 0},
+            "week": {"signals": 0, "wins": 0, "hitRate": 0, "roi": 0},
+            "month": {"signals": 0, "wins": 0, "hitRate": 0, "roi": 0},
+            "allTime": {"signals": 0, "wins": 0, "hitRate": 0, "roi": 0},
+            "recentSignals": [],
+            "streak": 0,
+            "avgOdds": 0
+        }
+    
+    # Calculate stats for different periods
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    week_start = today_start - timedelta(days=7)
+    month_start = today_start - timedelta(days=30)
+    
+    def calc_stats(entries):
+        if not entries:
+            return {"signals": 0, "wins": 0, "hitRate": 0, "roi": 0}
+        wins = sum(1 for e in entries if e.get("won", False))
+        total_units = sum(e.get("units", 0) for e in entries)
+        return {
+            "signals": len(entries),
+            "wins": wins,
+            "hitRate": round((wins / len(entries)) * 100, 1) if entries else 0,
+            "roi": round(total_units, 1)
+        }
+    
+    def normalize_date(dt):
+        """Ensure datetime is timezone-aware"""
+        if dt is None:
+            return None
+        if dt.tzinfo is None:
+            return dt.replace(tzinfo=timezone.utc)
+        return dt
+    
+    today_entries = [e for e in all_entries if normalize_date(e.get("date")) and normalize_date(e["date"]) >= today_start]
+    week_entries = [e for e in all_entries if normalize_date(e.get("date")) and normalize_date(e["date"]) >= week_start]
+    month_entries = [e for e in all_entries if normalize_date(e.get("date")) and normalize_date(e["date"]) >= month_start]
+    
+    # Calculate streak
+    streak = 0
+    for entry in all_entries:
+        if entry.get("won", False):
+            streak += 1
+        else:
+            break
+    
+    # Average odds
+    odds_list = [e.get("odds", 0) for e in all_entries if e.get("odds")]
+    avg_odds = round(sum(odds_list) / len(odds_list), 2) if odds_list else 0
+    
+    # Recent signals for display
+    recent = all_entries[:10]
+    recent_signals = [
+        {
+            "id": str(e.get("_id", "")),
+            "match": e.get("match", ""),
+            "market": e.get("market", ""),
+            "odds": e.get("odds", 0),
+            "result": "won" if e.get("won", False) else "lost",
+            "profit": f"+{e.get('units', 0):.2f}" if e.get("won") else f"{e.get('units', 0):.2f}",
+            "time": e.get("date").strftime("%d.%m %H:%M") if e.get("date") else ""
+        }
+        for e in recent
+    ]
+    
+    return {
+        "today": calc_stats(today_entries),
+        "week": calc_stats(week_entries),
+        "month": calc_stats(month_entries),
+        "allTime": calc_stats(all_entries),
+        "recentSignals": recent_signals,
+        "streak": streak,
+        "avgOdds": avg_odds
+    }
+
+@api_router.get("/performance/entries")
+async def get_performance_entries(
+    limit: int = 50,
+    skip: int = 0,
+    user: dict = Depends(require_admin)
+):
+    """Get performance entries (admin only)"""
+    entries = await db.performance_data.find().sort("date", -1).skip(skip).limit(limit).to_list(limit)
+    total = await db.performance_data.count_documents({})
+    
+    return {
+        "entries": [
+            {
+                "id": str(e.get("_id")),
+                "date": e.get("date").isoformat() if e.get("date") else None,
+                "match": e.get("match", ""),
+                "market": e.get("market", ""),
+                "odds": e.get("odds", 0),
+                "won": e.get("won", False),
+                "units": e.get("units", 0),
+                "roi": e.get("roi", 0),
+                "created_at": e.get("created_at").isoformat() if e.get("created_at") else None
+            }
+            for e in entries
+        ],
+        "total": total,
+        "limit": limit,
+        "skip": skip
+    }
+
+@api_router.post("/performance/entries")
+async def create_performance_entry(
+    data: dict,
+    user: dict = Depends(require_admin)
+):
+    """Create a new performance entry (admin only)"""
+    from datetime import datetime, timezone
+    from bson import ObjectId
+    
+    # Parse date
+    date_str = data.get("date")
+    if date_str:
+        try:
+            entry_date = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+        except:
+            entry_date = datetime.now(timezone.utc)
+    else:
+        entry_date = datetime.now(timezone.utc)
+    
+    entry = {
+        "date": entry_date,
+        "match": data.get("match", ""),
+        "market": data.get("market", ""),
+        "odds": float(data.get("odds", 0)),
+        "won": data.get("won", False),
+        "units": float(data.get("units", 0)),
+        "roi": float(data.get("roi", 0)),
+        "created_at": datetime.now(timezone.utc),
+        "created_by": user.get("id")
+    }
+    
+    result = await db.performance_data.insert_one(entry)
+    
+    return {
+        "success": True,
+        "id": str(result.inserted_id),
+        "message": "Eintrag erstellt"
+    }
+
+@api_router.put("/performance/entries/{entry_id}")
+async def update_performance_entry(
+    entry_id: str,
+    data: dict,
+    user: dict = Depends(require_admin)
+):
+    """Update a performance entry (admin only)"""
+    from datetime import datetime, timezone
+    from bson import ObjectId
+    
+    try:
+        obj_id = ObjectId(entry_id)
+    except:
+        raise HTTPException(status_code=400, detail="Ungültige Entry-ID")
+    
+    # Parse date
+    date_str = data.get("date")
+    if date_str:
+        try:
+            entry_date = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+        except:
+            entry_date = None
+    else:
+        entry_date = None
+    
+    update_data = {
+        "match": data.get("match"),
+        "market": data.get("market"),
+        "odds": float(data.get("odds", 0)) if data.get("odds") else None,
+        "won": data.get("won"),
+        "units": float(data.get("units", 0)) if data.get("units") is not None else None,
+        "roi": float(data.get("roi", 0)) if data.get("roi") is not None else None,
+        "updated_at": datetime.now(timezone.utc)
+    }
+    
+    if entry_date:
+        update_data["date"] = entry_date
+    
+    # Remove None values
+    update_data = {k: v for k, v in update_data.items() if v is not None}
+    
+    result = await db.performance_data.update_one(
+        {"_id": obj_id},
+        {"$set": update_data}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Eintrag nicht gefunden")
+    
+    return {"success": True, "message": "Eintrag aktualisiert"}
+
+@api_router.delete("/performance/entries/{entry_id}")
+async def delete_performance_entry(
+    entry_id: str,
+    user: dict = Depends(require_admin)
+):
+    """Delete a performance entry (admin only)"""
+    from bson import ObjectId
+    
+    try:
+        obj_id = ObjectId(entry_id)
+    except:
+        raise HTTPException(status_code=400, detail="Ungültige Entry-ID")
+    
+    result = await db.performance_data.delete_one({"_id": obj_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Eintrag nicht gefunden")
+    
+    return {"success": True, "message": "Eintrag gelöscht"}
+
 # ==================== SCHEDULER API ROUTES ====================
 
 @api_router.get("/scheduler/status")

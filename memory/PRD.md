@@ -336,6 +336,7 @@ SENDER_NAME=BETRADARMUS
      - Zeitraum-Filter: Heute, 7 Tage, 30 Tage, Gesamt
      - "Letzte 10 Signale" mit Match, Markt, Quote, Ergebnis (+/-)
      - Ø Quote und Bilanz sichtbar
+     - **NEU:** Lädt echte Daten aus `/api/performance/public`
    - **Signal Countdown** (`SignalCountdown.jsx`)
      - "X aktive Signale - Jetzt verfügbar für PRO/ELITE"
      - Live-Countdown: "Nächstes Signal in: MM:SS"
@@ -346,6 +347,22 @@ SENDER_NAME=BETRADARMUS
      - Trust-Punkte: 14 Tage testen, Volle Erstattung, Keine Fragen
      - 100% Garantie Badge
      - "Risikofrei starten" CTA
+
+8. ✅ **Performance Manager** - Admin Tool für manuelle Dateneingabe
+   - **Backend API:** `/api/performance/*`
+     - `GET /performance/public` - Öffentliche Stats (ohne Auth)
+     - `GET /performance/entries` - Alle Einträge (Admin)
+     - `POST /performance/entries` - Neuer Eintrag (Admin)
+     - `PUT /performance/entries/{id}` - Update (Admin)
+     - `DELETE /performance/entries/{id}` - Löschen (Admin)
+   - **Frontend:** `/app/frontend/src/components/PerformanceManager.jsx`
+   - **Felder:** Datum, Spiel, Wettart (Dropdown), Quote, Gewonnen/Verloren, Units +/-, ROI
+   - **Features:**
+     - Quick Stats (Einträge, Gewonnen, Trefferquote, Units)
+     - Tabelle mit Pagination
+     - Auto-Berechnung der Units aus Quote
+     - Bearbeiten & Löschen per Row
+   - **Integration:** Neuer "Performance" Tab im Admin Dashboard
 
 ---
 

@@ -4,41 +4,12 @@
  */
 import React, { useState, useEffect } from 'react';
 import { 
-  TrendingUp, TrendingDown, Target, CheckCircle, XCircle, 
-  Clock, Zap, BarChart3, Activity, ArrowUpRight, ArrowDownRight,
+  TrendingUp, Target, CheckCircle, XCircle, 
+  Clock, Zap, Activity, ArrowUpRight,
   Calendar, Trophy
 } from 'lucide-react';
 
-// Simulierte Performance-Daten (in Produktion: von API laden)
-const generatePerformanceData = () => {
-  // Letzte 10 Signale mit realistischen Daten
-  const recentSignals = [
-    { id: 1, match: "Bayern vs Dortmund", market: "Over 2.5", odds: 1.85, result: "won", profit: "+0.85", time: "Heute 19:30" },
-    { id: 2, match: "Liverpool vs Chelsea", market: "BTTS", odds: 1.72, result: "won", profit: "+0.72", time: "Heute 17:00" },
-    { id: 3, match: "Real vs Atletico", market: "Over 1.5", odds: 1.45, result: "won", profit: "+0.45", time: "Heute 14:15" },
-    { id: 4, match: "PSG vs Lyon", market: "1X", odds: 1.38, result: "won", profit: "+0.38", time: "Gestern 21:00" },
-    { id: 5, match: "Inter vs Milan", market: "Under 3.5", odds: 1.55, result: "lost", profit: "-1.00", time: "Gestern 18:45" },
-    { id: 6, match: "Arsenal vs Spurs", market: "Over 2.5", odds: 1.90, result: "won", profit: "+0.90", time: "Gestern 16:30" },
-    { id: 7, match: "Juventus vs Napoli", market: "BTTS", odds: 1.80, result: "won", profit: "+0.80", time: "Vor 2 Tagen" },
-    { id: 8, match: "Man City vs Man Utd", market: "1", odds: 1.65, result: "won", profit: "+0.65", time: "Vor 2 Tagen" },
-    { id: 9, match: "Barca vs Sevilla", market: "Over 1.5", odds: 1.35, result: "won", profit: "+0.35", time: "Vor 3 Tagen" },
-    { id: 10, match: "Leipzig vs Frankfurt", market: "BTTS", odds: 1.75, result: "lost", profit: "-1.00", time: "Vor 3 Tagen" },
-  ];
-
-  // Berechne Stats aus den letzten 10
-  const wins = recentSignals.filter(s => s.result === 'won').length;
-  const hitRate = (wins / recentSignals.length) * 100;
-  
-  return {
-    today: { signals: 3, wins: 3, hitRate: 100, roi: 6.7 },
-    week: { signals: 28, wins: 21, hitRate: 75, roi: 18.4 },
-    month: { signals: 142, wins: 101, hitRate: 71.1, roi: 47.2 },
-    allTime: { signals: 1847, wins: 1311, hitRate: 71.0, roi: 156.8 },
-    recentSignals,
-    streak: 4, // Aktuelle Gewinnserie
-    avgOdds: 1.72
-  };
-};
+const API = process.env.REACT_APP_BACKEND_URL;
 
 export const LivePerformance = () => {
   const [data, setData] = useState(null);
@@ -46,12 +17,24 @@ export const LivePerformance = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simuliere API-Laden
-    const timer = setTimeout(() => {
-      setData(generatePerformanceData());
+    const fetchData = async () => {
+      try {
+        const response = await fetch(`${API}/api/performance/public`);
+        if (response.ok) {
+          const result = await response.json();
+          setData(result);
+        }
+      } catch (error) {
+        console.error('Error fetching performance data:', error);
+      }
       setIsLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
+    };
+
+    fetchData();
+    
+    // Refresh every 5 minutes
+    const interval = setInterval(fetchData, 5 * 60 * 1000);
+    return () => clearInterval(interval);
   }, []);
 
   if (isLoading) {

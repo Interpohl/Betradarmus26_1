@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { toast } from 'sonner';
+import { PerformanceManager } from '../components/PerformanceManager';
 import { 
   Send, 
   Users, 
@@ -31,7 +32,8 @@ import {
   Eye,
   Search,
   DollarSign,
-  TrendingDown
+  TrendingDown,
+  Trophy
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -502,6 +504,7 @@ export const AdminDashboard = () => {
         <div className="flex gap-2 mb-6 border-b border-gray-800 pb-4 overflow-x-auto">
           {[
             { id: 'overview', label: 'Übersicht', icon: Activity },
+            { id: 'performance', label: 'Performance', icon: Trophy },
             { id: 'generator', label: 'KI Generator', icon: Cpu },
             { id: 'signals', label: 'Signale', icon: Zap },
             { id: 'polymarket', label: 'Polymarket', icon: TrendingUp },
@@ -708,6 +711,11 @@ export const AdminDashboard = () => {
               </div>
             </div>
           </>
+        )}
+
+        {/* Performance Data Tab */}
+        {activeTab === 'performance' && (
+          <PerformanceManager />
         )}
 
         {/* KI Generator Tab */}
